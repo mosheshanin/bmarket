@@ -88,7 +88,7 @@ export default function Listings() {
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className={`badge ${STATUS_TONE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
                   {r.sellerStage && r.status === 'draft' && <span className={`badge ${SELLER_STAGE_TONE[r.sellerStage]}`}>{SELLER_STAGE_LABEL[r.sellerStage]}</span>}
-                  {r.fromSeller && r.status !== 'draft' && <span className="badge bg-hint/15 text-hint">от продавца</span>}
+                  {!!r.fromSeller && r.status !== 'draft' && <span className="badge bg-hint/15 text-hint">от продавца</span>}
                   {r.priceIls ? <span>₪ {fmtNum(r.priceIls)}</span> : null}
                   <span className="text-hint">👁 {r.views30} · ✉️ {r.leads30} за 30 дн.</span>
                 </div>

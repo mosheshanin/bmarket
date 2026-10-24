@@ -2,11 +2,11 @@
 import '../styles/global.css';
 import { site } from '../server/site';
 import Splash from '../components/Splash.astro';
-import manropeCyrillic from '@fontsource-variable/manrope/files/manrope-cyrillic-wght-normal.woff2?url';
-// Шрифт заставки (округлый Nunito) — подгружается заранее только когда заставка действительно будет показана.
+// Шрифт приложения — округлый Nunito; кириллица подгружается заранее, латиница — когда встретится на странице.
 import nunitoCyrillic from '@fontsource-variable/nunito/files/nunito-cyrillic-wght-normal.woff2?url';
 import nunitoLatin from '@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2?url';
-const splashFonts = [nunitoCyrillic, nunitoLatin];
+// Для заставки (латинские BMarket, HaifaBusinessClub) латиница тоже нужна сразу.
+const splashFonts = [nunitoLatin];
 
 interface Props {
   title: string;
@@ -54,7 +54,7 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {ogImage && <meta property="og:image" content={ogImage} />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href={manropeCyrillic} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={nunitoCyrillic} as="font" type="font/woff2" crossorigin />
     {ldJson.map((j) => <script type="application/ld+json" set:html={j} />)}
     <!-- Внутри Telegram: пометить документ и подключить SDK мини-приложения (в браузере не грузится). -->
     <script is:inline define:vars={{ splashFonts }}>

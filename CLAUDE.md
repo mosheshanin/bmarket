@@ -15,7 +15,7 @@
 
 ## Стек
 Astro 7 (SSR) + `@astrojs/cloudflare` 14 → Cloudflare Workers (Free). React-острова (админка, форма заявки, галерея).
-Tailwind 4 + цвета темы Telegram, шрифт Manrope (`@fontsource-variable/manrope`). D1 + Drizzle ORM.
+Tailwind 4 + цвета темы Telegram, шрифт Nunito (`@fontsource-variable/nunito`, округлый). D1 + Drizzle ORM.
 Фото — Workers KV (`PHOTOS_KV`), R2 (`PHOTOS`) подключается привязкой без правки кода (`src/server/storage.ts`).
 grammY для бота. Zod для входных данных.
 

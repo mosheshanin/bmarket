@@ -399,6 +399,7 @@ export async function listBusinesses(env: Env, db: DB, status?: string) {
   for (const p of photos) if (!cover.has(p.businessId)) cover.set(p.businessId, p.key);
   return rows.map((r) => ({
     ...r,
+    fromSeller: !!r.fromSeller, // SQLite отдаёт 0/1
     path: businessPath(r.lotNumber, r.slug),
     cover: cover.has(r.id) ? imageUrl(env, cover.get(r.id)!) : null,
     views30: vm.get(r.id) ?? 0,
