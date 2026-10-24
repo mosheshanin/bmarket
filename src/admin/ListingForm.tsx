@@ -263,7 +263,7 @@ export default function ListingForm({ id: initialId }: { id: number | null }) {
           <Field label="Город" htmlFor="f-city" error={isMissing('город') ? 'Обязательно' : undefined}>
             <select id="f-city" className="field" value={form.cityId ?? ''} onChange={(e) => set('cityId', e.target.value ? Number(e.target.value) : null)}>
               <option value="">— выберите —</option>
-              {meta.cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {meta.cities.filter((c) => c.isActive || c.id === form.cityId).map((c) => <option key={c.id} value={c.id}>{c.name}{c.isActive ? '' : ' (скоро)'}</option>)}
             </select>
           </Field>
           <Field label="Отрасль" htmlFor="f-cat" error={isMissing('отрасль') ? 'Обязательно' : undefined}>

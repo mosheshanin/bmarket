@@ -10,7 +10,7 @@ import { INCLUDED_LABELS, LEGAL_FORM_LABELS, LICENSE_LABELS, formatPayback, payb
 
 /**
  * «Мои объявления» — продавец сам заполняет объявление (черновик сохраняется автоматически),
- * отправляет, оплачивает PayPal; после оплаты правки — только запросом администратору.
+ * отправляет заявку на размещение (оплату согласует менеджер); после оплаты правки — только запросом администратору.
  */
 
 const BASE = '/api/seller/';
@@ -66,7 +66,7 @@ interface Detail {
 function stageLabel(r: { status: Row['status']; sellerStage: Stage | null }): [string, string] {
   if (r.status === 'published') return ['Опубликовано', 'bg-success/15 text-success'];
   if (r.status === 'hidden') return ['Снято с публикации', 'bg-hint/15 text-hint'];
-  if (r.sellerStage === 'awaiting_payment') return ['Ждёт оплаты', 'bg-warn text-text'];
+  if (r.sellerStage === 'awaiting_payment') return ['Заявка отправлена', 'bg-warn text-text'];
   if (r.sellerStage === 'in_review') return ['На проверке', 'bg-accent/15 text-accent'];
   return ['Черновик', 'bg-hint/15 text-hint'];
 }
@@ -207,7 +207,7 @@ function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
         <p className="font-semibold">Как это работает</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-hint">
           <li>Заполните объявление — черновик сохраняется автоматически, вернуться можно в любой момент.</li>
-          <li>Отправьте{me.priceIls > 0 ? <> и оплатите размещение — <b className="text-text">{ils(me.priceIls)}</b> через PayPal</> : ''}.</li>
+          <li>Отправьте заявку на размещение{me.priceIls > 0 ? <> — менеджер свяжется и согласует оплату (<b className="text-text">{ils(me.priceIls)}</b>)</> : ''}.</li>
           <li>{me.autoPublish ? 'Объявление сразу появится в каталоге' : 'После проверки администратором объявление появится в каталоге'}. Название и адрес бизнеса посетители не увидят.</li>
           <li>Изменить опубликованное объявление можно через запрос администратору.</li>
         </ol>
@@ -620,7 +620,7 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
                         <li key={x.key} className="flex justify-between"><span className="text-hint">{x.title}</span><span>{ils(extraPrice(detail, x.key))}</span></li>
                       ))}
                       <li className="flex justify-between border-t border-line pt-1 font-bold"><span>Итого</span><span>{order.totalIls > 0 ? ils(order.totalIls) : 'бесплатно'}</span></li>
-                      {order.totalIls > 0 && <li className="text-hint">Оплата через PayPal — картой или аккаунтом PayPal.</li>}
+                      {order.totalIls > 0 && <li className="text-hint">Оплата — после звонка менеджера, удобным для вас способом. Онлайн платить не нужно.</li>}
                     </>
                   )}
                 </ul>
@@ -630,7 +630,7 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
                   <li>После отправки изменить объявление можно только через запрос администратору.</li>
                 </ul>
                 <button className="btn btn-primary w-full" onClick={submit} disabled={submitting || state === 'conflict'}>
-                  {submitting ? 'Отправляем…' : detail.paid || order.totalIls === 0 ? 'Отправить объявление' : `Отправить и оплатить ${ils(order.totalIls)}`}
+                  {submitting ? 'Отправляем…' : detail.paid || order.totalIls === 0 ? 'Отправить объявление' : 'Отправить заявку на размещение'}
                 </button>
               </>
             );
@@ -750,7 +750,7 @@ function Status({ id, onChanged }: { id: number; onChanged: () => void }) {
 
       {awaiting && (
         <section className="card flex flex-col gap-3 p-4">
-          <h2 className="text-base font-bold">К оплате · {ils(d.total)}</h2>
+          <h2 className="text-base font-bold">{d.payment.paypal ? `К оплате · ${ils(d.total)}` : 'Заявка на размещение отправлена'}</h2>
           {(d.business.extrasOrdered ?? []).length > 0 && (
             <p className="text-sm text-hint">
               {[d.priceIls > 0 && `размещение ${ils(d.priceIls)}`, ...EXTRAS.filter((x) => d.business.extrasOrdered.includes(x.key)).map((x) => `${x.title.toLowerCase()} ${ils(extraPrice(d, x.key))}`)].filter(Boolean).join(' · ')}
@@ -766,7 +766,7 @@ function Status({ id, onChanged }: { id: number; onChanged: () => void }) {
               {waiting && <button className="btn btn-secondary w-full" onClick={load}>Я оплатил — проверить</button>}
             </>
           ) : (
-            <p className="text-sm">Онлайн-оплата скоро будет подключена. Администратор уже получил ваше объявление и свяжется с вами для оплаты.</p>
+            <p className="text-sm">Менеджер получил заявку и свяжется с вами в рабочее время, чтобы согласовать оплату <b>{ils(d.total)}</b>. {d.autoPublish ? 'После подтверждения оплаты объявление сразу появится в каталоге.' : 'После подтверждения оплаты объявление проверят и опубликуют.'}</p>
           )}
           <div className="flex flex-wrap gap-2">
             <button className="btn btn-secondary flex-1" onClick={backToEdit}>Изменить объявление</button>

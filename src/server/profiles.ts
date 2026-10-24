@@ -98,7 +98,7 @@ export async function surveyFacets(env: Env, db: DB) {
   const since = Date.now() - 30 * 86_400_000;
   const [cats, cityRows, lots, buyersByCat, buyersAny, buyersTotal, viewsByCat] = await Promise.all([
     db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(categories.sortOrder, categories.name),
-    db.select({ id: cities.id, name: cities.name }).from(cities).orderBy(cities.sortOrder, cities.name),
+    db.select({ id: cities.id, name: cities.name }).from(cities).where(eq(cities.isActive, true)).orderBy(cities.sortOrder, cities.name),
     listPublished(db),
     db.all<{ cat: number; n: number }>(sql`
       select j.value as cat, count(*) as n from ${visitorProfiles}, json_each(${visitorProfiles.categories}) j

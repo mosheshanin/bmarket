@@ -15,6 +15,8 @@ export const cities = sqliteTable('cities', {
   namePrepositional: text('name_prepositional').notNull(),
   slug: text('slug').notNull(),
   sortOrder: integer('sort_order').notNull().default(0),
+  /** Город доступен в каталоге, формах и опросе. Выключенные — «скоро» (временно работаем только в Хайфе). */
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
 }, (t) => [uniqueIndex('cities_slug_uq').on(t.slug)]);
 
 export const categories = sqliteTable('categories', {

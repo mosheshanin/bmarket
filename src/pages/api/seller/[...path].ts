@@ -35,7 +35,7 @@ const routes: [string, RegExp, Handler][] = [
     return json({
       user: { id: user.id, firstName: user.first_name, username: user.username ?? null },
       items,
-      cities: dicts.cities.map((c) => ({ id: c.id, name: c.name })),
+      cities: dicts.cities.filter((c) => c.isActive).map((c) => ({ id: c.id, name: c.name })),
       categories: dicts.categories.map((c) => ({ id: c.id, name: c.name })),
       priceIls: settings.priceIls,
       autoPublish: settings.autoPublish,

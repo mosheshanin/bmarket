@@ -36,6 +36,13 @@
       "when": 1792863458214,
       "tag": "0004_badges_extras",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792864345583,
+      "tag": "0005_city_active",
+      "breakpoints": true
     }
   ]
 }

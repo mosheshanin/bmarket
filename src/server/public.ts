@@ -166,12 +166,13 @@ export async function citiesWithListings(db: DB): Promise<CityWithCount[]> {
     })
     .from(cities)
     .innerJoin(businesses, and(eq(businesses.cityId, cities.id), eq(businesses.status, 'published')))
+    .where(eq(cities.isActive, true))
     .groupBy(cities.id)
     .orderBy(asc(cities.sortOrder), asc(cities.name));
 }
 
 export async function getCityBySlug(db: DB, slug: string) {
-  const [c] = await db.select().from(cities).where(eq(cities.slug, slug)).limit(1);
+  const [c] = await db.select().from(cities).where(and(eq(cities.slug, slug), eq(cities.isActive, true))).limit(1);
   return c ?? null;
 }
 

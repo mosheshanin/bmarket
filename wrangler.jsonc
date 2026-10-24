@@ -35,6 +35,8 @@
     "TURNSTILE_SITE_KEY": "",
     "CF_ANALYTICS_TOKEN": "",
     "PROJECT_NAME": "BMarket",
+    // Онлайн-оплата размещения: "0" — выключена (заявка приходит менеджерам в группу), "1" — PayPal (нужны секреты).
+    "ONLINE_PAYMENTS": "0",
     // PayPal: sandbox — тестовые платежи, live — настоящие. Секреты PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET — в панели Cloudflare.
     "PAYPAL_ENV": "sandbox",
     // ID вебхука из PayPal Developer Dashboard (не секрет). Пусто — вебхук выключен, работает возврат + сверка раз в минуту.

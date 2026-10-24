@@ -13,3 +13,5 @@ PAYPAL_CLIENT_ID=test-client
 PAYPAL_CLIENT_SECRET=test-secret
 PAYPAL_WEBHOOK_ID=WH-TEST
 PAYPAL_API_BASE=http://127.0.0.1:8799
+# В сквозных тестах онлайн-оплата включена, чтобы проверить PayPal (в production — выключена).
+ONLINE_PAYMENTS=1

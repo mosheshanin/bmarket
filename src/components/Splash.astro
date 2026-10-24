@@ -1,56 +1,74 @@
 ---
 /**
- * Заставка «Сторис» (вариант A): 5 сцен ≈ 6,7 с при каждом открытии мини-приложения.
- * Показывается только внутри Telegram и только на первой странице открытия (sessionStorage),
- * не показывается в админ-панели и при «уменьшении движения» в системе.
- * Решение о показе принимает встроенный скрипт в <head> (класс .splash-on) — до отрисовки страницы.
+ * Заставка при каждом открытии мини-приложения (≈7,3 с, «Пропустить» в любой момент).
+ * Стиль — тёмный «премиум»: почти чёрный фон, золотой акцент, мягкое свечение и зерно,
+ * текст проявляется из размытия, сцены сменяются плавным наплывом, сверху — полоски прогресса как в сторис.
+ * Сцены: HaifaBusinessClub представляет → бренд → фото из каталога → цифры и гарантии.
+ * Показывается только внутри Telegram и только на первой странице открытия (решение — в <head>, класс .splash-on),
+ * не показывается в админ-панели и при «уменьшении движения».
  */
-import { catalogSummary } from '../server/public';
-import { db, site } from '../server/site';
-import { groupDigits } from '../lib/format';
+import { catalogSummary, imageUrl, listPublished } from '../server/public';
+import { db, env, site } from '../server/site';
+import { groupDigits, plural } from '../lib/format';
 
 const s = site();
-let priceLine = 'Цена, оборот, прибыль';
+let count = 0;
+let minPrice: number | null = null;
+let photo: string | null = null;
 try {
-  const { minPrice } = await catalogSummary(db());
-  if (minPrice) priceLine = `от ₪ ${groupDigits(minPrice)}`;
+  const d = db();
+  const [sum, top] = await Promise.all([catalogSummary(d), listPublished(d, { limit: 1 })]);
+  count = sum.count;
+  minPrice = sum.minPrice;
+  if (top[0]?.cover) photo = imageUrl(env, top[0].cover.r2Key);
 } catch {
   /* заставка не должна ломать страницу */
 }
+const offers = count ? `${count} ${plural(count, ['предложение', 'предложения', 'предложений'])}` : 'Новые предложения';
 ---
 
 <div id="bm-splash" class="bm-splash">
-  <div class="sp-sc sp-s1" aria-hidden="true">
-    <div class="sp-blob" style="width:300px;height:300px;right:-90px;bottom:-80px;background:rgba(255,255,255,.35);animation-delay:.25s"></div>
-    <div class="sp-blob" style="width:70px;height:70px;right:60px;top:22%;background:#0B1630;animation-delay:.5s"></div>
-    <p class="sp-big"><span class="sp-ln"><span style="animation-delay:.35s">Готовый</span></span><span class="sp-ln"><span style="animation-delay:.45s">бизнес</span></span></p>
-  </div>
-  <div class="sp-sc sp-s2" aria-hidden="true">
-    <div class="sp-ring" style="width:240px;height:240px;right:-60px;top:16%"></div>
-    <div class="sp-dot" style="width:46px;height:46px;right:74px;top:calc(16% + 97px);animation-delay:1.75s"></div>
-    <p class="sp-big" style="color:#fff"><span class="sp-ln"><span style="animation-delay:1.55s">на продажу</span></span><span class="sp-ln"><span style="animation-delay:1.65s;color:#F5B83D">в Израиле</span></span></p>
-  </div>
-  <div class="sp-sc sp-s3" aria-hidden="true">
-    <div class="sp-bar" style="top:16%;width:240px;background:rgba(11,22,48,.12);animation-delay:2.7s"></div>
-    <div class="sp-bar" style="bottom:18%;width:300px;background:rgba(255,255,255,.55);animation-delay:2.85s"></div>
-    <p class="sp-mid"><span class="sp-ln"><span style="animation-delay:2.75s">Кафе</span></span><span class="sp-ln"><span style="animation-delay:2.85s">Салоны</span></span><span class="sp-ln"><span style="animation-delay:2.95s">Магазины</span></span><span class="sp-ln"><span style="animation-delay:3.05s">Производство</span></span></p>
-  </div>
-  <div class="sp-sc sp-s4" aria-hidden="true">
-    <div class="sp-stripe" style="top:9%;background:rgba(255,255,255,.18);animation-delay:3.9s"></div>
-    <div class="sp-stripe" style="bottom:7%;background:rgba(11,22,48,.10);animation-delay:4.05s"></div>
-    <p class="sp-big"><span class="sp-ln"><span style="animation-delay:4s">{priceLine}</span></span></p>
-    <p class="sp-small"><span class="sp-ln"><span style="animation-delay:4.2s">Цена, оборот, прибыль</span></span><span class="sp-ln"><span style="animation-delay:4.3s">и окупаемость — сразу</span></span></p>
-  </div>
-  <div class="sp-sc sp-s5" aria-hidden="true">
-    <div class="sp-ring" style="width:200px;height:200px;right:-50px;top:38%"></div>
-    <div style="position:relative;z-index:2;align-self:flex-start">
-      <p class="sp-big" style="color:#fff"><span class="sp-ln"><span style="animation-delay:5.25s">{s.name}</span></span></p>
-      <div class="sp-ul"></div>
+  <div class="sp-glow" aria-hidden="true"></div>
+
+  <!-- 1. HaifaBusinessClub представляет -->
+  <section class="sp-sc sp-s0" aria-hidden="true">
+    <div class="sp-mono sp-in" style="--d:.15s"><span>HBC</span></div>
+    <p class="sp-word sp-gold sp-in" style="--d:.45s">HaifaBusinessClub</p>
+    <span class="sp-rule" style="--d:.85s"></span>
+    <p class="sp-caps sp-in" style="--d:1s">представляет</p>
+  </section>
+
+  <!-- 2. Бренд -->
+  <section class="sp-sc sp-s1" aria-hidden="true">
+    <p class="sp-brand sp-in" style="--d:2.05s">{s.name}</p>
+    <p class="sp-lead sp-in" style="--d:2.4s">Готовый бизнес <span class="sp-gold">в&nbsp;Хайфе</span></p>
+  </section>
+
+  <!-- 3. Фото из каталога -->
+  <section class="sp-sc sp-s2" aria-hidden="true">
+    {photo && <img class="sp-photo" src={photo} alt="" decoding="async" fetchpriority="high" />}
+    <div class="sp-shade"></div>
+    <div class="sp-bottom">
+      <p class="sp-head sp-in" style="--d:3.75s">Кафе. Салоны.<br />Магазины. Сервис.</p>
+      <p class="sp-lead sp-in" style="--d:4.05s">Цена, оборот и прибыль — открыто</p>
     </div>
-    <p class="sp-small" style="color:rgba(255,255,255,.78)"><span class="sp-ln"><span style="animation-delay:5.5s">Заявка в один клик</span></span></p>
-    <div class="sp-dot" style="width:40px;height:40px;right:72px;top:46%;animation-delay:5.65s"></div>
+  </section>
+
+  <!-- 4. Цифры и гарантии -->
+  <section class="sp-sc sp-s3" aria-hidden="true">
+    <p class="sp-num sp-gold sp-in" style="--d:5.3s">{count || '—'}</p>
+    <p class="sp-lead sp-in" style="--d:5.5s">{offers}{minPrice ? ` · от ₪ ${groupDigits(minPrice)}` : ''}</p>
+    <ul class="sp-points">
+      <li class="sp-in" style="--d:5.75s">Оценка экспертов</li>
+      <li class="sp-in" style="--d:5.9s">Финансовый аудит</li>
+      <li class="sp-in" style="--d:6.05s">Полная конфиденциальность</li>
+    </ul>
+  </section>
+
+  <div class="sp-grain" aria-hidden="true"></div>
+  <div class="sp-bars" aria-hidden="true">
+    <span style="--d:0s;--t:1.9s"></span><span style="--d:1.9s;--t:1.6s"></span><span style="--d:3.5s;--t:1.6s"></span><span style="--d:5.1s;--t:1.6s"></span>
   </div>
-  <div class="sp-prog" aria-hidden="true"></div>
   <button type="button" class="sp-skip" id="bm-splash-skip">Пропустить</button>
 </div>
 
@@ -74,57 +92,148 @@ try {
     }
     window.__bmSplashDone = false;
     document.getElementById('bm-splash-skip').addEventListener('click', done);
-    // Конец «занавеса» (6,15 с + 0,6 с) — с запасом.
-    setTimeout(done, 6850);
+    // Уход заставки начинается в 6,7 с и длится 0,6 с.
+    setTimeout(done, 7350);
   })();
 </script>
 
 <style is:global>
   .bm-splash { display: none; }
+  .splash-on body { overflow: hidden; }
   .splash-on .bm-splash {
+    --sp-bg: #0a0b0e;
+    --sp-ink: #f4f1ea;
+    --sp-mute: rgba(244, 241, 234, 0.62);
+    --sp-gold-1: #a8824a;
+    --sp-gold-2: #f2dfb0;
     display: block;
     position: fixed;
     inset: 0;
     z-index: 100;
     overflow: hidden;
-    background: #0b1630;
+    background: var(--sp-bg);
+    color: var(--sp-ink);
     font-family: var(--font-sans);
-    animation: sp-curtain 0.6s cubic-bezier(0.7, 0, 0.2, 1) 6.15s both;
+    animation: sp-exit 0.6s cubic-bezier(0.7, 0, 0.2, 1) 6.7s both;
   }
-  .splash-on body { overflow: hidden; }
-  .sp-sc { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 28px; overflow: hidden; color: #0b1630; }
-  .sp-s1 { background: #f5b83d; animation: sp-wipe-up 0.6s cubic-bezier(0.7, 0, 0.2, 1) 0.05s both; }
-  .sp-s2 { background: #0b1630; animation: sp-circ 0.75s cubic-bezier(0.7, 0, 0.2, 1) 1.25s both; }
-  .sp-s3 { background: #8fd3ff; animation: sp-from-right 0.6s cubic-bezier(0.7, 0, 0.2, 1) 2.5s both; }
-  .sp-s4 { background: #ff7a45; animation: sp-from-top 0.6s cubic-bezier(0.7, 0, 0.2, 1) 3.75s both; }
-  .sp-s5 { background: #0b1630; animation: sp-from-left 0.6s cubic-bezier(0.7, 0, 0.2, 1) 5s both; }
-  .sp-big { position: relative; z-index: 2; margin: 0; font-weight: 800; font-size: clamp(40px, 13.5vw, 64px); line-height: 1; letter-spacing: -0.035em; }
-  .sp-mid { position: relative; z-index: 2; margin: 0; font-weight: 800; font-size: clamp(30px, 9.8vw, 46px); line-height: 1.08; letter-spacing: -0.03em; }
-  .sp-small { position: relative; z-index: 2; margin: 14px 0 0; font-weight: 600; font-size: 17px; line-height: 1.35; }
-  .sp-ln { display: block; overflow: hidden; padding-bottom: 4px; }
-  .sp-ln > span { display: inline-block; animation: sp-rise 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-  .sp-blob { position: absolute; border-radius: 50%; animation: sp-grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-  .sp-ring { position: absolute; border-radius: 50%; border: 2px dashed rgba(255, 255, 255, 0.35); animation: sp-spin 14s linear infinite; }
-  .sp-dot { position: absolute; border-radius: 50%; background: #f5b83d; animation: sp-grow 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
-  .sp-bar { position: absolute; left: -20px; height: 34px; border-radius: 17px; animation: sp-slide 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-  .sp-stripe { position: absolute; left: -60px; right: -60px; height: 120px; animation: sp-slide 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-  .sp-ul { height: 5px; width: 100%; background: #f5b83d; border-radius: 3px; transform-origin: left; animation: sp-draw 0.5s cubic-bezier(0.7, 0, 0.2, 1) 5.55s both; }
-  .sp-prog { position: absolute; left: 0; bottom: 0; height: 4px; background: #fff; z-index: 7; animation: sp-prog 6.15s linear both; }
+
+  /* Фон: медленно плывущее золотое свечение и тонкое зерно. */
+  .sp-glow {
+    position: absolute;
+    inset: -30%;
+    background:
+      radial-gradient(40% 32% at 70% 30%, rgba(214, 178, 112, 0.22), transparent 70%),
+      radial-gradient(45% 35% at 20% 80%, rgba(84, 110, 170, 0.18), transparent 70%);
+    animation: sp-drift 9s ease-in-out infinite alternate;
+  }
+  .sp-grain {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    opacity: 0.07;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Сцены: наплыв по очереди. */
+  .sp-sc {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 32px;
+    opacity: 0;
+  }
+  .sp-s0 { align-items: center; text-align: center; animation: sp-fade 0.6s ease 0s both, sp-out 0.5s ease 1.75s forwards; }
+  .sp-s1 { animation: sp-fade 0.6s ease 1.85s both, sp-out 0.5s ease 3.35s forwards; }
+  .sp-s2 { justify-content: flex-end; padding-bottom: calc(110px + env(safe-area-inset-bottom)); animation: sp-fade 0.7s ease 3.4s both, sp-out 0.5s ease 4.95s forwards; }
+  .sp-s3 { animation: sp-fade 0.6s ease 5s both; }
+
+  /* Текст проявляется из размытия. */
+  .sp-in { opacity: 0; animation: sp-reveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both; }
+
+  .sp-gold {
+    background: linear-gradient(100deg, var(--sp-gold-1) 0%, var(--sp-gold-2) 45%, var(--sp-gold-1) 70%, var(--sp-gold-2) 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: sp-reveal 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) var(--d, 0s) both, sp-shine 3.2s linear var(--d, 0s) infinite;
+  }
+  .sp-lead .sp-gold { animation: sp-shine 3.2s linear infinite; }
+
+  .sp-mono {
+    display: flex;
+    height: 64px;
+    width: 64px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(242, 223, 176, 0.55);
+    color: var(--sp-gold-2);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    margin-bottom: 26px;
+  }
+  .sp-mono span { padding-left: 0.18em; }
+  .sp-word { margin: 0; font-size: clamp(28px, 8.6vw, 44px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+  .sp-rule {
+    display: block;
+    height: 1px;
+    width: 120px;
+    margin: 22px auto 18px;
+    background: linear-gradient(90deg, transparent, var(--sp-gold-2), transparent);
+    transform: scaleX(0);
+    animation: sp-draw 0.8s cubic-bezier(0.7, 0, 0.2, 1) var(--d, 0s) both;
+  }
+  .sp-caps { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.42em; text-transform: uppercase; color: var(--sp-mute); padding-left: 0.42em; }
+
+  .sp-brand { margin: 0; font-size: clamp(54px, 18vw, 92px); font-weight: 800; letter-spacing: -0.045em; line-height: 0.95; }
+  .sp-lead { margin: 16px 0 0; font-size: 19px; font-weight: 400; line-height: 1.4; color: var(--sp-mute); }
+  .sp-head { margin: 0; font-size: clamp(32px, 10vw, 48px); font-weight: 700; letter-spacing: -0.03em; line-height: 1.05; }
+  .sp-num { margin: 0; font-size: clamp(96px, 32vw, 150px); font-weight: 800; letter-spacing: -0.06em; line-height: 0.85; font-variant-numeric: tabular-nums; }
+  .sp-points { list-style: none; margin: 34px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .sp-points li { display: flex; align-items: center; gap: 12px; font-size: 16px; font-weight: 500; }
+  .sp-points li::before { content: ''; height: 1px; width: 22px; background: var(--sp-gold-2); }
+
+  .sp-photo { position: absolute; inset: 0; height: 100%; width: 100%; object-fit: cover; animation: sp-kenburns 2.6s ease-out 3.4s both; }
+  .sp-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 11, 14, 0.25) 0%, rgba(10, 11, 14, 0.15) 35%, rgba(10, 11, 14, 0.92) 78%, var(--sp-bg) 100%); }
+  .sp-bottom { position: relative; }
+
+  /* Полоски прогресса сверху, как в сторис. */
+  .sp-bars { position: absolute; z-index: 7; top: calc(10px + env(safe-area-inset-top)); left: 14px; right: 14px; display: flex; gap: 5px; }
+  .sp-bars span { position: relative; flex: 1; height: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.18); overflow: hidden; }
+  .sp-bars span::after { content: ''; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.9); transform: scaleX(0); transform-origin: left; animation: sp-bar var(--t) linear var(--d) both; }
+
   .sp-skip {
-    position: absolute; right: 16px; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 8;
-    min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px;
-    background: rgba(11, 22, 48, 0.78); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.55); color: #fff; font: 600 14px var(--font-sans); cursor: pointer;
+    position: absolute;
+    left: 50%;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    z-index: 8;
+    transform: translateX(-50%);
+    min-height: 44px;
+    padding: 0 22px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    color: var(--sp-ink);
+    font: 500 14px var(--font-sans);
+    letter-spacing: 0.02em;
+    cursor: pointer;
   }
-  @keyframes sp-wipe-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
-  @keyframes sp-from-top { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
-  @keyframes sp-from-right { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
-  @keyframes sp-from-left { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
-  @keyframes sp-circ { from { clip-path: circle(0% at 82% 76%); } to { clip-path: circle(150% at 82% 76%); } }
-  @keyframes sp-rise { from { transform: translateY(115%); } to { transform: translateY(0); } }
-  @keyframes sp-grow { from { transform: scale(0); } to { transform: scale(1); } }
-  @keyframes sp-spin { to { transform: rotate(360deg); } }
-  @keyframes sp-slide { from { transform: translateX(-110%) rotate(-14deg); } to { transform: translateX(0) rotate(-14deg); } }
-  @keyframes sp-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-  @keyframes sp-prog { from { width: 0; } to { width: 100%; } }
-  @keyframes sp-curtain { to { transform: translateY(-100%); } }
+
+  @keyframes sp-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sp-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes sp-reveal { from { opacity: 0; transform: translateY(16px); filter: blur(10px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes sp-shine { from { background-position: 0% 0; } to { background-position: -220% 0; } }
+  @keyframes sp-draw { to { transform: scaleX(1); } }
+  @keyframes sp-bar { to { transform: scaleX(1); } }
+  @keyframes sp-kenburns { from { transform: scale(1.14); } to { transform: scale(1.02); } }
+  @keyframes sp-drift { from { transform: translate3d(-4%, -2%, 0) rotate(0deg); } to { transform: translate3d(4%, 3%, 0) rotate(8deg); } }
+  @keyframes sp-exit { to { opacity: 0; transform: scale(1.04); filter: blur(6px); visibility: hidden; } }
 </style>

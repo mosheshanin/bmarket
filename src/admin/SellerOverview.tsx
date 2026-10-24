@@ -44,14 +44,13 @@ export default function SellerOverview() {
   }
 
   if (!o) return null;
-  const p = o.payment;
   return (
     <div className="flex flex-col gap-3">
       <section className="card flex flex-col gap-3 p-4 text-sm">
         <h2 className="text-base font-bold">Размещение продавцами</h2>
         <p className="text-hint">
           Продавцы заполняют объявление сами (кнопка «Продать свой бизнес» в боте и в каталоге), черновик сохраняется автоматически.
-          После отправки — оплата, затем публикация. Изменить опубликованное объявление продавец может только запросом к вам.
+          После отправки заявки менеджер согласует оплату, затем публикация. Изменить опубликованное объявление продавец может только запросом к вам.
         </p>
         <div className="flex flex-wrap items-end gap-2">
           <label className="min-w-40 flex-1">
@@ -79,15 +78,8 @@ export default function SellerOverview() {
           <input type="checkbox" className="h-5 w-5" checked={o.settings.autoPublish} onChange={(e) => save({ autoPublish: e.target.checked })} />
           <span>Публиковать сразу после оплаты <span className="text-hint">(иначе — после вашей проверки)</span></span>
         </label>
-        <div className={`rounded-card p-3 ${p.paypal ? 'bg-success/10' : 'bg-warn'}`}>
-          {p.paypal ? (
-            <p>
-              PayPal подключён · режим <b>{p.mode === 'live' ? 'боевой' : 'тестовый (sandbox)'}</b>
-              {p.webhook ? ' · вебхук настроен' : ' · без вебхука (оплаты сверяются раз в минуту)'}
-            </p>
-          ) : (
-            <p>PayPal не подключён: продавцы отправляют объявление, а вы получаете сообщение в группе и отмечаете оплату вручную в карточке лота.</p>
-          )}
+        <div className="rounded-card bg-bg p-3">
+          <p>Онлайн-оплата выключена: заявка на размещение приходит в группу менеджеров с суммой (размещение + услуги). Согласуйте оплату с продавцом и нажмите «Отметить оплату вручную» в карточке лота — дальше публикация по правилу выше.</p>
         </div>
         <p className="text-hint">Ждут проверки: {o.queue.inReview} · ждут оплаты: {o.queue.awaitingPayment}</p>
       </section>

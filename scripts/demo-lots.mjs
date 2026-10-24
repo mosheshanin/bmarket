@@ -25,20 +25,20 @@ const LOTS = [
 Стабильная прибыль весь год, понятные процессы, команда из 6 человек готова остаться.`,
   },
   {
-    lot: 1002, daysAgo: 3, city: 'tel-aviv', cat: 'beauty',
-    title: 'Барбершоп на 4 кресла во Флорентине', area: 'Флорентин',
+    lot: 1002, daysAgo: 3, city: 'haifa', cat: 'beauty',
+    title: 'Барбершоп на 4 кресла в Германской колонии', area: 'Германская колония',
     price: 280000, negotiable: false, revenue: 65000, profit: 22000, rent: 9000, year: 2019, staff: 4, sqm: 45, lease: '2027-06-30',
     legal: 'osek_murshe', license: 'yes', inc: ['equipment', 'furniture', 'client_base', 'website_social', 'brand'],
     support: 'Месяц совместной работы', reason: 'Владелец открывает новый проект за границей.',
     short: 'Барбершоп с узнаваемым брендом и онлайн-записью на две недели вперёд.',
-    desc: `Барбершоп на **4 рабочих места** в одном из самых модных районов Тель-Авива.
+    desc: `Барбершоп на **4 рабочих места** в одном из самых популярных районов Хайфы.
 
 - онлайн-запись и база из 900+ постоянных клиентов;
 - сильный Instagram, отзывы 4,9;
 - мастера работают по проценту — команда остаётся.`,
   },
   {
-    lot: 1003, daysAgo: 5, city: 'rishon-lezion', cat: 'online',
+    lot: 1003, daysAgo: 5, city: 'haifa', cat: 'online',
     title: 'Интернет-магазин товаров для дома', area: null,
     price: 190000, negotiable: true, revenue: 80000, profit: 13000, rent: null, year: 2021, staff: 2, sqm: null, lease: null,
     legal: 'osek_murshe', license: 'not_required', inc: ['inventory', 'client_base', 'website_social', 'brand'],
@@ -51,8 +51,8 @@ const LOTS = [
 - небольшой склад-офис, можно вести из дома.`,
   },
   {
-    lot: 1004, daysAgo: 9, city: 'ashdod', cat: 'grocery',
-    title: 'Минимаркет в жилом квартале Ашдода', area: 'жилой квартал, рядом школа',
+    lot: 1004, daysAgo: 9, city: 'haifa', cat: 'grocery',
+    title: 'Минимаркет в жилом квартале на Кармеле', area: 'Кармель, жилой квартал, рядом школа',
     price: 520000, negotiable: false, revenue: 180000, profit: 32000, rent: 11000, year: 2015, staff: 4, sqm: 110, lease: '2030-03-31',
     legal: 'company', license: 'yes', inc: ['equipment', 'furniture', 'inventory', 'licenses'],
     support: '3 недели, знакомство с поставщиками', reason: 'Семейные обстоятельства.',
@@ -64,8 +64,8 @@ const LOTS = [
 - доставка по району через WhatsApp.`,
   },
   {
-    lot: 1005, daysAgo: 13, city: 'netanya', cat: 'fitness',
-    title: 'Студия пилатеса у моря в Нетании', area: 'набережная',
+    lot: 1005, daysAgo: 13, city: 'haifa', cat: 'fitness',
+    title: 'Студия пилатеса у моря в Бат-Галиме', area: 'Бат-Галим, набережная',
     price: 240000, negotiable: true, revenue: 52000, profit: 16000, rent: 8500, year: 2020, staff: 3, sqm: 120, lease: '2028-09-30',
     legal: 'osek_murshe', license: 'not_required', inc: ['equipment', 'furniture', 'client_base', 'website_social', 'brand'],
     support: 'Месяц, передача тренеров и расписания', reason: 'Владелица уходит в декрет.',
@@ -77,8 +77,8 @@ const LOTS = [
 - 3 тренера на почасовой оплате.`,
   },
   {
-    lot: 1006, daysAgo: 18, city: 'beer-sheva', cat: 'auto',
-    title: 'Автомойка с детейлингом в Беэр-Шеве', area: 'промзона',
+    lot: 1006, daysAgo: 18, city: 'haifa', cat: 'auto',
+    title: 'Автомойка с детейлингом в Хайфском заливе', area: 'промзона Мифрац',
     price: 390000, negotiable: true, revenue: 95000, profit: 27000, rent: 10000, year: 2018, staff: 5, sqm: 300, lease: '2031-12-31',
     legal: 'company', license: 'yes', inc: ['equipment', 'client_base', 'brand', 'licenses'],
     support: '2 недели', reason: 'Владелец переходит в другую отрасль.',
@@ -90,8 +90,8 @@ const LOTS = [
 - договоры на обслуживание с 3 автопарками компаний.`,
   },
   {
-    lot: 1007, daysAgo: 24, city: 'petah-tikva', cat: 'cafe-restaurants',
-    title: 'Пекарня-кондитерская в Петах-Тикве', area: 'центр города',
+    lot: 1007, daysAgo: 24, city: 'haifa', cat: 'cafe-restaurants',
+    title: 'Пекарня-кондитерская в Нижнем городе', area: 'Нижний город',
     price: 610000, negotiable: false, revenue: 160000, profit: 42000, rent: 14000, year: 2014, staff: 7, sqm: 95, lease: '2029-06-30',
     legal: 'company', license: 'yes', inc: ['equipment', 'furniture', 'inventory', 'client_base', 'brand', 'licenses'],
     support: 'Месяц, передача рецептур', reason: 'Владельцы выходят на пенсию.',
@@ -103,8 +103,8 @@ const LOTS = [
 - оптовые поставки в 12 кафе города.`,
   },
   {
-    lot: 1008, daysAgo: 31, city: 'modiin', cat: 'education',
-    title: 'Детский развивающий центр в Модиине', area: 'новый район',
+    lot: 1008, daysAgo: 31, city: 'haifa', cat: 'education',
+    title: 'Детский развивающий центр в Неве-Шаанане', area: 'Неве-Шаанан',
     price: 330000, negotiable: true, revenue: 70000, profit: 21000, rent: 9500, year: 2019, staff: 6, sqm: 140, lease: '2028-12-31',
     legal: 'osek_murshe', license: 'yes', inc: ['equipment', 'furniture', 'client_base', 'website_social', 'brand'],
     support: '2 месяца, передача педагогов и программ', reason: 'Владелица переезжает за границу.',
@@ -116,8 +116,8 @@ const LOTS = [
 - праздники по выходным — дополнительный доход.`,
   },
   {
-    lot: 1009, daysAgo: 38, city: 'jerusalem', cat: 'beauty',
-    title: 'Студия маникюра в центре Иерусалима', area: 'центр города',
+    lot: 1009, daysAgo: 38, city: 'haifa', cat: 'beauty',
+    title: 'Студия маникюра на Мориа', area: 'Кармель, проспект Мориа',
     price: 160000, negotiable: true, revenue: 38000, profit: 12000, rent: 6000, year: 2021, staff: 3, sqm: 35, lease: '2027-12-31',
     legal: 'osek_patur', license: 'not_required', inc: ['equipment', 'furniture', 'client_base', 'website_social'],
     support: '2 недели', reason: 'Владелица открывает салон в другом городе.',
@@ -129,8 +129,8 @@ const LOTS = [
 - мастера готовы продолжить работу.`,
   },
   {
-    lot: 1010, daysAgo: 45, city: 'holon', cat: 'logistics',
-    title: 'Курьерская служба с договорами в Холоне', area: 'промзона',
+    lot: 1010, daysAgo: 45, city: 'haifa', cat: 'logistics',
+    title: 'Курьерская служба с договорами в Хайфе', area: 'промзона Чек-Пост',
     price: 270000, negotiable: false, revenue: 110000, profit: 19000, rent: 4500, year: 2016, staff: 8, sqm: 60, lease: '2027-03-31',
     legal: 'company', license: 'not_required', inc: ['equipment', 'client_base', 'website_social', 'brand'],
     support: 'Месяц, знакомство с клиентами', reason: 'Владелец сосредотачивается на другом бизнесе.',
@@ -226,5 +226,11 @@ for (const l of LOTS) {
 }
 lines.push(`UPDATE businesses SET valuation_verified_at = published_at WHERE lot_number IN (${VALUATION.join(', ')}) AND internal_notes LIKE 'ДЕМО%';`);
 lines.push(`UPDATE businesses SET audit_passed_at = published_at WHERE lot_number IN (${AUDIT.join(', ')}) AND internal_notes LIKE 'ДЕМО%';`);
+// Обновление уже опубликованных демо-лотов без пересоздания (сохраняет заявки и id): тексты и город.
+const upd = ['-- Обновить тексты и город демо-лотов (сгенерировано scripts/demo-lots.mjs).'];
+for (const l of LOTS) {
+  upd.push(`UPDATE businesses SET slug = ${q(slugify(l.title))}, public_title = ${q(l.title)}, city_id = (SELECT id FROM cities WHERE slug = ${q(l.city)}), area_note = ${q(l.area)}, short_description = ${q(l.short)}, description = ${q(l.desc)}, updated_at = CAST(strftime('%s','now') AS INTEGER) * 1000 WHERE lot_number = ${l.lot} AND internal_notes LIKE 'ДЕМО%';`);
+}
+writeFileSync(new URL('../seed/demo-lots-update.sql', import.meta.url), upd.join('\n') + '\n');
 writeFileSync(new URL('../seed/demo-lots.sql', import.meta.url), lines.join('\n') + '\n');
 console.log(`seed/demo-lots.sql: ${LOTS.length} лотов`);

@@ -1,4 +1,4 @@
-export interface City { id: number; name: string; namePrepositional: string; slug: string; sortOrder: number; lots: number }
+export interface City { id: number; name: string; namePrepositional: string; slug: string; sortOrder: number; lots: number; isActive: boolean }
 export interface Category { id: number; name: string; slug: string; sortOrder: number; lots: number }
 
 export interface Meta {

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { json } from '../../../server/http';
-import { paypalConfigured, verifyWebhook, type PayPalOrder } from '../../../server/paypal';
-import { settlePayPalOrder } from '../../../server/seller';
+import { verifyWebhook, type PayPalOrder } from '../../../server/paypal';
+import { onlinePayments, settlePayPalOrder } from '../../../server/seller';
 import { notifyManagers } from '../../../server/telegram';
 import { db, env } from '../../../server/site';
 
@@ -16,7 +16,7 @@ interface Event {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  if (!paypalConfigured(env)) return json({ ok: false }, { status: 503 });
+  if (!onlinePayments(env)) return json({ ok: false }, { status: 503 });
   const raw = await request.text();
   if (!(await verifyWebhook(env, request.headers, raw))) return json({ error: 'bad signature' }, { status: 400 });
   let ev: Event;

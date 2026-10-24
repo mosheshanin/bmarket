@@ -403,7 +403,7 @@ check('включить опрос — только админ', (await req('/ap
 check('админ включил опрос', (await req('/api/admin/survey', { method: 'PUT', auth: ADMIN, body: { enabled: true } })).json?.enabled === true);
 check('опрос включён для пользователя', (await req('/api/profile', { auth: VISITOR })).json?.surveyEnabled === true);
 const fac = await req('/api/survey/facets');
-check('данные опроса: справочники и лоты', fac.status === 200 && fac.json.categories.length > 5 && fac.json.cities.length > 5 && fac.json.lots.length >= 2);
+check('данные опроса: справочники и лоты', fac.status === 200 && fac.json.categories.length > 5 && fac.json.cities.length === 1 && fac.json.cities[0].name === 'Хайфа' && fac.json.lots.length >= 2);
 check('данные опроса без скрытых полей', !SECRET_RE.test(fac.text) && !/real_?name|exact_?address|owner|internal/i.test(fac.text));
 check('данные опроса: только опубликованные', !fac.text.includes('Салон красоты в Нетании') && !fac.text.includes('Минимаркет'));
 const cafeLot = fac.json.lots.find((l) => l.title.includes('Кофейня'));
@@ -449,6 +449,14 @@ check('оплата учитывает услуги', mpx.json?.seller?.payments
 const badge = await req(`/api/admin/businesses/${sxid}`, { method: 'PUT', auth: ADMIN, body: { valuationVerifiedAt: Date.now() } });
 check('админ ставит бейдж', badge.status === 200 && badge.json.business.valuationVerifiedAt > 0);
 await req(`/api/admin/businesses/${sxid}/hide`, { method: 'POST', auth: ADMIN });
+
+// ---------- Только Хайфа ----------
+const homeH = await req('/?h=' + Date.now());
+check('лента городов: «Скоро! +весь Израиль»', homeH.text.includes('Скоро!') && homeH.text.includes('+весь Израиль'));
+check('выключенные города не в ленте', !/Тель-Авив-Яффо · \d/.test(homeH.text));
+check('страница выключенного города — 404', (await req('/city/tel-aviv')).status === 404);
+check('продавцу доступна только Хайфа', (await req('/api/seller/me', { auth: SELLER })).json?.cities?.map((c) => c.name).join() === 'Хайфа');
+check('админ видит все города с признаком', (await req('/api/admin/dicts', { auth: ADMIN })).json?.cities?.some((c) => c.isActive === false));
 
 // ---------- Группа менеджеров: /setgroup ----------
 const setgroup = { update_id: 2, message: { message_id: 2, date: 1, chat: { id: -100555, type: 'supergroup', title: 'Менеджеры' }, from: { id: ADMIN_ID, is_bot: false, first_name: 'Админ' }, text: '/setgroup', entities: [{ type: 'bot_command', offset: 0, length: 9 }] } };

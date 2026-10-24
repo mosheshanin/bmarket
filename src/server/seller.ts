@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { DB } from '../db/client';
 import { businesses, businessPhotos, categories, cities, editRequests, payments, type Business, type Payment } from '../db/schema';
 import { imageUrl } from './public';
-import { EXTRA_KEYS, ITEM_LABELS, extraByKey, extraPrice, orderTotal, type Prices } from '../lib/extras';
+import { ITEM_LABELS, extraByKey, extraPrice, orderTotal, type Prices } from '../lib/extras';
 import { escapeHtml, formatIls } from '../lib/format';
 import { businessPath } from '../lib/slug';
 import type { TgUser } from '../lib/telegram-auth';
@@ -79,8 +79,17 @@ export async function saveSellerSettings(db: DB, input: z.infer<typeof SellerSet
   return getSellerSettings(db);
 }
 
+/**
+ * Онлайн-оплата (PayPal) выключена решением владельца (переменная ONLINE_PAYMENTS = "0" в wrangler.jsonc):
+ * продавец отправляет заявку на размещение, менеджеры получают её в группе с суммой, согласуют оплату сами
+ * и отмечают её в админке. Включить: ONLINE_PAYMENTS = "1" + секреты PayPal (docs/PAYMENTS.md).
+ */
+export function onlinePayments(env: Env): boolean {
+  return String(env.ONLINE_PAYMENTS ?? '0') === '1' && paypalConfigured(env);
+}
+
 export function paymentInfo(env: Env) {
-  return { paypal: paypalConfigured(env), mode: paypalMode(env), webhook: !!env.PAYPAL_WEBHOOK_ID };
+  return { paypal: onlinePayments(env), mode: paypalMode(env), webhook: !!env.PAYPAL_WEBHOOK_ID };
 }
 
 // ---------- Доступ ----------
@@ -268,11 +277,39 @@ export async function submitSellerDraft(env: Env, db: DB, user: TgUser, id: numb
     await afterPayment(env, db, id, null);
   } else {
     await setStage(db, id, 'awaiting_payment');
-    if (!paypalConfigured(env)) {
-      await notifyManagers(env, db, `🧾 Продавец ${escapeHtml(displayName(user))} отправил объявление №${b.lotNumber} «${escapeHtml(b.publicTitle)}». Онлайн-оплата не подключена — свяжитесь с продавцом и отметьте оплату в админке.${adminLinkHtml(env, id)}`);
-    }
+    if (!onlinePayments(env)) await notifyManagers(env, db, await placementRequestHtml(env, db, user, b));
   }
   return ownDetail(env, db, user, id);
+}
+
+/**
+ * Заявка на размещение для группы менеджеров: что размещается, услуги, сумма, как связаться.
+ * Скрытые поля лота (телефон, реальное название, адрес) сюда не попадают — они в админке.
+ */
+export async function placementRequestHtml(env: Env, db: DB, user: TgUser, b: Business): Promise<string> {
+  const settings = await getSellerSettings(db);
+  const { totalIls } = orderTotal(settings, b.extrasOrdered ?? []);
+  const [names] = await db.select({ city: cities.name, category: categories.name }).from(businesses)
+    .leftJoin(cities, eq(cities.id, businesses.cityId)).leftJoin(categories, eq(categories.id, businesses.categoryId))
+    .where(eq(businesses.id, b.id));
+  const e = escapeHtml;
+  const who = user.username ? `@${e(user.username)}` : `<a href="tg://user?id=${user.id}">${e([user.first_name, user.last_name].filter(Boolean).join(' ') || 'профиль')}</a>`;
+  const lines = [
+    `🧾 <b>Заявка на размещение объявления №${b.lotNumber}</b>`,
+    `«${e(b.publicTitle)}»`,
+    [names?.category, names?.city].filter(Boolean).map((x) => e(x!)).join(' · ') + (b.priceIls ? ` · цена бизнеса ${formatIls(b.priceIls)}` : ''),
+    '',
+    `Продавец: ${who} (контакты и скрытые данные — в админке)`,
+    '',
+    '<b>К оплате:</b>',
+  ];
+  if (settings.priceIls > 0) lines.push(`• Размещение — ${formatIls(settings.priceIls)}`);
+  for (const k of b.extrasOrdered ?? []) {
+    const x = extraByKey(k);
+    if (x) lines.push(`• ${e(x.title)} — ${formatIls(extraPrice(settings, k))}`);
+  }
+  lines.push(`<b>Итого: ${formatIls(totalIls)}</b>`, '', 'Свяжитесь с продавцом, согласуйте оплату и нажмите «Отметить оплату вручную» в карточке лота.');
+  return lines.join('\n') + adminLinkHtml(env, b.id);
 }
 
 export async function backToEditing(env: Env, db: DB, user: TgUser, id: number) {
@@ -290,7 +327,7 @@ export async function startPayPal(env: Env, db: DB, user: TgUser, id: number) {
   const b = await getOwn(db, user, id);
   if (b.status !== 'draft' || b.sellerStage !== 'awaiting_payment') throw new HttpError(409, 'Сначала отправьте объявление');
   if (await completedPayment(db, id)) throw new HttpError(409, 'Объявление уже оплачено');
-  if (!paypalConfigured(env)) throw new HttpError(503, 'Онлайн-оплата пока не подключена — администратор свяжется с вами');
+  if (!onlinePayments(env)) throw new HttpError(503, 'Онлайн-оплата не подключена — менеджер свяжется с вами, чтобы согласовать оплату');
   const { items, totalIls } = orderTotal(await getSellerSettings(db), b.extrasOrdered ?? []);
   if (totalIls === 0) throw new HttpError(409, 'Оплата не нужна');
   const site = siteUrl(env);
@@ -376,7 +413,7 @@ function adminLinkHtml(env: Env, businessId: number): string {
 
 /** Сверка по расписанию: заказы, по которым продавец не вернулся на сайт после оплаты. */
 export async function reconcilePayments(env: Env, db: DB, now = Date.now()): Promise<number> {
-  if (!paypalConfigured(env)) return 0;
+  if (!onlinePayments(env)) return 0;
   const rows = await db.select({ id: payments.id, orderId: payments.providerOrderId }).from(payments)
     .where(and(
       eq(payments.provider, 'paypal'),

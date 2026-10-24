@@ -11,6 +11,7 @@ export const CityInput = z.object({
   name: z.string().trim().min(2).max(60),
   namePrepositional: z.string().trim().min(2).max(60),
   slug: z.string().trim().regex(/^[a-z0-9-]{2,60}$/, 'латиница, цифры и дефис').optional(),
+  isActive: z.boolean().optional(),
 });
 export const CategoryInput = z.object({
   name: z.string().trim().min(2).max(80),
@@ -21,6 +22,7 @@ export async function listDicts(db: DB) {
   const [cityRows, catRows] = await Promise.all([
     db.select({
       id: cities.id, name: cities.name, namePrepositional: cities.namePrepositional, slug: cities.slug, sortOrder: cities.sortOrder,
+      isActive: cities.isActive,
       lots: sql<number>`(select count(*) from ${businesses} where ${businesses.cityId} = ${cities.id})`,
     }).from(cities).orderBy(asc(cities.sortOrder), asc(cities.name)),
     db.select({
@@ -73,7 +75,7 @@ async function purgeCity(env: Env, db: DB, origin: string, cityId: number | null
 
 export async function updateCity(env: Env, db: DB, id: number, input: Partial<z.infer<typeof CityInput>>, origin: string) {
   // slug города не меняется — иначе сломаются проиндексированные адреса.
-  const [c] = await db.update(cities).set({ name: input.name, namePrepositional: input.namePrepositional }).where(eq(cities.id, id)).returning();
+  const [c] = await db.update(cities).set({ name: input.name, namePrepositional: input.namePrepositional, isActive: input.isActive }).where(eq(cities.id, id)).returning();
   if (!c) throw new HttpError(404, 'Город не найден');
   await purgeCity(env, db, origin, id, null);
   return c;

@@ -58,7 +58,12 @@ function DictList({ kind, rows }: { kind: Kind; rows: Row[] }) {
       <ul className="divide-y divide-line">
         {rows.map((r, i) => (
           <li key={r.id} className="flex items-center gap-1 py-1.5">
-            <div className="min-w-0 flex-1">
+            {kind === 'city' && (
+              <input type="checkbox" className="mr-1 h-5 w-5 shrink-0" checked={(r as City).isActive} aria-label="Город доступен в каталоге"
+                title="Доступен в каталоге, формах и опросе"
+                onChange={(e) => run(() => api(`${base}/${r.id}`, { method: 'PUT', body: { isActive: e.target.checked } }), e.target.checked ? 'Город включён' : 'Город выключен («скоро»)')} />
+            )}
+            <div className={`min-w-0 flex-1 ${kind === 'city' && !(r as City).isActive ? 'opacity-50' : ''}`}>
               <p className="truncate font-medium">{r.name}</p>
               <p className="text-xs text-hint">/{kind === 'city' ? 'city/' : ''}{r.slug} · лотов: {r.lots}</p>
             </div>
@@ -80,7 +85,7 @@ export default function Dicts() {
   return (
     <div className="flex flex-col gap-3">
       <h1 className="text-xl font-extrabold">Справочники</h1>
-      <p className="text-sm text-hint">Город или отрасль с объявлениями удалить нельзя — только переименовать.</p>
+      <p className="text-sm text-hint">Город или отрасль с объявлениями удалить нельзя — только переименовать. Галочка у города — доступен в каталоге, формах и опросе; выключенные города ждут запуска («Скоро! +весь Израиль»).</p>
       <DictList kind="city" rows={meta.cities} />
       <DictList kind="category" rows={meta.categories} />
     </div>

@@ -356,3 +356,23 @@ a {
     box-shadow: none;
   }
 }
+
+/* Бейдж «Скоро! +весь Израиль» в ленте городов. */
+@layer components {
+  .chip-soon {
+    gap: 0.45rem;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--tone-amber) 10%, var(--card));
+    border: 1.5px dashed color-mix(in srgb, var(--tone-amber) 55%, transparent);
+    color: var(--text);
+    cursor: default;
+  }
+  .chip-soon-mark {
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: var(--tone-amber);
+    color: #fff;
+  }
+}
