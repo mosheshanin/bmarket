@@ -48,7 +48,7 @@ describe('скрытые поля лота', () => {
   });
 
   it('рассылка подписчикам строится только из публичных полей', () => {
-    const env = { SITE_URL: 'https://example.com', PUBLIC_IMAGES_URL: 'https://img.example.com' } as Env;
+    const env = { SITE_URL: 'https://example.com', PUBLIC_IMAGES_URL: 'https://img.example.com' } as unknown as Env;
     const one = buildMessage(env, [{ id: 1, lotNumber: 1001, slug: 'kofeynya', publicTitle: 'Кофейня', priceIls: 450000, monthlyProfitIls: 35000, coverKey: 'lots/1001/a-1600.webp' }]);
     expect(one.text).toContain('Кофейня · ₪ 450 000 · прибыль ₪ 35 000 в месяц');
     expect(one.photo).toBe('https://img.example.com/lots/1001/a-1600.webp');
