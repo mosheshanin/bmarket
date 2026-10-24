@@ -66,6 +66,7 @@ let bad = 0;
 bad += await shot('01-home-320', '/', { width: 320, height: 640 });
 bad += await shot('02-home-phone-dark', '/', { dark: true });
 bad += await shot('03-home-desktop', '/', { width: 1280, height: 900 });
+bad += await shot('03b-home-tablet', '/', { width: 700, height: 900 });
 bad += await shot('04-card-320', CARD, { width: 320, height: 640 });
 bad += await shot('05-card-desktop', CARD, { width: 1280, height: 900 });
 bad += await shot('06-request-web', CARD + '/request', { width: 390 });
