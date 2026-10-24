@@ -20,13 +20,15 @@ jobs:
         run: npx astro check
       - name: Юнит-тесты (initData, скрытые поля, форматы)
         run: npm test
+      # До сборки: адаптер Cloudflare переносит .dev.vars в собранный Worker (иначе в e2e нет токена бота).
+      - name: Тестовые настройки
+        run: cp .dev.vars.example .dev.vars
       - name: Сборка
         run: npm run build
       - name: Размер Worker < 3 МБ
         run: npm run size
       - name: E2E на локальном Worker
         run: |
-          cp .dev.vars.example .dev.vars
           npm run db:migrate:local
           npm run db:seed:local
           bash scripts/seed-photos.sh --local
