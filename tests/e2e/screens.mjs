@@ -41,8 +41,10 @@ function tgStub(data, dark) {
 }
 
 const browser = await chromium.launch();
-async function shot(name, path, { width = 390, height = 844, tg = null, dark = false, full = true, before } = {}) {
+async function shot(name, path, { width = 390, height = 844, tg = null, dark = false, full = true, before, splash = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, colorScheme: dark ? 'dark' : 'light', locale: 'ru-RU' });
+  // Заставку снимаем отдельно — на остальных экранах она уже «просмотрена».
+  if (!splash) await ctx.addInitScript(() => { try { sessionStorage.setItem('bm_splash', '1'); } catch {} });
   const page = await ctx.newPage();
   await page.route('https://telegram.org/**', (r) => r.fulfill({ contentType: 'application/javascript', body: tgStub(tg, dark) }));
   await page.route('https://static.cloudflareinsights.com/**', (r) => r.abort());
@@ -76,6 +78,18 @@ bad += await shot('12-admin-form', '/admin', { tg: admin, before: async (p) => {
 bad += await shot('13-admin-leads', '/admin', { tg: admin, before: async (p) => { await p.evaluate(() => { location.hash = '#/leads'; }); await p.waitForTimeout(800); } });
 bad += await shot('14-admin-stats', '/admin', { tg: admin, before: async (p) => { await p.evaluate(() => { location.hash = '#/stats'; }); await p.waitForTimeout(1000); } });
 bad += await shot('15-admin-denied', '/admin', { tg: guest });
+// Продавцы (данные оставляет npm run test:e2e: продавцы 777001 и 777002).
+const seller = initData({ id: 777001, first_name: 'Продавец', username: 'seller_one' });
+const seller2 = initData({ id: 777002, first_name: 'Чужой' });
+const firstItem = async (p) => { await p.waitForSelector('a[href^="#/"]'); await p.locator('ul a[href^="#/"]').first().click(); await p.waitForTimeout(1200); };
+bad += await shot('16-tg-home-admin-button', '/', { tg: admin, full: false });
+bad += await shot('17-sell-list', '/sell', { tg: seller });
+bad += await shot('18-sell-status', '/sell', { tg: seller, before: firstItem });
+bad += await shot('19-sell-edit', '/sell', { tg: seller2, before: firstItem });
+bad += await shot('20-sell-edit-submit', '/sell', { tg: seller2, before: async (p) => { await firstItem(p); await p.getByRole('button', { name: /Отправка/ }).click(); await p.waitForTimeout(800); } });
+bad += await shot('21-sell-web', '/sell', { width: 390 });
+bad += await shot('22-admin-sellers', '/admin', { tg: admin, before: async (p) => { await p.getByRole('button', { name: /От продавцов/ }).click(); await p.waitForTimeout(1200); } });
+bad += await shot('23-admin-seller-form', '/admin', { tg: admin, before: async (p) => { await p.getByRole('button', { name: /От продавцов/ }).click(); await p.waitForTimeout(1000); await p.locator('ul a[href^="#/listings/"]').first().click(); await p.waitForTimeout(1200); } });
 await browser.close();
 if (bad) {
   console.error(`Горизонтальная прокрутка на ${bad} экранах`);

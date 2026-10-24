@@ -1,0 +1,12 @@
+---
+import Layout from '../layouts/Layout.astro';
+import SellerApp from '../seller/SellerApp.tsx';
+import { site } from '../server/site';
+// «Мои объявления» продавца: данные — через /api/seller/* с проверкой initData Telegram.
+Astro.response.headers.set('cache-control', 'no-store');
+const s = site();
+---
+
+<Layout title={`Продать бизнес — разместить объявление | ${s.name}`} description="Разместите объявление о продаже своего бизнеса в Израиле: черновик сохраняется автоматически, оплата через PayPal." noindex data={{ page: 'sell' }}>
+  <SellerApp client:only="react" botLink={s.botSellLink} />
+</Layout>

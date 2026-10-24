@@ -24,6 +24,7 @@ export async function ensureBotSetup(env: Env, db: DB): Promise<boolean> {
   });
   const commands = [
     { command: 'start', description: 'Открыть каталог' },
+    { command: 'sell', description: 'Разместить объявление о продаже' },
     { command: 'subscribe', description: 'Уведомления о новых бизнесах' },
     { command: 'stop', description: 'Отписаться от уведомлений' },
     { command: 'help', description: 'Как пользоваться каталогом' },

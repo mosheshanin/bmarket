@@ -8,7 +8,8 @@ import { escapeHtml, formatIls } from '../lib/format';
 import { displayName, isAdminId } from '../server/auth';
 import { syncLeadMessage, takeLead } from '../server/leads';
 import { isSubscribed, subscribe, unsubscribe } from '../server/subscriptions';
-import { siteUrl } from '../server/telegram';
+import { MANAGERS_CHAT_KEY, MANAGERS_ERROR_KEY, getManagersChat, siteUrl } from '../server/telegram';
+import { deleteSetting, setSetting } from '../server/settings';
 
 /** botInfo без запроса getMe на каждом холодном старте. */
 function botInfo(env: Env): UserFromGetMe {
@@ -39,6 +40,7 @@ const HELP = [
   '• Нажмите «Узнать подробнее» и оставьте заявку — менеджер свяжется с вами в течение рабочего дня и расскажет название и адрес.',
   '',
   'Команды:',
+  '/sell — разместить объявление о продаже своего бизнеса',
   '/subscribe — получать уведомления о новых бизнесах',
   '/stop — отписаться от уведомлений',
   '/help — эта справка',
@@ -53,6 +55,7 @@ export function createBot(env: Env, db: DB): Bot {
   async function welcome(ctx: Context) {
     const subscribed = ctx.from ? await isSubscribed(db, ctx.from.id) : false;
     const kb = webAppButton(env, new InlineKeyboard(), 'Открыть каталог').row();
+    webAppButton(env, kb, 'Продать свой бизнес', '/sell').row();
     if (!subscribed) kb.text('Подписаться на новые бизнесы', 'sub');
     await ctx.reply(
       `Здравствуйте! Это каталог готовых бизнесов на продажу в Израиле.\n\nСмотрите объявления, оставляйте заявки — менеджер свяжется с вами.${subscribed ? '\n\nВы подписаны на уведомления о новых бизнесах.' : ''}`,
@@ -77,6 +80,11 @@ export function createBot(env: Env, db: DB): Bot {
         return;
       }
     }
+    const sell = /^sell(?:-(\d+))?$/.exec(payload);
+    if (sell) {
+      await sellReply(ctx, sell[1] ? `/sell?b=${sell[1]}` : '/sell');
+      return;
+    }
     if (payload === 'subscribe' && ctx.from) {
       await subscribe(db, ctx.from);
       await ctx.reply('Готово! Пришлём сообщение, когда в каталоге появится новый бизнес. Отписаться — /stop.');
@@ -84,6 +92,14 @@ export function createBot(env: Env, db: DB): Bot {
     }
     await welcome(ctx);
   });
+
+  async function sellReply(ctx: Context, path = '/sell') {
+    await ctx.reply(
+      'Продаёте бизнес? Заполните объявление — черновик сохраняется автоматически, вернуться к нему можно в любой момент.\n\nПосле отправки и оплаты объявление появится в каталоге. Изменения после публикации — через запрос администратору.',
+      { reply_markup: webAppButton(env, new InlineKeyboard(), 'Мои объявления', path) },
+    );
+  }
+  pm.command('sell', (ctx) => sellReply(ctx));
 
   pm.command('subscribe', async (ctx) => {
     const created = await subscribe(db, ctx.from);
@@ -127,11 +143,45 @@ export function createBot(env: Env, db: DB): Bot {
     await syncLeadMessage(env, db, leadId);
   });
 
-  // Пользователь заблокировал бота — рассылка ему прекращается.
+  // ---- Группа менеджеров ----
+  const group = safe.chatType(['group', 'supergroup']);
+  const useThisGroup = async (chatId: number) => {
+    await setSetting(db, MANAGERS_CHAT_KEY, String(chatId));
+    await deleteSetting(db, MANAGERS_ERROR_KEY);
+  };
+  const GROUP_OK = 'Готово: заявки и уведомления каталога будут приходить в эту группу.\nНедоставленные заявки можно отправить из админки: «Заявки» → «Отправить недоставленные».';
+
+  group.command('chatid', (ctx) => ctx.reply(`ID этого чата: <code>${ctx.chat.id}</code>`, { parse_mode: 'HTML' }));
+  group.command('setgroup', async (ctx) => {
+    if (!ctx.from || !isAdminId(env, ctx.from.id)) {
+      await ctx.reply('Команда доступна только администраторам каталога.');
+      return;
+    }
+    await useThisGroup(ctx.chat.id);
+    await ctx.reply(GROUP_OK);
+  });
+  // Группа стала супергруппой — у неё новый ID.
+  group.on('message:migrate_to_chat_id', async (ctx) => {
+    if ((await getManagersChat(env, db)) === String(ctx.chat.id)) {
+      await setSetting(db, MANAGERS_CHAT_KEY, String(ctx.message.migrate_to_chat_id));
+    }
+  });
+
   safe.on('my_chat_member', async (ctx) => {
-    if (ctx.chat.type !== 'private') return;
     const status = ctx.myChatMember.new_chat_member.status;
-    if (status === 'kicked') await unsubscribe(db, ctx.from.id);
+    // Пользователь заблокировал бота — рассылка ему прекращается.
+    if (ctx.chat.type === 'private') {
+      if (status === 'kicked') await unsubscribe(db, ctx.from.id);
+      return;
+    }
+    // Администратор каталога добавил бота в группу — она становится группой менеджеров.
+    const was = ctx.myChatMember.old_chat_member.status;
+    const joined = (status === 'member' || status === 'administrator') && (was === 'left' || was === 'kicked');
+    console.log('bot membership', ctx.chat.id, was, '→', status, 'by', ctx.from.id);
+    if (joined && isAdminId(env, ctx.from.id)) {
+      await useThisGroup(ctx.chat.id);
+      await ctx.api.sendMessage(ctx.chat.id, GROUP_OK).catch(() => {});
+    }
   });
 
   pm.on('message', welcome);

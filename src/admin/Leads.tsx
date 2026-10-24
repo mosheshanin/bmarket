@@ -46,9 +46,7 @@ export default function Leads() {
   return (
     <div className="flex flex-col gap-3">
       <h1 className="text-xl font-extrabold">Заявки</h1>
-      {summary.undelivered > 0 && (
-        <p className="rounded-card bg-danger/10 p-3 text-sm text-danger">⚠️ {summary.undelivered} заявок не доставлено в Telegram — они вверху списка.</p>
-      )}
+      <GroupHealth undelivered={summary.undelivered} onChange={load} />
       <Segmented<F>
         value={status}
         onChange={setStatus}
@@ -121,6 +119,84 @@ function ExportBlock() {
       <div className="mt-3 flex flex-wrap gap-2">
         <button className="btn btn-primary" onClick={download}>Скачать CSV</button>
         <button className="btn btn-secondary" onClick={sendToChat}>Прислать в чат с ботом</button>
+      </div>
+    </section>
+  );
+}
+
+interface GroupStatus {
+  chatId: string | null; configuredChatId: string | null; overridden: boolean; botConfigured: boolean; botUsername: string;
+  lastError: { at: number; error: string } | null; undelivered: number;
+}
+
+/** Связь с группой менеджеров: точная причина ошибки, проверка и повторная отправка. */
+function GroupHealth({ undelivered, onChange }: { undelivered: number; onChange: () => void }) {
+  const toast = useToast();
+  const [st, setSt] = useState<GroupStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    api<GroupStatus>('telegram/status').then(setSt).catch(() => {});
+  }, [undelivered]);
+
+  async function test() {
+    setBusy(true);
+    try {
+      setSt(await api<GroupStatus>('telegram/test', { method: 'POST' }));
+      toast('Тестовое сообщение отправлено в группу');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+      api<GroupStatus>('telegram/status').then(setSt).catch(() => {});
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function resendAll() {
+    setBusy(true);
+    try {
+      const r = await api<{ sent: number; total: number; error: string; status: GroupStatus }>('telegram/resend-undelivered', { method: 'POST' });
+      setSt(r.status);
+      toast(r.error ? `Отправлено ${r.sent} из ${r.total}. ${r.error}` : `Отправлено заявок: ${r.sent}`, r.error ? 'error' : undefined);
+      onChange();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const bad = undelivered > 0 || !!st?.lastError;
+  if (!bad && !open) {
+    return (
+      <button className="self-start text-sm text-link" onClick={() => setOpen(true)}>Проверить связь с группой менеджеров</button>
+    );
+  }
+  return (
+    <section className={`card flex flex-col gap-2 p-4 text-sm ${bad ? 'border-2 border-danger/40 bg-danger/5' : ''}`}>
+      <h2 className="font-bold">Группа менеджеров в Telegram</h2>
+      {undelivered > 0 && <p className="text-danger">⚠️ Не доставлено заявок: {undelivered} — они вверху списка.</p>}
+      {st?.lastError && (
+        <p className="text-danger">
+          Последняя ошибка ({dt(st.lastError.at)}): <b>{st.lastError.error}</b>
+        </p>
+      )}
+      {st && (
+        <p className="text-hint">
+          ID группы: <code>{st.chatId ?? 'не задан'}</code>
+          {st.overridden && st.configuredChatId !== st.chatId && <> (обновлён ботом; в настройках — <code>{st.configuredChatId}</code>)</>}
+        </p>
+      )}
+      {bad && (
+        <ol className="list-decimal pl-5 text-hint">
+          <li>Откройте группу менеджеров → «Добавить участника» → найдите @{st?.botUsername || 'бота'}.</li>
+          <li>Если бот уже в группе — напишите в группе команду <code>/setgroup</code>.</li>
+          <li>Нажмите «Проверить», затем «Отправить недоставленные».</li>
+        </ol>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <button className="btn btn-secondary" onClick={test} disabled={busy}>Проверить</button>
+        {undelivered > 0 && <button className="btn btn-primary" onClick={resendAll} disabled={busy}>Отправить недоставленные</button>}
       </div>
     </section>
   );

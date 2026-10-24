@@ -106,12 +106,16 @@ async function initTelegram() {
     storageSet('bm_sp', '1', 'session');
     const lot = /^lot-(\d+)$/.exec(sp);
     const lead = /^lead-(\d+)$/.exec(sp);
+    const biz = /^biz-(\d+)$/.exec(sp);
+    const sell = /^sell(?:-(\d+))?$/.exec(sp);
     if (lot) return location.replace(`/business/${lot[1]}`);
     if (lead) return location.replace(`/admin#/leads/${lead[1]}`);
+    if (biz) return location.replace(`/admin#/listings/${biz[1]}`);
+    if (sell) return location.replace(sell[1] ? `/sell?b=${sell[1]}` : '/sell');
   }
 
   // Системная кнопка «Назад» на внутренних экранах.
-  if (page !== 'home' && page !== 'admin') {
+  if (page !== 'home' && page !== 'admin' && page !== 'sell') {
     wa.BackButton.show();
     wa.BackButton.onClick(() => {
       const fromSite = document.referrer && new URL(document.referrer).origin === location.origin;
@@ -129,14 +133,14 @@ async function initTelegram() {
     wa.MainButton.onClick(go);
     afterSplash().then(() => wa.MainButton.show());
     window.addEventListener('pagehide', () => wa.MainButton.offClick(go));
-  } else if (page !== 'request' && page !== 'admin') {
+  } else if (page !== 'request' && page !== 'admin' && page !== 'sell') {
     wa.MainButton.hide();
   }
 
   // Кнопка «Админ-панель» — только для администраторов (сервер всё равно проверяет каждый запрос).
   try {
     const r = await fetch('/api/me', { headers: await tgHeaders() });
-    if (r.ok && ((await r.json()) as { isAdmin?: boolean }).isAdmin && page !== 'admin') {
+    if (r.ok && ((await r.json()) as { isAdmin?: boolean }).isAdmin && page !== 'admin' && page !== 'sell') {
       const a = document.getElementById('admin-link');
       if (a) a.style.display = 'inline-flex';
     }

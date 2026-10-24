@@ -44,7 +44,7 @@ export const PUBLIC_BUSINESS_COLUMNS = {
 /** Поля, которые запрещено отдавать посетителям (проверяются тестом). */
 export const HIDDEN_BUSINESS_FIELDS = [
   'realName', 'exactAddress', 'ownerName', 'ownerPhone', 'ownerTelegram', 'internalNotes',
-  'createdBy', 'updatedBy', 'notifiedAt', 'createdAt',
+  'createdBy', 'updatedBy', 'notifiedAt', 'createdAt', 'sellerTgId', 'sellerStage',
 ] as const;
 
 export interface PublicPhoto {

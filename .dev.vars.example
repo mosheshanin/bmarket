@@ -7,3 +7,9 @@ SITE_URL=http://localhost:4321
 ADMIN_TELEGRAM_IDS=111111,222222
 MANAGERS_CHAT_ID=
 TELEGRAM_BOT_USERNAME=bmarket_test_bot
+
+# PayPal (секреты). Для e2e-теста: PAYPAL_API_BASE=http://127.0.0.1:8799 — поддельный PayPal из tests/e2e/smoke.mjs.
+PAYPAL_CLIENT_ID=test-client
+PAYPAL_CLIENT_SECRET=test-secret
+PAYPAL_WEBHOOK_ID=WH-TEST
+PAYPAL_API_BASE=http://127.0.0.1:8799

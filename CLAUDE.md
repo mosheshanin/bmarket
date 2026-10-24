@@ -2,6 +2,7 @@
 
 Каталог израильских бизнесов на продажу: Telegram Mini App + сайт. **ТЗ — `docs/SPEC.md`** (источник правды).
 Текущее состояние, адреса, ID и список дел — **`docs/STATUS.md`** (читать первым). Отступления от ТЗ — `docs/DECISIONS.md`.
+Оплата размещения продавцами (PayPal) — `docs/PAYMENTS.md`.
 Общение с владельцем — на русском.
 
 ## Главное правило безопасности
@@ -10,6 +11,7 @@
 - Публичные данные читаются только через `src/server/public.ts` (`PUBLIC_BUSINESS_COLUMNS` — явный список).
 - Новое поле в `businesses` нужно явно добавить в `PUBLIC_BUSINESS_COLUMNS` или `HIDDEN_BUSINESS_FIELDS` — иначе упадёт `tests/hidden-fields.test.ts`.
 - Любой `/api/admin/*` проходит через `requireAdmin` (подпись initData + `ADMIN_TELEGRAM_IDS`).
+- `/api/seller/*` — подпись initData; продавец видит и меняет только свои объявления (`seller_tg_id`), и только до отправки.
 
 ## Стек
 Astro 7 (SSR) + `@astrojs/cloudflare` 14 → Cloudflare Workers (Free). React-острова (админка, форма заявки, галерея).
@@ -21,9 +23,11 @@ grammY для бота. Zod для входных данных.
 ```
 src/worker.ts            точка входа Worker: кеш страниц + cron (самонастройка бота, рассылки, курсы, обслуживание)
 src/pages/               страницы и API (api/admin/[...path].ts — роутер админ-API)
-src/server/              серверная логика (public, leads, broadcast, rates, cache, auth, storage, secrets, bot-setup, admin/*)
+src/server/              серверная логика (public, leads, broadcast, rates, cache, auth, storage, secrets, bot-setup,
+                         seller + paypal — объявления продавцов и оплата, settings, admin/*)
 src/bot/bot.ts           команды и кнопки бота
 src/admin/               React-админка (открывается только внутри Telegram)
+src/seller/              «Мои объявления» продавца (/sell): черновик, оплата PayPal, запросы на изменение
 src/components/          Astro/React-компоненты публичной части (Splash.astro — заставка при открытии)
 src/lib/                 чистые функции: форматы, slug, markdown, initData, crypto
 src/db/schema.ts         схема БД; миграции — migrations/ (drizzle-kit)
@@ -38,8 +42,8 @@ tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозн�
 cp .dev.vars.example .dev.vars
 npm run db:migrate:local && npm run db:seed:local && bash scripts/seed-photos.sh --local
 npm run build && npx astro preview --port 8787 --host 127.0.0.1
-npm test                    # юнит-тесты (28)
-npm run test:e2e            # 96 сквозных проверок на локальном Worker
+npm test                    # юнит-тесты (31)
+npm run test:e2e            # 144 сквозные проверки на локальном Worker (с поддельным PayPal на :8799)
 npx astro check             # типы
 npm run size                # размер Worker < 3 МБ gzip (сейчас ≈0,42 МБ)
 npm run db:generate         # после изменения src/db/schema.ts

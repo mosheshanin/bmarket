@@ -34,7 +34,7 @@ describe('скрытые поля лота', () => {
         id: 57, createdAt: Date.UTC(2026, 9, 24, 8, 42), updatedAt: 0, businessId: 1, name: 'Дмитрий <b>', phone: '+972541234567',
         preferredContact: 'whatsapp', comment: 'Интересует оборот', telegramUserId: 5, telegramUsername: 'dmitry_k', source: 'mini_app',
         utmSource: null, utmMedium: null, utmCampaign: null, utmContent: null, utmTerm: null, consentAt: 0, status: 'new',
-        adminNote: null, handledBy: null, handledByName: null, isRead: false, tgDelivered: null, tgMessageId: null, ipHash: null, anonymizedAt: null,
+        adminNote: null, handledBy: null, handledByName: null, isRead: false, tgDelivered: null, tgMessageId: null, tgChatId: null, ipHash: null, anonymizedAt: null,
       },
       { lotNumber: 1001, publicTitle: 'Кофейня с террасой в центре Хайфы', priceIls: 450000 },
     );

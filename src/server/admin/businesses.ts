@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { DB } from '../../db/client';
 import {
@@ -16,6 +16,7 @@ import { previewSecret } from '../card';
 import { imageUrl } from '../public';
 import { siteUrl } from '../telegram';
 import { copyPhoto, putPhoto } from '../storage';
+import { notifySellerPublished } from '../seller-notify';
 
 export const FIRST_LOT_NUMBER = 1001;
 export const MAX_PHOTOS = 15;
@@ -127,7 +128,7 @@ async function nextLotNumber(db: DB): Promise<number> {
   return Math.max(FIRST_LOT_NUMBER, (r?.m ?? FIRST_LOT_NUMBER - 1) + 1);
 }
 
-export async function createBusiness(db: DB, admin: AdminContext, input: BusinessInputT) {
+export async function createBusiness(db: DB, admin: AdminContext, input: BusinessInputT, extra: Partial<Pick<Business, 'sellerTgId' | 'sellerStage'>> = {}) {
   const { expectedUpdatedAt: _ignore, ...data } = input;
   const now = Date.now();
   // Два админа одновременно: повтор при конфликте уникального номера лота.
@@ -139,6 +140,7 @@ export async function createBusiness(db: DB, admin: AdminContext, input: Busines
         .values({
           ...data,
           ...derived(data),
+          ...extra,
           lotNumber,
           status: 'draft',
           createdAt: now,
@@ -195,10 +197,15 @@ export async function publishBusiness(env: Env, db: DB, admin: AdminContext, id:
   const now = Date.now();
   const [after] = await db
     .update(businesses)
-    .set({ status: 'published', publishedAt: before.publishedAt ?? now, updatedAt: Math.max(now, before.updatedAt + 1), updatedBy: admin.id })
+    .set({
+      status: 'published', publishedAt: before.publishedAt ?? now, updatedAt: Math.max(now, before.updatedAt + 1), updatedBy: admin.id,
+      // Объявление продавца после публикации меняется только через запрос администратору.
+      ...(before.sellerTgId ? { sellerStage: 'approved' as const } : {}),
+    })
     .where(eq(businesses.id, id))
     .returning();
   await audit(db, id, admin, 'publish', now);
+  if (before.sellerTgId && before.status === 'draft') await notifySellerPublished(env, after);
   let queued = false;
   // Рассылка — только при первой публикации (notified_at пуст) и включённом переключателе.
   if (notify && !before.notifiedAt) queued = !!(await queueLotNotification(db, id, now));
@@ -237,7 +244,7 @@ export async function duplicateBusiness(env: Env, db: DB, admin: AdminContext, i
   const src = await getBusinessOr404(db, id);
   const {
     id: _id, lotNumber: _l, status: _s, publishedAt: _p, notifiedAt: _n, createdAt: _c, updatedAt: _u,
-    createdBy: _cb, updatedBy: _ub, slug: _slug, paybackMonths: _pb, ...fields
+    createdBy: _cb, updatedBy: _ub, slug: _slug, paybackMonths: _pb, sellerTgId: _st, sellerStage: _ss, ...fields
   } = src;
   const copy = await createBusiness(db, admin, { ...fields, publicTitle: `${src.publicTitle} (копия)`.slice(0, 80) } as BusinessInputT);
   const photos = await db
@@ -346,12 +353,19 @@ export async function updatePhoto(env: Env, db: DB, admin: AdminContext, photoId
 export async function listBusinesses(env: Env, db: DB, status?: string) {
   const since = Date.now() - 30 * 86_400_000;
   const conds = [ne(businesses.status, 'deleted')];
-  if (status && ['draft', 'published', 'hidden'].includes(status)) conds.push(eq(businesses.status, status as 'draft'));
+  if (status === 'seller') {
+    conds.push(isNotNull(businesses.sellerTgId));
+  } else {
+    if (status && ['draft', 'published', 'hidden'].includes(status)) conds.push(eq(businesses.status, status as 'draft'));
+    // Черновики, которые продавцы ещё заполняют или не оплатили, — только во вкладке «От продавцов».
+    conds.push(sql`not (${businesses.status} = 'draft' and coalesce(${businesses.sellerStage}, '') in ('editing', 'awaiting_payment'))`);
+  }
   const rows = await db
     .select({
       id: businesses.id, lotNumber: businesses.lotNumber, slug: businesses.slug, publicTitle: businesses.publicTitle,
       status: businesses.status, cityName: cities.name, isFeatured: businesses.isFeatured, priceIls: businesses.priceIls,
-      publishedAt: businesses.publishedAt, updatedAt: businesses.updatedAt,
+      publishedAt: businesses.publishedAt, updatedAt: businesses.updatedAt, sellerStage: businesses.sellerStage,
+      fromSeller: sql<boolean>`${businesses.sellerTgId} is not null`,
     })
     .from(businesses)
     .leftJoin(cities, eq(cities.id, businesses.cityId))

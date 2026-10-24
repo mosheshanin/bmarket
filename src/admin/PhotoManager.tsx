@@ -15,11 +15,15 @@ interface Props {
   photos: Photo[];
   ensureId: () => Promise<number | null>;
   onDetail: (d: BusinessDetail) => void;
+  /** Базовый адрес API: админка — /api/admin/, продавец — /api/seller/ (те же пути). */
+  apiBase?: string;
+  /** Подпись для SEO — только в админке. */
+  allowAlt?: boolean;
 }
 
 interface Pending { key: string; name: string; progress: number; stage: 'compress' | 'upload' | 'error'; error?: string }
 
-function Tile({ photo, index, onDelete, onAlt }: { photo: Photo; index: number; onDelete: () => void; onAlt: () => void }) {
+function Tile({ photo, index, onDelete, onAlt }: { photo: Photo; index: number; onDelete: () => void; onAlt?: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: photo.id });
   return (
     <li
@@ -33,15 +37,17 @@ function Tile({ photo, index, onDelete, onAlt }: { photo: Photo; index: number; 
       {index === 0 && <span className="badge absolute left-1 top-1 bg-accent text-accent-text">Обложка</span>}
       <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onDelete} aria-label="Удалить фото"
         className="absolute right-1 top-1 h-9 w-9 rounded-full bg-black/60 text-lg text-white">×</button>
-      <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onAlt}
-        className="absolute inset-x-1 bottom-1 truncate rounded bg-black/55 px-1.5 py-1 text-left text-[11px] text-white">
-        {photo.alt ? `✎ ${photo.alt}` : '✎ подпись для SEO'}
-      </button>
+      {onAlt && (
+        <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onAlt}
+          className="absolute inset-x-1 bottom-1 truncate rounded bg-black/55 px-1.5 py-1 text-left text-[11px] text-white">
+          {photo.alt ? `✎ ${photo.alt}` : '✎ подпись для SEO'}
+        </button>
+      )}
     </li>
   );
 }
 
-export default function PhotoManager({ photos, ensureId, onDetail }: Props) {
+export default function PhotoManager({ photos, ensureId, onDetail, apiBase = '/api/admin/', allowAlt = true }: Props) {
   const [pending, setPending] = useState<Pending[]>([]);
   const input = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -74,9 +80,9 @@ export default function PhotoManager({ photos, ensureId, onDetail }: Props) {
         form.set('small', new File([c.small], `small.${ext}`, { type: c.type }));
         form.set('width', String(c.width));
         form.set('height', String(c.height));
-        await upload(`businesses/${id}/photos`, form, (progress) => update(it.key, { progress }));
+        await upload(`businesses/${id}/photos`, form, (progress) => update(it.key, { progress }), apiBase);
         setPending((p) => p.filter((x) => x.key !== it.key));
-        onDetail(await api<BusinessDetail>(`businesses/${id}`));
+        onDetail(await api<BusinessDetail>(`businesses/${id}`, { base: apiBase }));
       } catch (e) {
         update(it.key, { stage: 'error', error: (e as Error).message });
       }
@@ -93,7 +99,7 @@ export default function PhotoManager({ photos, ensureId, onDetail }: Props) {
     const id = await ensureId();
     if (!id) return;
     try {
-      onDetail(await api<BusinessDetail>(`businesses/${id}/photos/order`, { method: 'PUT', body: { ids: next.map((p) => p.id) } }));
+      onDetail(await api<BusinessDetail>(`businesses/${id}/photos/order`, { method: 'PUT', body: { ids: next.map((p) => p.id) }, base: apiBase }));
     } catch (err) {
       toast((err as Error).message, 'error');
     }
@@ -101,7 +107,7 @@ export default function PhotoManager({ photos, ensureId, onDetail }: Props) {
 
   async function del(p: Photo) {
     try {
-      onDetail(await api<BusinessDetail>(`photos/${p.id}`, { method: 'PATCH', body: { delete: true } }));
+      onDetail(await api<BusinessDetail>(`photos/${p.id}`, { method: 'PATCH', body: { delete: true }, base: apiBase }));
     } catch (e) {
       toast((e as Error).message, 'error');
     }
@@ -113,7 +119,7 @@ export default function PhotoManager({ photos, ensureId, onDetail }: Props) {
   async function saveAlt() {
     if (!altEdit) return;
     try {
-      onDetail(await api<BusinessDetail>(`photos/${altEdit.photo.id}`, { method: 'PATCH', body: { alt: altEdit.value } }));
+      onDetail(await api<BusinessDetail>(`photos/${altEdit.photo.id}`, { method: 'PATCH', body: { alt: altEdit.value }, base: apiBase }));
       setAltEdit(null);
     } catch (e) {
       toast((e as Error).message, 'error');
@@ -138,7 +144,7 @@ export default function PhotoManager({ photos, ensureId, onDetail }: Props) {
         <SortableContext items={photos.map((p) => p.id)} strategy={rectSortingStrategy}>
           <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
             {photos.map((p, i) => (
-              <Tile key={p.id} photo={p} index={i} onDelete={() => del(p)} onAlt={() => alt(p)} />
+              <Tile key={p.id} photo={p} index={i} onDelete={() => del(p)} onAlt={allowAlt ? () => alt(p) : undefined} />
             ))}
             {pending.map((p) => (
               <li key={p.key} className="flex aspect-[4/3] flex-col items-center justify-center gap-1 rounded-lg bg-line p-2 text-center text-xs">

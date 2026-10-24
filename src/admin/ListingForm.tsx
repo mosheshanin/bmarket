@@ -3,6 +3,7 @@ import { api, ApiError } from './api';
 import { navigate, useMeta } from './App';
 import MarkdownEditor from './MarkdownEditor';
 import PhotoManager from './PhotoManager';
+import SellerPanel from './SellerPanel';
 import { ErrorBox, Field, NumberInput, Section, Spinner, STATUS_LABEL, STATUS_TONE, dt, useToast } from './ui';
 import type { Business, BusinessDetail } from './types';
 import { storageGet, storageSet, getWebApp } from '../scripts/tg';
@@ -249,6 +250,8 @@ export default function ListingForm({ id: initialId }: { id: number | null }) {
           </div>
         </div>
       )}
+
+      {detail?.seller && <SellerPanel detail={detail} onDetail={(d) => applyDetail(d, !dirty)} />}
 
       <Section title="Основное">
         <Field label="Обезличенное название" htmlFor="f-title" hint={`${form.publicTitle.length}/80 · без реального названия и адреса`} error={isMissing('название') ? 'Обязательно' : undefined}>

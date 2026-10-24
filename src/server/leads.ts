@@ -3,7 +3,9 @@ import type { InlineKeyboardMarkup } from 'grammy/types';
 import type { DB } from '../db/client';
 import { businesses, leads, type Lead } from '../db/schema';
 import { CONTACT_LABELS, LEAD_STATUS_LABELS, escapeHtml, formatDateTime, formatIls, prettyPhone } from '../lib/format';
-import { managersChatId, miniAppLink, siteUrl, sleep, tgApi } from './telegram';
+import { GrammyError } from 'grammy';
+import { MANAGERS_CHAT_KEY, MANAGERS_ERROR_KEY, getManagersChat, managersChatId, miniAppLink, sendToManagers, siteUrl, sleep, tgApi } from './telegram';
+import { getSettings } from './settings';
 
 export const LEADS_PER_HOUR_LIMIT = 5;
 
@@ -76,39 +78,41 @@ async function lotFor(db: DB, businessId: number): Promise<LeadLot> {
  * Отправка заявки в группу менеджеров: 1 попытка + до 3 повторов с паузой.
  * При неудаче заявка помечается «не доставлена» и поднимается вверх списка в админке.
  */
-export async function deliverLead(env: Env, db: DB, leadId: number, pauses = [1000, 2000, 4000]): Promise<boolean> {
+export async function deliverLead(env: Env, db: DB, leadId: number, pauses = [1000, 2000, 4000]): Promise<{ ok: boolean; error?: string }> {
   const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
-  if (!lead) return false;
-  const chat = managersChatId(env);
-  if (!chat || !env.TELEGRAM_BOT_TOKEN) {
-    await db.update(leads).set({ tgDelivered: false }).where(eq(leads.id, leadId));
-    return false;
-  }
+  if (!lead) return { ok: false, error: 'Заявка не найдена' };
   const lot = await lotFor(db, lead.businessId);
   const text = renderLeadMessage(lead, lot);
+  let error = '';
   for (let attempt = 0; attempt <= pauses.length; attempt++) {
     try {
-      const msg = await tgApi(env).sendMessage(chat, text, {
-        parse_mode: 'HTML',
-        reply_markup: leadKeyboard(env, lead),
-        link_preview_options: { is_disabled: true },
-      });
-      await db.update(leads).set({ tgDelivered: true, tgMessageId: msg.message_id }).where(eq(leads.id, leadId));
-      return true;
+      const msg = await sendToManagers(env, db, text, { reply_markup: leadKeyboard(env, lead) });
+      await db.update(leads).set({ tgDelivered: true, tgMessageId: msg.message_id, tgChatId: String(msg.chat.id) }).where(eq(leads.id, leadId));
+      return { ok: true };
     } catch (e) {
-      console.error(`deliverLead #${leadId} attempt ${attempt + 1} failed`, e);
+      error = e instanceof Error ? e.message : String(e);
+      console.error(`deliverLead #${leadId} attempt ${attempt + 1} failed: ${error}`);
+      // Ошибки настройки (нет бота в группе, неверный ID) повторами не лечатся.
+      if (!isTransient(e)) break;
       if (attempt < pauses.length) await sleep(pauses[attempt]);
     }
   }
   await db.update(leads).set({ tgDelivered: false }).where(eq(leads.id, leadId));
-  return false;
+  return { ok: false, error };
+}
+
+function isTransient(e: unknown): boolean {
+  const cause = (e as { cause?: unknown })?.cause;
+  if (cause instanceof GrammyError) return cause.error_code === 429 || cause.error_code >= 500;
+  return !!cause; // сетевая ошибка (HttpError grammY) — можно повторить
 }
 
 /** Обновить сообщение в группе после смены статуса (в админке или кнопкой). */
 export async function syncLeadMessage(env: Env, db: DB, leadId: number): Promise<void> {
   const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
-  const chat = managersChatId(env);
-  if (!lead?.tgMessageId || !chat) return;
+  if (!lead?.tgMessageId) return;
+  const chat = lead.tgChatId ?? (await getManagersChat(env, db));
+  if (!chat) return;
   const lot = await lotFor(db, lead.businessId);
   try {
     await tgApi(env).editMessageText(chat, lead.tgMessageId, renderLeadMessage(lead, lot), {
@@ -133,4 +137,28 @@ export async function takeLead(db: DB, leadId: number, adminId: number, adminNam
   if (updated[0]) return { taken: true as const, lead: updated[0] };
   const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
   return { taken: false as const, lead };
+}
+
+export async function undeliveredLeadIds(db: DB): Promise<number[]> {
+  const rows = await db.select({ id: leads.id }).from(leads).where(eq(leads.tgDelivered, false)).orderBy(leads.id).limit(50);
+  return rows.map((r) => r.id);
+}
+
+/** Состояние связи с группой менеджеров для админки. */
+export async function managersStatus(env: Env, db: DB) {
+  const s = await getSettings(db, [MANAGERS_CHAT_KEY, MANAGERS_ERROR_KEY]);
+  let lastError: { at: number; error: string } | null = null;
+  try {
+    lastError = s[MANAGERS_ERROR_KEY] ? JSON.parse(s[MANAGERS_ERROR_KEY]) : null;
+  } catch { /* повреждённое значение — игнорируем */ }
+  const [u] = await db.select({ n: sql<number>`count(*)` }).from(leads).where(eq(leads.tgDelivered, false));
+  return {
+    chatId: s[MANAGERS_CHAT_KEY] ?? managersChatId(env),
+    configuredChatId: managersChatId(env),
+    overridden: !!s[MANAGERS_CHAT_KEY],
+    botConfigured: !!env.TELEGRAM_BOT_TOKEN,
+    botUsername: env.TELEGRAM_BOT_USERNAME || '',
+    lastError,
+    undelivered: u?.n ?? 0,
+  };
 }

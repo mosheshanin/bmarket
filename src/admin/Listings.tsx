@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from './api';
-import { navigate } from './App';
-import { ErrorBox, Segmented, Spinner, STATUS_LABEL, STATUS_TONE, confirmDialog, fmtNum, useToast } from './ui';
+import { navigate, useMeta } from './App';
+import SellerOverview from './SellerOverview';
+import { ErrorBox, Segmented, Spinner, SELLER_STAGE_LABEL, SELLER_STAGE_TONE, STATUS_LABEL, STATUS_TONE, confirmDialog, fmtNum, useToast } from './ui';
 import type { BusinessDetail, ListingRow } from './types';
 
-type Filter = 'all' | 'published' | 'draft' | 'hidden';
+type Filter = 'all' | 'published' | 'draft' | 'hidden' | 'seller';
 
 export default function Listings() {
-  const [filter, setFilter] = useState<Filter>('all');
+  const { meta } = useMeta();
+  const [filter, setFilter] = useState<Filter>(() => (location.hash.includes('seller') ? 'seller' : 'all'));
   const [items, setItems] = useState<ListingRow[] | null>(null);
   const [error, setError] = useState('');
   const [menu, setMenu] = useState<number | null>(null);
@@ -64,8 +66,10 @@ export default function Listings() {
       <Segmented<Filter>
         value={filter}
         onChange={setFilter}
-        options={[['all', 'Все'], ['published', 'Опубликованные'], ['draft', 'Черновики'], ['hidden', 'Скрытые']]}
+        options={[['all', 'Все'], ['published', 'Опубликованные'], ['draft', 'Черновики'], ['hidden', 'Скрытые'],
+          ['seller', 'От продавцов', (meta.sellerQueue?.inReview ?? 0) + (meta.sellerQueue?.openEditRequests ?? 0)]]}
       />
+      {filter === 'seller' && <SellerOverview />}
       {error && <ErrorBox error={error} onRetry={load} />}
       {!items && !error && <Spinner />}
       {items && items.length === 0 && <p className="card p-6 text-center text-hint">Здесь пока пусто</p>}
@@ -83,6 +87,8 @@ export default function Listings() {
                 <p className="truncate font-semibold">{r.publicTitle || 'Без названия'}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className={`badge ${STATUS_TONE[r.status]}`}>{STATUS_LABEL[r.status]}</span>
+                  {r.sellerStage && r.status === 'draft' && <span className={`badge ${SELLER_STAGE_TONE[r.sellerStage]}`}>{SELLER_STAGE_LABEL[r.sellerStage]}</span>}
+                  {r.fromSeller && r.status !== 'draft' && <span className="badge bg-hint/15 text-hint">от продавца</span>}
                   {r.priceIls ? <span>₪ {fmtNum(r.priceIls)}</span> : null}
                   <span className="text-hint">👁 {r.views30} · ✉️ {r.leads30} за 30 дн.</span>
                 </div>

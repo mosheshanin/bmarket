@@ -1,6 +1,6 @@
-import { and, inArray, isNotNull, isNull, lt } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import type { DB } from '../db/client';
-import { businessPhotos, leads } from '../db/schema';
+import { businesses, businessPhotos, leads, payments } from '../db/schema';
 import { deletePhotos } from './storage';
 
 export const LEAD_RETENTION_MS = 730 * 86_400_000; // 24 месяца
@@ -27,4 +27,27 @@ export async function purgeDeletedPhotos(env: Env, db: DB, now = Date.now()): Pr
   await deletePhotos(env, rows.flatMap((r) => [r.k1, r.k2]).filter((k) => !k.startsWith('demo/')));
   await db.delete(businessPhotos).where(inArray(businessPhotos.id, rows.map((r) => r.id)));
   return rows.length;
+}
+
+export const SELLER_DRAFT_TTL_MS = 180 * 86_400_000;
+
+/** Черновики продавцов без оплаты, не менявшиеся 180 дней, удаляются (фото — через 30 дней после этого). */
+export async function removeAbandonedSellerDrafts(db: DB, now = Date.now()): Promise<number> {
+  const rows = await db
+    .select({ id: businesses.id })
+    .from(businesses)
+    .where(and(
+      eq(businesses.status, 'draft'),
+      inArray(businesses.sellerStage, ['editing', 'awaiting_payment']),
+      lt(businesses.updatedAt, now - SELLER_DRAFT_TTL_MS),
+      sql`not exists (select 1 from ${payments} where ${payments.businessId} = ${businesses.id} and ${payments.status} = 'completed')`,
+    ))
+    .limit(50);
+  if (!rows.length) return 0;
+  const ids = rows.map((r) => r.id);
+  await db.batch([
+    db.update(businessPhotos).set({ deletedAt: now }).where(and(inArray(businessPhotos.businessId, ids), isNull(businessPhotos.deletedAt))),
+    db.update(businesses).set({ status: 'deleted', updatedAt: now }).where(inArray(businesses.id, ids)),
+  ]);
+  return ids.length;
 }

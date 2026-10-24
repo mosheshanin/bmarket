@@ -31,6 +31,12 @@ export const INCLUDED_ITEMS = [
 ] as const;
 /** deleted — удалённый черновик: строка остаётся, чтобы номер лота не переиспользовался, а фото удалились через 30 дней. */
 export const BUSINESS_STATUSES = ['draft', 'published', 'hidden', 'deleted'] as const;
+/**
+ * Этап объявления, которое подал продавец (у созданных администратором — null):
+ * editing — продавец заполняет черновик; awaiting_payment — отправлено, ждёт оплаты;
+ * in_review — оплачено, ждёт проверки администратором; approved — опубликовано (правки — только через запрос).
+ */
+export const SELLER_STAGES = ['editing', 'awaiting_payment', 'in_review', 'approved'] as const;
 
 export const businesses = sqliteTable('businesses', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -73,6 +79,9 @@ export const businesses = sqliteTable('businesses', {
   ownerPhone: text('owner_phone'),
   ownerTelegram: text('owner_telegram'),
   internalNotes: text('internal_notes'),
+  /** Telegram ID продавца, подавшего объявление сам. */
+  sellerTgId: integer('seller_tg_id'),
+  sellerStage: text('seller_stage', { enum: SELLER_STAGES }),
   // ---- /HIDDEN ----
 
   createdAt: integer('created_at').notNull(),
@@ -83,6 +92,7 @@ export const businesses = sqliteTable('businesses', {
   uniqueIndex('businesses_lot_uq').on(t.lotNumber),
   index('businesses_status_pub_idx').on(t.status, t.publishedAt),
   index('businesses_status_city_idx').on(t.status, t.cityId),
+  index('businesses_seller_idx').on(t.sellerTgId),
 ]);
 
 export const businessPhotos = sqliteTable('business_photos', {
@@ -129,6 +139,8 @@ export const leads = sqliteTable('leads', {
   /** null — отправка идёт, true — доставлена в группу, false — не доставлена. */
   tgDelivered: integer('tg_delivered', { mode: 'boolean' }),
   tgMessageId: integer('tg_message_id'),
+  /** В какую группу ушло сообщение (ID меняется при переходе группы в супергруппу). */
+  tgChatId: text('tg_chat_id'),
   /** Хеш IP — только для ограничения 5 заявок в час; сам IP не хранится. */
   ipHash: text('ip_hash'),
   /** Через 24 месяца имя, телефон и комментарий стираются. */
@@ -206,6 +218,45 @@ export const broadcasts = sqliteTable('broadcasts', {
   createdAt: integer('created_at').notNull(),
 }, (t) => [index('broadcasts_status_idx').on(t.status, t.scheduledAt)]);
 
+/** Платежи продавцов за размещение (PayPal или отмеченные администратором вручную). */
+export const PAYMENT_STATUSES = ['created', 'pending', 'completed', 'failed', 'refunded'] as const;
+export const payments = sqliteTable('payments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  businessId: integer('business_id').notNull().references(() => businesses.id),
+  tgUserId: integer('tg_user_id'),
+  provider: text('provider', { enum: ['paypal', 'manual'] }).notNull(),
+  /** ID заказа PayPal (Orders API v2). */
+  providerOrderId: text('provider_order_id'),
+  captureId: text('capture_id'),
+  status: text('status', { enum: PAYMENT_STATUSES }).notNull().default('created'),
+  /** Сумма в агоротах (1 ₪ = 100). */
+  amount: integer('amount').notNull(),
+  currency: text('currency').notNull().default('ILS'),
+  note: text('note'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  checkedAt: integer('checked_at'),
+  completedAt: integer('completed_at'),
+}, (t) => [
+  uniqueIndex('payments_order_uq').on(t.providerOrderId),
+  index('payments_business_idx').on(t.businessId),
+  index('payments_status_idx').on(t.status, t.createdAt),
+]);
+
+/** Запросы продавцов на изменение оплаченного/опубликованного объявления. */
+export const editRequests = sqliteTable('edit_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  businessId: integer('business_id').notNull().references(() => businesses.id),
+  tgUserId: integer('tg_user_id').notNull(),
+  text: text('text').notNull(),
+  status: text('status', { enum: ['new', 'done', 'rejected'] }).notNull().default('new'),
+  adminNote: text('admin_note'),
+  handledBy: integer('handled_by'),
+  handledByName: text('handled_by_name'),
+  createdAt: integer('created_at').notNull(),
+  handledAt: integer('handled_at'),
+}, (t) => [index('edit_requests_business_idx').on(t.businessId, t.createdAt), index('edit_requests_status_idx').on(t.status)]);
+
 /** Небольшое хранилище служебных значений (например, дата последнего оповещения). */
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
@@ -219,3 +270,5 @@ export type Category = typeof categories.$inferSelect;
 export type Photo = typeof businessPhotos.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type Broadcast = typeof broadcasts.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
+export type EditRequest = typeof editRequests.$inferSelect;

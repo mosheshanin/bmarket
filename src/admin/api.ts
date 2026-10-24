@@ -14,7 +14,7 @@ export async function adminInitData(): Promise<string> {
   return initDataCache;
 }
 
-export async function api<T = unknown>(path: string, opts: { method?: string; body?: unknown; form?: FormData } = {}): Promise<T> {
+export async function api<T = unknown>(path: string, opts: { method?: string; body?: unknown; form?: FormData; base?: string } = {}): Promise<T> {
   const headers: Record<string, string> = { authorization: `tma ${await adminInitData()}` };
   let body: BodyInit | undefined;
   if (opts.form) body = opts.form;
@@ -22,18 +22,18 @@ export async function api<T = unknown>(path: string, opts: { method?: string; bo
     headers['content-type'] = 'application/json';
     body = JSON.stringify(opts.body);
   }
-  const r = await fetch(`/api/admin/${path}`, { method: opts.method ?? (body ? 'POST' : 'GET'), headers, body });
+  const r = await fetch(`${opts.base ?? '/api/admin/'}${path}`, { method: opts.method ?? (body ? 'POST' : 'GET'), headers, body });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new ApiError(r.status, (data as { error?: string }).error ?? `Ошибка ${r.status}`, data as Record<string, unknown>);
   return data as T;
 }
 
 /** Загрузка с прогрессом (XMLHttpRequest — у fetch нет прогресса отправки). */
-export async function upload<T>(path: string, form: FormData, onProgress: (p: number) => void): Promise<T> {
+export async function upload<T>(path: string, form: FormData, onProgress: (p: number) => void, base = '/api/admin/'): Promise<T> {
   const auth = `tma ${await adminInitData()}`;
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `/api/admin/${path}`);
+    xhr.open('POST', `${base}${path}`);
     xhr.setRequestHeader('authorization', auth);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onload = () => {

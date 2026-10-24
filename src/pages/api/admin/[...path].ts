@@ -12,7 +12,13 @@ import {
 import { leadDetail, leadsCsv, leadsSummary, listLeads, patchLead, sendCsvToAdmin, syncLeadMessage } from '../../../server/admin/leads';
 import { CategoryInput, CityInput, createCategory, createCity, deleteDict, listDicts, reorderDict, updateCategory, updateCity } from '../../../server/admin/dicts';
 import { getStats, subscribersSummary } from '../../../server/admin/stats';
-import { deliverLead } from '../../../server/leads';
+import { deliverLead, managersStatus, undeliveredLeadIds } from '../../../server/leads';
+import {
+  MarkPaidInput, ResolveInput, ReturnInput, SellerSettingsInput, adminSellerInfo, getSellerSettings, markPaidManually,
+  openEditRequests, paymentInfo, resolveEditRequest, returnToSeller, saveSellerSettings, sellerQueue,
+} from '../../../server/seller';
+import { sendToManagers } from '../../../server/telegram';
+import { escapeHtml } from '../../../lib/format';
 import { db, env, site } from '../../../server/site';
 
 type Ctx = { ctx: APIContext; admin: AdminContext; params: string[]; url: URL; origin: string };
@@ -45,11 +51,18 @@ const num = (s: string) => {
   return n;
 };
 
+/** Карточка лота в админке + блок продавца (оплата, запросы на изменение). */
+async function full(id: number) {
+  const d = db();
+  const detail = await businessDetail(env, d, id);
+  return { ...detail, seller: await adminSellerInfo(d, detail.business) };
+}
+
 const routes: [string, RegExp, Handler][] = [
   ['GET', /^me$/, async ({ admin }) => {
     const d = db();
-    const [dicts, summary] = await Promise.all([listDicts(d), leadsSummary(d)]);
-    return json({ admin: { id: admin.id, name: admin.name }, ...dicts, leadsSummary: summary, site: site() });
+    const [dicts, summary, seller] = await Promise.all([listDicts(d), leadsSummary(d), sellerQueue(d)]);
+    return json({ admin: { id: admin.id, name: admin.name }, ...dicts, leadsSummary: summary, sellerQueue: seller, site: site() });
   }],
 
   // ---- Объявления ----
@@ -57,13 +70,13 @@ const routes: [string, RegExp, Handler][] = [
   ['POST', /^businesses$/, async ({ ctx, admin }) => {
     const input = await readJson(ctx.request, BusinessInput);
     const b = await createBusiness(db(), admin, input);
-    return json(await businessDetail(env, db(), b.id), { status: 201 });
+    return json(await full(b.id), { status: 201 });
   }],
-  ['GET', /^businesses\/(\d+)$/, async ({ params }) => json(await businessDetail(env, db(), num(params[0])))],
+  ['GET', /^businesses\/(\d+)$/, async ({ params }) => json(await full(num(params[0])))],
   ['PUT', /^businesses\/(\d+)$/, async ({ ctx, admin, params, origin }) => {
     const input = await readJson(ctx.request, BusinessInput);
     await updateBusiness(env, db(), admin, num(params[0]), input, origin);
-    return json(await businessDetail(env, db(), num(params[0])));
+    return json(await full(num(params[0])));
   }],
   ['DELETE', /^businesses\/(\d+)$/, async ({ admin, params }) => {
     await deleteDraft(db(), admin, num(params[0]));
@@ -72,15 +85,15 @@ const routes: [string, RegExp, Handler][] = [
   ['POST', /^businesses\/(\d+)\/publish$/, async ({ ctx, admin, params, origin }) => {
     const { notify } = await readJson(ctx.request, PublishInput);
     const r = await publishBusiness(env, db(), admin, num(params[0]), notify, origin);
-    return json({ ...(await businessDetail(env, db(), num(params[0]))), notificationQueued: r.notificationQueued });
+    return json({ ...(await full(num(params[0]))), notificationQueued: r.notificationQueued });
   }],
   ['POST', /^businesses\/(\d+)\/hide$/, async ({ admin, params, origin }) => {
     await hideBusiness(env, db(), admin, num(params[0]), origin);
-    return json(await businessDetail(env, db(), num(params[0])));
+    return json(await full(num(params[0])));
   }],
   ['POST', /^businesses\/(\d+)\/duplicate$/, async ({ admin, params }) => {
     const copy = await duplicateBusiness(env, db(), admin, num(params[0]));
-    return json(await businessDetail(env, db(), copy.id), { status: 201 });
+    return json(await full(copy.id), { status: 201 });
   }],
   ['POST', /^businesses\/(\d+)\/photos$/, async ({ ctx, admin, params, origin }) => {
     const form = await ctx.request.formData();
@@ -89,12 +102,33 @@ const routes: [string, RegExp, Handler][] = [
   ['PUT', /^businesses\/(\d+)\/photos\/order$/, async ({ ctx, admin, params, origin }) => {
     const { ids } = await readJson(ctx.request, Ids);
     await reorderPhotos(env, db(), admin, num(params[0]), ids, origin);
-    return json(await businessDetail(env, db(), num(params[0])));
+    return json(await full(num(params[0])));
   }],
   ['PATCH', /^photos\/(\d+)$/, async ({ ctx, admin, params, origin }) => {
     const patch = await readJson(ctx.request, PhotoPatch);
     const b = await updatePhoto(env, db(), admin, num(params[0]), patch, origin);
-    return json(await businessDetail(env, db(), b.id));
+    return json(await full(b.id));
+  }],
+
+  // ---- Объявления продавцов ----
+  ['GET', /^seller$/, async () => {
+    const d = db();
+    const [settings, queue, requests] = await Promise.all([getSellerSettings(d), sellerQueue(d), openEditRequests(d)]);
+    return json({ settings, queue, requests, payment: paymentInfo(env) });
+  }],
+  ['PUT', /^seller\/settings$/, async ({ ctx }) => json({ settings: await saveSellerSettings(db(), await readJson(ctx.request, SellerSettingsInput)) })],
+  ['POST', /^businesses\/(\d+)\/mark-paid$/, async ({ ctx, admin, params }) => {
+    await markPaidManually(env, db(), admin, num(params[0]), (await readJson(ctx.request, MarkPaidInput)).note);
+    return json(await full(num(params[0])));
+  }],
+  ['POST', /^businesses\/(\d+)\/return-to-seller$/, async ({ ctx, admin, params }) => {
+    await returnToSeller(env, db(), admin, num(params[0]), (await readJson(ctx.request, ReturnInput)).comment);
+    return json(await full(num(params[0])));
+  }],
+  ['PATCH', /^edit-requests\/(\d+)$/, async ({ ctx, admin, params }) => {
+    const { status, adminNote } = await readJson(ctx.request, ResolveInput);
+    const r = await resolveEditRequest(env, db(), admin, num(params[0]), status, adminNote);
+    return json(await full(r.businessId));
   }],
 
   // ---- Заявки ----
@@ -117,9 +151,33 @@ const routes: [string, RegExp, Handler][] = [
     return json(await leadDetail(d, r.lead.id));
   }],
   ['POST', /^leads\/(\d+)\/resend$/, async ({ params }) => {
-    const ok = await deliverLead(env, db(), num(params[0]), [1000]);
-    if (!ok) throw new HttpError(502, 'Telegram не принял сообщение. Проверьте MANAGERS_CHAT_ID и что бот состоит в группе.');
+    const r = await deliverLead(env, db(), num(params[0]), [1000]);
+    if (!r.ok) throw new HttpError(502, r.error || 'Telegram не принял сообщение');
     return json(await leadDetail(db(), num(params[0])));
+  }],
+
+  // ---- Группа менеджеров: проверка и повторная отправка ----
+  ['GET', /^telegram\/status$/, async () => json(await managersStatus(env, db()))],
+  ['POST', /^telegram\/test$/, async ({ admin }) => {
+    const d = db();
+    try {
+      await sendToManagers(env, d, `✅ Проверка связи: бот пишет в эту группу. Запустил ${escapeHtml(admin.name)}.`);
+    } catch (e) {
+      throw new HttpError(502, e instanceof Error ? e.message : String(e));
+    }
+    return json(await managersStatus(env, d));
+  }],
+  ['POST', /^telegram\/resend-undelivered$/, async () => {
+    const d = db();
+    const ids = await undeliveredLeadIds(d);
+    let sent = 0;
+    let error = '';
+    for (const id of ids) {
+      const r = await deliverLead(env, d, id, []);
+      if (r.ok) sent++;
+      else { error = r.error ?? ''; break; }
+    }
+    return json({ sent, total: ids.length, error, status: await managersStatus(env, d) });
   }],
   ['POST', /^leads\/export-link$/, async ({ url }) => {
     const r = range(url);

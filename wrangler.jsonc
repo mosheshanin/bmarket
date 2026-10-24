@@ -34,7 +34,11 @@
     "TELEGRAM_APP_SHORT_NAME": "app",
     "TURNSTILE_SITE_KEY": "",
     "CF_ANALYTICS_TOKEN": "",
-    "PROJECT_NAME": "BMarket"
+    "PROJECT_NAME": "BMarket",
+    // PayPal: sandbox — тестовые платежи, live — настоящие. Секреты PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET — в панели Cloudflare.
+    "PAYPAL_ENV": "sandbox",
+    // ID вебхука из PayPal Developer Dashboard (не секрет). Пусто — вебхук выключен, работает возврат + сверка раз в минуту.
+    "PAYPAL_WEBHOOK_ID": ""
   }
   // Секрет задаётся в панели Cloudflare (Worker → Settings → Variables and Secrets) или `wrangler secret put`:
   //   TELEGRAM_BOT_TOKEN — токен бота. Секрет вебхука выводится из него автоматически.

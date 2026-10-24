@@ -1,0 +1,33 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { settlePayPalOrder } from '../../../server/seller';
+import { botLink } from '../../../server/telegram';
+import { db, env } from '../../../server/site';
+
+/** Сюда PayPal возвращает продавца после подтверждения оплаты: списываем деньги и публикуем. */
+Astro.response.headers.set('cache-control', 'no-store');
+const orderId = Astro.url.searchParams.get('token') ?? '';
+let state = 'unknown';
+let businessId: number | undefined;
+if (/^[A-Z0-9]{5,40}$/i.test(orderId)) {
+  try {
+    const r = await settlePayPalOrder(env, db(), orderId);
+    state = r.state;
+    businessId = r.businessId;
+  } catch (e) {
+    console.error('paypal return', e instanceof Error ? e.message : e);
+    state = 'error';
+  }
+}
+const back = botLink(env, businessId ? `sell-${businessId}` : 'sell') ?? '/sell';
+const ok = state === 'completed';
+---
+
+<Layout title="Оплата размещения" noindex data={{ page: 'static' }}>
+  <section class="card mx-auto mt-6 max-w-md p-6 text-center">
+    {ok && <><p class="text-5xl">✅</p><h1 class="mt-3 text-xl font-extrabold">Оплата прошла</h1><p class="mt-2 text-hint">Спасибо! Статус объявления обновлён — подробности в разделе «Мои объявления» и в сообщении от бота.</p></>}
+    {state === 'pending' && <><p class="text-5xl">⏳</p><h1 class="mt-3 text-xl font-extrabold">Платёж обрабатывается</h1><p class="mt-2 text-hint">PayPal ещё проверяет платёж. Как только он завершится, объявление обработается автоматически — бот пришлёт сообщение.</p></>}
+    {!ok && state !== 'pending' && <><p class="text-5xl">⚠️</p><h1 class="mt-3 text-xl font-extrabold">Оплата не завершена</h1><p class="mt-2 text-hint">Деньги не списаны. Вернитесь в «Мои объявления» и попробуйте ещё раз. Если списание всё же прошло — мы увидим его в течение нескольких минут.</p></>}
+    <a class="btn btn-primary mt-5 w-full" href={back}>Вернуться в Telegram</a>
+  </section>
+</Layout>

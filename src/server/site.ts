@@ -12,6 +12,7 @@ export function site() {
     url: siteUrl(env),
     botLink: botLink(env),
     botSubscribeLink: botLink(env, 'subscribe'),
+    botSellLink: botLink(env, 'sell'),
     miniAppLink: miniAppLink(env),
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || '',
     analyticsToken: env.CF_ANALYTICS_TOKEN || '',

@@ -121,3 +121,13 @@ export function dt(ts: number | null | undefined) {
   if (!ts) return '—';
   return new Intl.DateTimeFormat('ru-RU', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(ts);
 }
+
+export const SELLER_STAGE_LABEL: Record<string, string> = {
+  editing: 'Заполняет продавец', awaiting_payment: 'Ждёт оплаты', in_review: 'Ждёт проверки', approved: 'От продавца',
+};
+export const SELLER_STAGE_TONE: Record<string, string> = {
+  editing: 'bg-hint/15 text-hint', awaiting_payment: 'bg-warn text-text', in_review: 'bg-accent/15 text-accent', approved: 'bg-success/15 text-success',
+};
+export const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  created: 'не оплачен', pending: 'обрабатывается', completed: 'оплачен', failed: 'не прошёл', refunded: 'возврат',
+};

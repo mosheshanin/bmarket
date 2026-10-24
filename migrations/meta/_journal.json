@@ -15,6 +15,13 @@
       "when": 1792832365403,
       "tag": "0001_seed_dictionaries",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792848867751,
+      "tag": "0002_seller_listings",
+      "breakpoints": true
     }
   ]
 }

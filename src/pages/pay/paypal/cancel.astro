@@ -1,0 +1,18 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { botLink } from '../../../server/telegram';
+import { env } from '../../../server/site';
+
+Astro.response.headers.set('cache-control', 'no-store');
+const b = Number(Astro.url.searchParams.get('b')) || 0;
+const back = botLink(env, b ? `sell-${b}` : 'sell') ?? '/sell';
+---
+
+<Layout title="Оплата отменена" noindex data={{ page: 'static' }}>
+  <section class="card mx-auto mt-6 max-w-md p-6 text-center">
+    <p class="text-5xl">↩️</p>
+    <h1 class="mt-3 text-xl font-extrabold">Оплата отменена</h1>
+    <p class="mt-2 text-hint">Деньги не списаны. Объявление сохранено — оплатить можно позже в разделе «Мои объявления».</p>
+    <a class="btn btn-primary mt-5 w-full" href={back}>Вернуться в Telegram</a>
+  </section>
+</Layout>

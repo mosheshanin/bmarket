@@ -97,7 +97,7 @@ export async function updateRates(env: Env, db: DB, now = Date.now()): Promise<v
     const today = israelDateIso(now);
     const [s] = await db.select().from(settings).where(eq(settings.key, 'rates_alert_date'));
     if (s?.value !== today) {
-      await notifyManagers(env, `⚠️ Курс Банка Израиля не обновлялся больше ${RATE_MAX_AGE_DAYS} дней (последний: ${last?.date ?? 'нет'}). Цены в USD и EUR скрыты на сайте.`);
+      await notifyManagers(env, db, `⚠️ Курс Банка Израиля не обновлялся больше ${RATE_MAX_AGE_DAYS} дней (последний: ${last?.date ?? 'нет'}). Цены в USD и EUR скрыты на сайте.`);
       await db.insert(settings).values({ key: 'rates_alert_date', value: today })
         .onConflictDoUpdate({ target: settings.key, set: { value: today } });
     }

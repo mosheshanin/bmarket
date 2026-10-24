@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import CityRibbon from '../components/CityRibbon.astro';
 import ListingGrid from '../components/ListingGrid.astro';
 import SubscribeBlock from '../components/SubscribeBlock.astro';
+import SellBlock from '../components/SellBlock.astro';
 import { citiesWithListings, getDisplayRate, listPublished, imageUrl } from '../server/public';
 import { db, env, site } from '../server/site';
 
@@ -32,16 +33,18 @@ const firstCover = items.find((i) => i.cover)?.cover;
       <>
         <CityRibbon cities={cityList} total={items.length} />
         <ListingGrid items={items} rate={rate} />
-        <div class="mt-6">
+        <div class="mt-6 grid gap-3 sm:grid-cols-2">
           <SubscribeBlock />
+          <SellBlock />
         </div>
       </>
     ) : (
       <div class="card flex flex-col items-center gap-3 p-8 text-center">
         <p class="text-lg font-semibold">Скоро здесь появятся новые предложения</p>
         <p class="text-hint">Подпишитесь, чтобы узнать о них первыми.</p>
-        <div class="w-full max-w-md text-left">
+        <div class="flex w-full max-w-md flex-col gap-3 text-left">
           <SubscribeBlock />
+          <SellBlock />
         </div>
       </div>
     )

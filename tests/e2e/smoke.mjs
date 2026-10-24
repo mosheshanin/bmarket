@@ -3,6 +3,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
+import { createServer } from 'node:http';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:8787';
 const devVars = existsSync('.dev.vars')
@@ -56,7 +57,7 @@ const SECRET_RE = /SECRET-|secret_owner|\+97250000000\d/;
 if (LOCAL) {
   // Чистое состояние: тестовые лоты заново, без заявок и событий.
   execSync('npx wrangler d1 execute catalog-prod --local --file seed/test-lots.sql', { stdio: 'ignore' });
-  execSync(`npx wrangler d1 execute catalog-prod --local --command "DELETE FROM leads; DELETE FROM events; DELETE FROM subscribers; DELETE FROM broadcasts; UPDATE businesses SET status='deleted' WHERE lot_number > 1005;"`, { stdio: 'ignore' });
+  execSync(`npx wrangler d1 execute catalog-prod --local --command "DELETE FROM leads; DELETE FROM events; DELETE FROM subscribers; DELETE FROM broadcasts; DELETE FROM edit_requests; DELETE FROM payments; DELETE FROM settings WHERE key LIKE 'seller_%' OR key LIKE 'managers_%'; UPDATE businesses SET status='deleted' WHERE lot_number > 1005;"`, { stdio: 'ignore' });
 }
 
 // ---------- Публичный каталог ----------
@@ -248,6 +249,161 @@ const upd1 = { update_id: 1, message: { message_id: 1, date: 1, chat: { id: 9990
 check('вебхук без секрета → 403', (await req('/api/telegram/webhook', { method: 'POST', body: upd1 })).status === 403);
 const wh = await req('/api/telegram/webhook', { method: 'POST', body: upd1, headers: { 'x-telegram-bot-api-secret-token': WEBHOOK_SECRET } });
 check('вебхук с секретом → 200', wh.status === 200, `got ${wh.status}`);
+
+
+// ---------- Группа менеджеров: диагностика ----------
+const gs = await req('/api/admin/telegram/status', { auth: ADMIN });
+check('статус группы: только админ', (await req('/api/admin/telegram/status', { auth: VISITOR })).status === 403);
+check('статус группы: есть недоставленные', gs.status === 200 && gs.json.undelivered >= 1, JSON.stringify(gs.json));
+const gt = await req('/api/admin/telegram/test', { method: 'POST', auth: ADMIN });
+check('проверка группы: понятная ошибка', gt.status === 502 && /ID группы|группа|бот/i.test(gt.json?.error ?? ''), gt.text);
+check('ошибка запомнена для админки', (await req('/api/admin/telegram/status', { auth: ADMIN })).json?.lastError?.error?.length > 5);
+
+// ---------- Продавец: черновик → оплата PayPal → публикация ----------
+// Поддельный PayPal на 127.0.0.1:8799 (PAYPAL_API_BASE в .dev.vars).
+const orders = new Map();
+let orderSeq = 0;
+const paypal = createServer(async (rq, rs) => {
+  let body = '';
+  for await (const ch of rq) body += ch;
+  const send = (code, data) => { rs.writeHead(code, { 'content-type': 'application/json' }); rs.end(JSON.stringify(data)); };
+  const u = rq.url ?? '';
+  if (u === '/v1/oauth2/token') return send(200, { access_token: 'TEST', expires_in: 3600 });
+  if (u === '/v1/notifications/verify-webhook-signature') {
+    const b = JSON.parse(body);
+    return send(200, { verification_status: b.transmission_sig === 'good' && b.webhook_id === 'WH-TEST' && b.webhook_event?.event_type ? 'SUCCESS' : 'FAILURE' });
+  }
+  if (u === '/v2/checkout/orders' && rq.method === 'POST') {
+    const b = JSON.parse(body);
+    const id = `ORDTEST${++orderSeq}`;
+    orders.set(id, { id, status: 'CREATED', purchase_units: [{ custom_id: b.purchase_units[0].custom_id, amount: b.purchase_units[0].amount }], returnUrl: b.payment_source.paypal.experience_context.return_url });
+    return send(201, { id, status: 'CREATED', links: [{ rel: 'payer-action', href: `https://www.sandbox.paypal.com/checkoutnow?token=${id}` }] });
+  }
+  const m = /^\/v2\/checkout\/orders\/([A-Z0-9]+)(\/capture)?$/.exec(u);
+  const o = m && orders.get(m[1]);
+  if (!o) return send(404, { name: 'RESOURCE_NOT_FOUND' });
+  if (m[2]) {
+    if (o.status !== 'APPROVED') return send(422, { name: 'UNPROCESSABLE_ENTITY', message: o.status === 'COMPLETED' ? 'ORDER_ALREADY_CAPTURED' : 'ORDER_NOT_APPROVED' });
+    o.status = 'COMPLETED';
+    o.purchase_units[0].payments = { captures: [{ id: 'CAP' + o.id, status: 'COMPLETED', amount: o.purchase_units[0].amount }] };
+  }
+  const { returnUrl: _r, ...pub } = o;
+  return send(200, pub);
+}).listen(8799, '127.0.0.1');
+
+const SELLER = initData({ id: 777001, first_name: 'Продавец', username: 'seller_one' });
+const OTHER = initData({ id: 777002, first_name: 'Чужой' });
+check('продавец: без Telegram → 401', (await req('/api/seller/me')).status === 401);
+const sme = await req('/api/seller/me', { auth: SELLER });
+check('продавец: кабинет', sme.status === 200 && Array.isArray(sme.json.items) && sme.json.priceIls === 199 && sme.json.payment.paypal === true, sme.text.slice(0, 200));
+const sd = await req('/api/seller/businesses', { method: 'POST', auth: SELLER });
+const sid = sd.json?.business?.id;
+check('продавец: черновик создан', sd.status === 201 && sd.json.business.sellerStage === 'editing' && sd.json.business.ownerTelegram === '@seller_one');
+check('черновик продавца не виден в общем списке админки', !(await req('/api/admin/businesses', { auth: ADMIN })).json.items.some((x) => x.id === sid));
+check('черновик продавца — во вкладке «От продавцов»', (await req('/api/admin/businesses?status=seller', { auth: ADMIN })).json.items.some((x) => x.id === sid && x.sellerStage === 'editing'));
+const sput = await req(`/api/seller/businesses/${sid}`, {
+  method: 'PUT', auth: SELLER,
+  body: {
+    publicTitle: 'Пекарня у моря в Хайфе', cityId: haifa.id, categoryId: sme.json.categories[0].id, priceIls: 300000,
+    shortDescription: 'Пекарня с постоянными клиентами', description: 'Работает 6 лет, своя рецептура.', ownerPhone: '+972500000009',
+    realName: 'SECRET-Пекарня Шломо', exactAddress: 'SECRET-адрес', isFeatured: true, internalNotes: 'взлом',
+    expectedUpdatedAt: sd.json.business.updatedAt,
+  },
+});
+check('продавец: автосохранение', sput.status === 200 && sput.json.business.publicTitle === 'Пекарня у моря в Хайфе', sput.text.slice(0, 200));
+check('продавец: служебные поля игнорируются', sput.json?.business?.isFeatured === undefined && sput.json?.business?.internalNotes === undefined);
+check('продавец: не хватает фото', sput.json?.missing?.includes('минимум 1 фото'));
+check('чужой продавец не видит черновик', (await req(`/api/seller/businesses/${sid}`, { auth: OTHER })).status === 404);
+check('чужой продавец не меняет черновик', (await req(`/api/seller/businesses/${sid}`, { method: 'PUT', auth: OTHER, body: { publicTitle: 'x' } })).status === 404);
+check('отправка без фото → 422', (await req(`/api/seller/businesses/${sid}/submit`, { method: 'POST', auth: SELLER })).status === 422);
+const sform = new FormData();
+sform.set('large', new Blob([photo], { type: 'image/webp' }), 'l.webp');
+sform.set('small', new Blob([small], { type: 'image/webp' }), 's.webp');
+sform.set('width', '1600');
+sform.set('height', '1200');
+check('продавец: фото загружено', (await req(`/api/seller/businesses/${sid}/photos`, { method: 'POST', auth: SELLER, form: sform })).status === 201);
+check('чужой не загружает фото', (await req(`/api/seller/businesses/${sid}/photos`, { method: 'POST', auth: OTHER, form: sform })).status === 404);
+const ssub = await req(`/api/seller/businesses/${sid}/submit`, { method: 'POST', auth: SELLER });
+check('отправлено → ждёт оплаты', ssub.status === 200 && ssub.json.business.sellerStage === 'awaiting_payment', ssub.text.slice(0, 200));
+check('после отправки править нельзя', (await req(`/api/seller/businesses/${sid}`, { method: 'PUT', auth: SELLER, body: { publicTitle: 'Новое' } })).status === 409);
+const spay = await req(`/api/seller/businesses/${sid}/pay`, { method: 'POST', auth: SELLER });
+check('PayPal: ссылка на оплату', spay.status === 200 && spay.json.approveUrl.includes('checkoutnow?token=ORDTEST'), spay.text);
+const order1 = spay.json?.orderId;
+const notPaid = await req(`/pay/paypal/return?token=${order1}`);
+check('возврат без оплаты: «не завершена»', notPaid.status === 200 && notPaid.text.includes('Оплата не завершена'));
+orders.get(order1).status = 'APPROVED';
+const back = await req(`/pay/paypal/return?token=${order1}&PayerID=TEST`);
+check('возврат после оплаты: списано', back.text.includes('Оплата прошла'), back.text.slice(0, 300));
+const spub = await req(`/api/seller/businesses/${sid}`, { auth: SELLER });
+check('после оплаты — опубликовано автоматически', spub.json?.business?.status === 'published' && spub.json.business.sellerStage === 'approved' && spub.json.paid === true, JSON.stringify(spub.json?.business?.status));
+check('повторный возврат безопасен', (await req(`/pay/paypal/return?token=${order1}`)).text.includes('Оплата прошла'));
+const sellerCard = await req(spub.json.path);
+check("карточка продавца публичная", sellerCard.status === 200 && sellerCard.text.includes('Пекарня у моря в Хайфе'));
+check("скрытые данные продавца не в карточке", !SECRET_RE.test(sellerCard.text) && !sellerCard.text.includes('seller_one'));
+check('опубликованное продавец не правит', (await req(`/api/seller/businesses/${sid}`, { method: 'PUT', auth: SELLER, body: { priceIls: 1 } })).status === 409);
+check('опубликованное продавец не удаляет', (await req(`/api/seller/businesses/${sid}`, { method: 'DELETE', auth: SELLER })).status === 409);
+const ereq = await req(`/api/seller/businesses/${sid}/edit-requests`, { method: 'POST', auth: SELLER, body: { text: 'Снизить цену до 280 000' } });
+check('запрос на изменение отправлен', ereq.status === 201 && ereq.json.editRequests[0]?.status === 'new');
+const sov = await req('/api/admin/seller', { auth: ADMIN });
+check('админ видит запрос', sov.status === 200 && sov.json.requests.some((r) => r.businessId === sid) && sov.json.queue.openEditRequests >= 1);
+const adet = await req(`/api/admin/businesses/${sid}`, { auth: ADMIN });
+check('админ: блок продавца', adet.json?.seller?.paid === true && adet.json.seller.payments[0].provider === 'paypal' && adet.json.seller.tgId === 777001);
+const rid = adet.json.seller.editRequests[0].id;
+const done = await req(`/api/admin/edit-requests/${rid}`, { method: 'PATCH', auth: ADMIN, body: { status: 'done', adminNote: 'Цена изменена' } });
+check('админ: запрос выполнен', done.status === 200 && done.json.seller.editRequests[0].status === 'done');
+
+// Режим проверки администратором + вебхук PayPal.
+check('настройка: публикация после проверки', (await req('/api/admin/seller/settings', { method: 'PUT', auth: ADMIN, body: { autoPublish: false } })).json?.settings?.autoPublish === false);
+check('настройки — только админ', (await req('/api/admin/seller/settings', { method: 'PUT', auth: SELLER, body: { priceIls: 0 } })).status === 403);
+const sd2 = await req('/api/seller/businesses', { method: 'POST', auth: SELLER });
+const sid2 = sd2.json.business.id;
+await req(`/api/seller/businesses/${sid2}`, { method: 'PUT', auth: SELLER, body: { publicTitle: 'Цветочный магазин в Хайфе', cityId: haifa.id, categoryId: sme.json.categories[0].id, priceIls: 150000, shortDescription: 'Цветы', description: 'Описание', ownerPhone: '+972500000008' } });
+await req(`/api/seller/businesses/${sid2}/photos`, { method: 'POST', auth: SELLER, form: sform });
+await req(`/api/seller/businesses/${sid2}/submit`, { method: 'POST', auth: SELLER });
+const order2 = (await req(`/api/seller/businesses/${sid2}/pay`, { method: 'POST', auth: SELLER })).json?.orderId;
+orders.get(order2).status = 'APPROVED';
+const whEvent = { id: 'WH-1', event_type: 'CHECKOUT.ORDER.APPROVED', resource: { id: order2, status: 'APPROVED' } };
+const whHeaders = (sig) => ({ 'paypal-auth-algo': 'SHA256withRSA', 'paypal-cert-url': 'https://api.sandbox.paypal.com/cert', 'paypal-transmission-id': 't1', 'paypal-transmission-sig': sig, 'paypal-transmission-time': new Date().toISOString() });
+check('вебхук PayPal: неверная подпись → 400', (await req('/api/paypal/webhook', { method: 'POST', body: whEvent, headers: whHeaders('bad') })).status === 400);
+check('после поддельного вебхука не оплачено', (await req(`/api/seller/businesses/${sid2}`, { auth: SELLER })).json?.paid === false);
+check('вебхук PayPal: подпись верна → 200', (await req('/api/paypal/webhook', { method: 'POST', body: whEvent, headers: whHeaders('good') })).status === 200);
+const s2 = await req(`/api/seller/businesses/${sid2}`, { auth: SELLER });
+check('после вебхука — на проверке', s2.json?.paid === true && s2.json.business.status === 'draft' && s2.json.business.sellerStage === 'in_review', JSON.stringify(s2.json?.business?.sellerStage));
+check('на проверке — виден в общем списке админки', (await req('/api/admin/businesses', { auth: ADMIN })).json.items.some((x) => x.id === sid2 && x.sellerStage === 'in_review'));
+const pub2 = await req(`/api/admin/businesses/${sid2}/publish`, { method: 'POST', auth: ADMIN, body: { notify: false } });
+check('админ опубликовал → этап approved', pub2.status === 200 && pub2.json.business.status === 'published' && pub2.json.business.sellerStage === 'approved');
+
+// Оплата вручную (без PayPal) и возврат на доработку.
+const sd3 = await req('/api/seller/businesses', { method: 'POST', auth: SELLER });
+const sid3 = sd3.json.business.id;
+await req(`/api/seller/businesses/${sid3}`, { method: 'PUT', auth: SELLER, body: { publicTitle: 'Автомойка в Хайфе', cityId: haifa.id, categoryId: sme.json.categories[0].id, priceIls: 500000, shortDescription: 'Мойка', description: 'Описание', ownerPhone: '+972500000007' } });
+await req(`/api/seller/businesses/${sid3}/photos`, { method: 'POST', auth: SELLER, form: sform });
+await req(`/api/seller/businesses/${sid3}/submit`, { method: 'POST', auth: SELLER });
+const mp = await req(`/api/admin/businesses/${sid3}/mark-paid`, { method: 'POST', auth: ADMIN, body: { note: 'перевод' } });
+check('оплата вручную → на проверке', mp.status === 200 && mp.json.seller.paid && mp.json.business.sellerStage === 'in_review');
+const rts = await req(`/api/admin/businesses/${sid3}/return-to-seller`, { method: 'POST', auth: ADMIN, body: { comment: 'Уберите вывеску с фото' } });
+check('возврат на доработку', rts.status === 200 && rts.json.business.sellerStage === 'editing');
+check('после возврата продавец снова правит', (await req(`/api/seller/businesses/${sid3}`, { method: 'PUT', auth: SELLER, body: { shortDescription: 'Мойка без вывески' } })).status === 200);
+const rs3 = await req(`/api/seller/businesses/${sid3}/submit`, { method: 'POST', auth: SELLER });
+check('повторная отправка без повторной оплаты', rs3.status === 200 && rs3.json.business.sellerStage === 'in_review');
+check('лимит открытых черновиков', await (async () => {
+  for (let i = 0; i < 3; i++) await req('/api/seller/businesses', { method: 'POST', auth: OTHER });
+  return (await req('/api/seller/businesses', { method: 'POST', auth: OTHER })).status === 429;
+})());
+check('страница /sell', (await req('/sell')).status === 200);
+await req('/api/admin/seller/settings', { method: 'PUT', auth: ADMIN, body: { autoPublish: true } });
+for (const x of [sid, sid2]) await req(`/api/admin/businesses/${x}/hide`, { method: 'POST', auth: ADMIN });
+paypal.close();
+
+// ---------- Группа менеджеров: /setgroup ----------
+const setgroup = { update_id: 2, message: { message_id: 2, date: 1, chat: { id: -100555, type: 'supergroup', title: 'Менеджеры' }, from: { id: ADMIN_ID, is_bot: false, first_name: 'Админ' }, text: '/setgroup', entities: [{ type: 'bot_command', offset: 0, length: 9 }] } };
+const strangerSet = { ...setgroup, update_id: 3, message: { ...setgroup.message, chat: { id: -100666, type: 'supergroup', title: 'Чужая' }, from: { id: 999001, is_bot: false, first_name: 'Гость' } } };
+await req('/api/telegram/webhook', { method: 'POST', body: strangerSet, headers: { 'x-telegram-bot-api-secret-token': WEBHOOK_SECRET } });
+check('/setgroup от не-админа игнорируется', (await req('/api/admin/telegram/status', { auth: ADMIN })).json?.overridden === false);
+await req('/api/telegram/webhook', { method: 'POST', body: setgroup, headers: { 'x-telegram-bot-api-secret-token': WEBHOOK_SECRET } });
+const gs2 = (await req('/api/admin/telegram/status', { auth: ADMIN })).json;
+check('/setgroup от админа меняет группу', gs2?.chatId === '-100555' && gs2.overridden === true, JSON.stringify(gs2));
+if (LOCAL) execSync(`npx wrangler d1 execute catalog-prod --local --command "DELETE FROM settings WHERE key LIKE 'managers_%'"`, { stdio: 'ignore' });
 
 await req(`/api/admin/businesses/${bid}/hide`, { method: 'POST', auth: ADMIN });
 

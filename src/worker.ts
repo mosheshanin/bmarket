@@ -3,10 +3,11 @@ import { getDb } from './db/client';
 import { cachedFetch, isCacheablePath, setBuildVersion } from './server/cache';
 import { processBroadcasts } from './server/broadcast';
 import { updateRates } from './server/rates';
-import { anonymizeOldLeads, purgeDeletedPhotos } from './server/maintenance';
+import { anonymizeOldLeads, purgeDeletedPhotos, removeAbandonedSellerDrafts } from './server/maintenance';
 import { setVisitorSalt } from './server/events';
 import { appSecret } from './server/secrets';
 import { ensureBotSetup } from './server/bot-setup';
+import { reconcilePayments } from './server/seller';
 
 /**
  * Точка входа Worker: страницы и API отдаёт Astro, публичные страницы кешируются на 10 минут,
@@ -32,8 +33,9 @@ export default {
         (async () => {
           await updateRates(env, db);
           const anonymized = await anonymizeOldLeads(db);
+          const abandoned = await removeAbandonedSellerDrafts(db);
           const purged = await purgeDeletedPhotos(env, db);
-          console.log('daily maintenance', { anonymized, purged });
+          console.log('daily maintenance', { anonymized, abandoned, purged });
         })(),
       );
       return;
@@ -43,6 +45,8 @@ export default {
       (async () => {
         await ensureBotSetup(env, db).catch((e) => console.error('bot setup failed', e));
         await processBroadcasts(env, db);
+        // Оплаты PayPal, по которым продавец не вернулся на сайт.
+        await reconcilePayments(env, db).catch((e) => console.error('reconcile payments failed', e));
       })(),
     );
   },

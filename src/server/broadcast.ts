@@ -170,6 +170,7 @@ export async function processBroadcasts(env: Env, db: DB, now = Date.now()): Pro
     const label = lots.length === 1 ? `по лоту ${lotsStr}` : `по лотам ${lotsStr}`;
     await notifyManagers(
       env,
+      db,
       `📣 Рассылка ${label}: доставлено ${delivered}, заблокировали бота ${blocked}${failed ? `, ошибок ${failed}` : ''}`,
     );
   }
