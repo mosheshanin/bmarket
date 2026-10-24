@@ -127,3 +127,13 @@ describe('прочее', () => {
     expect(sniffImage(png)).toBeNull();
   });
 });
+
+describe('секрет приложения', () => {
+  it('сайт не падает без токена бота', async () => {
+    const { appSecret } = await import('../src/server/secrets');
+    expect(await appSecret({ TELEGRAM_BOT_TOKEN: '' } as Env)).toBe('bmarket:no-bot-token');
+    const a = await appSecret({ TELEGRAM_BOT_TOKEN: '1:A' } as Env);
+    expect(a).toMatch(/^[0-9a-f]{48}$/);
+    expect(await appSecret({ TELEGRAM_BOT_TOKEN: '1:A', TELEGRAM_WEBHOOK_SECRET: 'x' } as Env)).toBe('x');
+  });
+});

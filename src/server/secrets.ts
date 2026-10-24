@@ -10,6 +10,8 @@ const cache = new Map<string, Promise<string>>();
 export function appSecret(env: Pick<Env, 'TELEGRAM_BOT_TOKEN'> & { TELEGRAM_WEBHOOK_SECRET?: string }): Promise<string> {
   if (env.TELEGRAM_WEBHOOK_SECRET) return Promise.resolve(env.TELEGRAM_WEBHOOK_SECRET);
   const token = env.TELEGRAM_BOT_TOKEN ?? '';
+  // Токен ещё не задан — сайт всё равно должен работать (вебхук при этом закрыт: см. webhook.ts).
+  if (!token) return Promise.resolve('bmarket:no-bot-token');
   let p = cache.get(token);
   if (!p) {
     p = hmacSha256(token, 'bmarket:webhook').then((b) => toHex(b).slice(0, 48));
