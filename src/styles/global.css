@@ -286,3 +286,41 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .survey-step { animation: none; }
 }
+
+/*
+ * Оттенки блоков карточки бизнеса: у каждого смыслового блока свой цвет (цена, доход, прибыль, условия…).
+ * Цвет подмешивается к фону карточки, поэтому работает и в светлой, и в тёмной теме Telegram.
+ */
+:root {
+  --tone-blue: var(--accent);
+  --tone-green: #1f9d55;
+  --tone-amber: #d68910;
+  --tone-violet: #7c5cff;
+  --tone-teal: #0e9488;
+  --tone-slate: #64748b;
+}
+@layer components {
+  .tone-blue { --tone: var(--tone-blue); }
+  .tone-green { --tone: var(--tone-green); }
+  .tone-amber { --tone: var(--tone-amber); }
+  .tone-violet { --tone: var(--tone-violet); }
+  .tone-teal { --tone: var(--tone-teal); }
+  .tone-slate { --tone: var(--tone-slate); }
+  .tinted {
+    background: color-mix(in srgb, var(--tone) 9%, var(--card));
+    border: 1px solid color-mix(in srgb, var(--tone) 20%, transparent);
+    border-radius: var(--radius);
+  }
+  .tone-icon {
+    display: inline-flex;
+    height: 2rem;
+    width: 2rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tone) 16%, transparent);
+    color: var(--tone);
+  }
+  .tone-text { color: color-mix(in srgb, var(--tone) 80%, var(--text)); }
+}

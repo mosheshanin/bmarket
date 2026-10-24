@@ -11,6 +11,7 @@ import {
 } from '../../lib/format';
 import { renderMarkdown } from '../../lib/markdown';
 import { businessPath } from '../../lib/slug';
+import Icon from '../../components/ToneIcon.astro';
 
 const d = db();
 const s = site();
@@ -40,12 +41,26 @@ const ogImage = photos[0] ? new URL(photos[0].src, s.url).href : null;
 const priceStr = b.priceIls ? formatIls(b.priceIls) : null;
 const title = `${b.publicTitle}${priceStr ? ` — ${priceStr}` : ''} | ${s.name}`;
 
+// Линейные значки (24×24) для блоков карточки.
+const ICON = {
+  revenue: 'M3 17l6-6 4 4 8-8M15 7h6v6',
+  profit: 'M12 3v18M17 7.5c0-1.9-2.2-3.5-5-3.5S7 5.6 7 7.5 9.2 11 12 11s5 1.6 5 3.5S14.8 18 12 18s-5-1.6-5-3.5',
+  payback: 'M12 7v5l3 2M21 12a9 9 0 1 1-9-9',
+  rent: 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z',
+  desc: 'M4 6h16M4 12h16M4 18h10',
+  included: 'M20 6 9 17l-5-5',
+  specs: 'M4 21V14M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+  reason: 'M12 8v4M12 16h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  video: 'M23 7l-7 5 7 5V7ZM14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z',
+  lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
+};
+
 const kpis = [
-  b.monthlyRevenueIls && { label: 'Оборот в месяц', value: formatIls(b.monthlyRevenueIls) },
-  b.monthlyProfitIls && { label: 'Чистая прибыль в месяц', value: formatIls(b.monthlyProfitIls) },
-  b.paybackMonths && { label: 'Окупаемость', value: formatPayback(b.paybackMonths) },
-  b.rentMonthlyIls && { label: 'Аренда в месяц', value: formatIls(b.rentMonthlyIls) },
-].filter(Boolean) as { label: string; value: string }[];
+  b.monthlyRevenueIls && { label: 'Оборот в месяц', value: formatIls(b.monthlyRevenueIls), tone: 'tone-blue', icon: ICON.revenue },
+  b.monthlyProfitIls && { label: 'Чистая прибыль в месяц', value: formatIls(b.monthlyProfitIls), tone: 'tone-green', icon: ICON.profit },
+  b.paybackMonths && { label: 'Окупаемость', value: formatPayback(b.paybackMonths), tone: 'tone-violet', icon: ICON.payback },
+  b.rentMonthlyIls && { label: 'Аренда в месяц', value: formatIls(b.rentMonthlyIls), tone: 'tone-amber', icon: ICON.rent },
+].filter(Boolean) as { label: string; value: string; tone: string; icon: string }[];
 
 const specs = [
   b.yearFounded && ['Год открытия', String(b.yearFounded)],
@@ -132,7 +147,8 @@ const jsonLd = res.kind === 'ok' && !preview ? [
         </header>
 
         <aside class="lg:col-start-2 lg:row-span-3 lg:row-start-1">
-          <div class="card p-4 lg:sticky lg:top-20">
+          <div class="tinted tone-blue p-4 lg:sticky lg:top-20">
+            <p class="tone-text text-sm font-semibold">Цена продажи</p>
             {priceStr ? (
               <p class="text-3xl font-extrabold tracking-tight">{priceStr}</p>
             ) : (
@@ -156,33 +172,36 @@ const jsonLd = res.kind === 'ok' && !preview ? [
           {kpis.length > 0 && (
             <section aria-label="Ключевые показатели" class="grid grid-cols-2 gap-3">
               {kpis.map((k) => (
-                <div class="card p-3.5">
-                  <p class="text-xs text-hint sm:text-sm">{k.label}</p>
-                  <p class="mt-0.5 text-lg font-bold">{k.value}</p>
+                <div class={`tinted ${k.tone} p-3.5`}>
+                  <div class="flex items-center gap-2">
+                    <Icon d={k.icon} small />
+                    <p class="tone-text text-xs font-semibold sm:text-sm">{k.label}</p>
+                  </div>
+                  <p class="mt-1.5 text-lg font-bold">{k.value}</p>
                 </div>
               ))}
             </section>
           )}
 
           <section class="card p-4">
-            <h2 class="mb-1 text-lg font-bold">Описание</h2>
+            <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><span class="tone-slate"><Icon d={ICON.desc} /></span>Описание</h2>
             <div class="prose-md" set:html={descriptionHtml} />
           </section>
 
           {included.length > 0 && (
-            <section class="card p-4">
-              <h2 class="mb-2 text-lg font-bold">Что входит в продажу</h2>
+            <section class="tinted tone-green p-4">
+              <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><Icon d={ICON.included} />Что входит в продажу</h2>
               <ul class="grid gap-1.5 sm:grid-cols-2">
                 {included.map((i) => (
-                  <li class="flex items-start gap-2"><span class="text-success" aria-hidden="true">✓</span>{i}</li>
+                  <li class="flex items-start gap-2"><span class="tone-text font-bold" aria-hidden="true">✓</span>{i}</li>
                 ))}
               </ul>
             </section>
           )}
 
           {specs.length > 0 && (
-            <section class="card p-4">
-              <h2 class="mb-2 text-lg font-bold">Характеристики</h2>
+            <section class="tinted tone-teal p-4">
+              <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><Icon d={ICON.specs} />Характеристики</h2>
               <dl class="divide-y divide-line">
                 {specs.map(([k, v]) => (
                   <div class="flex justify-between gap-4 py-2">
@@ -195,15 +214,15 @@ const jsonLd = res.kind === 'ok' && !preview ? [
           )}
 
           {b.reasonForSale && (
-            <section class="card p-4">
-              <h2 class="mb-1 text-lg font-bold">Причина продажи</h2>
+            <section class="tinted tone-amber p-4">
+              <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><Icon d={ICON.reason} />Причина продажи</h2>
               <p class="whitespace-pre-line">{b.reasonForSale}</p>
             </section>
           )}
 
           {yt && (
             <section class="card overflow-hidden">
-              <h2 class="p-4 pb-2 text-lg font-bold">Видео</h2>
+              <h2 class="flex items-center gap-2.5 p-4 pb-2 text-lg font-bold"><span class="tone-violet"><Icon d={ICON.video} /></span>Видео</h2>
               <button type="button" class="relative block aspect-video w-full bg-black" data-yt={yt} aria-label="Смотреть видео">
                 <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" loading="lazy" class="h-full w-full object-cover opacity-90" width="480" height="360" />
                 <span class="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full bg-black/70 text-3xl text-white">▶</span>
@@ -211,8 +230,9 @@ const jsonLd = res.kind === 'ok' && !preview ? [
             </section>
           )}
 
-          <p class="rounded-card border border-dashed border-line p-3 text-sm text-hint">
-            🔒 Название и точный адрес сообщаются после заявки.
+          <p class="tinted tone-slate flex items-center gap-2.5 p-3 text-sm">
+            <Icon d={ICON.lock} small />
+            Название и точный адрес сообщаются после заявки.
           </p>
         </div>
       </div>

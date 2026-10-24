@@ -13,7 +13,7 @@ import type { AdminContext } from '../auth';
 import { purgePaths } from '../cache';
 import { queueLotNotification } from '../broadcast';
 import { previewSecret } from '../card';
-import { imageUrl } from '../public';
+import { imageUrl, isStoredPhotoKey } from '../public';
 import { siteUrl } from '../telegram';
 import { copyPhoto, putPhoto } from '../storage';
 import { notifySellerPublished } from '../seller-notify';
@@ -254,9 +254,12 @@ export async function duplicateBusiness(env: Env, db: DB, admin: AdminContext, i
     .orderBy(asc(businessPhotos.sortOrder));
   const now = Date.now();
   for (const p of photos) {
-    const keys = photoKeys(copy.lotNumber);
-    await copyPhoto(env, p.r2Key, keys.large);
-    await copyPhoto(env, p.r2KeySmall, keys.small);
+    // Внешние фото (демо, Unsplash) не копируются — ссылка та же.
+    const keys = isStoredPhotoKey(p.r2Key) ? photoKeys(copy.lotNumber) : { large: p.r2Key, small: p.r2KeySmall };
+    if (isStoredPhotoKey(p.r2Key)) {
+      await copyPhoto(env, p.r2Key, keys.large);
+      await copyPhoto(env, p.r2KeySmall, keys.small);
+    }
     await db.insert(businessPhotos).values({
       businessId: copy.id, r2Key: keys.large, r2KeySmall: keys.small, width: p.width, height: p.height,
       sortOrder: p.sortOrder, alt: p.alt, createdAt: now,

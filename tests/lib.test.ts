@@ -177,3 +177,17 @@ describe('подбор под ответы опроса', () => {
     expect(describePrefs(any, names)).toBe('любая сфера, вся страна');
   });
 });
+
+import { imageUrl, isStoredPhotoKey } from '../src/server/public';
+
+describe('адреса фото', () => {
+  it('Unsplash: нужный размер 4:3, без нашего хранилища', () => {
+    expect(imageUrl({}, 'unsplash:1453614512568-c4024d13c247:600')).toBe(
+      'https://images.unsplash.com/photo-1453614512568-c4024d13c247?w=600&h=450&fit=crop&crop=entropy&auto=format&q=75',
+    );
+    expect(isStoredPhotoKey('unsplash:abc:600')).toBe(false);
+    expect(isStoredPhotoKey('demo/lots/1001-0-600.webp')).toBe(false);
+    expect(isStoredPhotoKey('lots/1001/a-600.webp')).toBe(true);
+    expect(imageUrl({}, 'lots/1001/a-600.webp')).toBe('/img/lots/1001/a-600.webp');
+  });
+});

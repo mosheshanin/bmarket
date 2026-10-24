@@ -232,9 +232,22 @@ export function isNew(publishedAt: number | null, now = Date.now()): boolean {
   return !!publishedAt && now - publishedAt < NEW_BADGE_DAYS * 86_400_000;
 }
 
+/**
+ * Фото, которые лежат не в нашем хранилище:
+ * `demo/…` — статика приложения; `unsplash:<id>:<ширина>` — фото Unsplash (бесплатная лицензия),
+ * отдаются с их CDN в нужном размере (4:3). Такие ключи нельзя удалять или копировать в хранилище.
+ */
+export function isStoredPhotoKey(key: string): boolean {
+  return !key.startsWith('demo/') && !key.startsWith('unsplash:');
+}
+
 export function imageUrl(env: { PUBLIC_IMAGES_URL?: string }, key: string): string {
-  // Фото демо-объявлений лежат в статике приложения (public/demo/…), а не в хранилище.
   if (key.startsWith('demo/')) return `/${key}`;
+  const u = /^unsplash:([\w-]+):(\d+)$/.exec(key);
+  if (u) {
+    const w = Number(u[2]);
+    return `https://images.unsplash.com/photo-${u[1]}?w=${w}&h=${Math.round((w * 3) / 4)}&fit=crop&crop=entropy&auto=format&q=75`;
+  }
   const base = (env.PUBLIC_IMAGES_URL || '').replace(/\/$/, '');
   return base ? `${base}/${key}` : `/img/${key}`;
 }

@@ -1,0 +1,13 @@
+---
+// Значок в цветном кружке; цвет берётся из ближайшего класса tone-* (переменная --tone).
+interface Props {
+  d: string;
+  small?: boolean;
+}
+const { d, small = false } = Astro.props;
+const size = small ? 16 : 18;
+---
+
+<span class:list={['tone-icon', small && '!h-7 !w-7']} aria-hidden="true">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d={d} /></svg>
+</span>

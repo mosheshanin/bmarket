@@ -143,12 +143,67 @@ const LOTS = [
   },
 ];
 
+// Фото — Unsplash (https://unsplash.com/license: бесплатно, в том числе для коммерции, указание автора не обязательно).
+// [id фото, подпись, автор]. Отдаются с CDN Unsplash в нужном размере: ключ `unsplash:<id>:<ширина>`.
+const PHOTOS = {
+  1001: [
+    ['1765472980704-5caaa6ba4867', 'терраса с уличными столиками', 'masha.uu'],
+    ['1453614512568-c4024d13c247', 'барная стойка и витрина', 'Nafinia Putra'],
+    ['1462450806522-59ae61ea99fa', 'кофемашина', 'Daryan Shamkhali'],
+  ],
+  1002: [
+    ['1792523227995-9ac04cf1d94d', 'кресла мастеров', 'Mustafa Sheikhmouss'],
+    ['1792523297859-6b92444b583c', 'зал', 'Mustafa Sheikhmouss'],
+    ['1599351431408-433ef72fe40b', 'работа мастера', 'Agustin Fernandez'],
+  ],
+  1003: [
+    ['1773609688714-98d3057294f2', 'товары для дома', 'Alexander von Schulz'],
+    ['1770013413878-2530e2c3d82b', 'обработка заказов', 'Rifki Kurniawan'],
+    ['1648747067192-790595bc6d5e', 'упаковка заказов', 'M. Cooper'],
+  ],
+  1004: [
+    ['1765850909380-2bdfc1c33422', 'торговый зал', 'Valeriano Escobar'],
+    ['1534723452862-4c874018d66d', 'стеллажи с продуктами', 'Fikri Rasyid'],
+    ['1689770767185-a9950b3b24da', 'холодильники с напитками', '勻蔚'],
+  ],
+  1005: [
+    ['1717500252709-05a73fc4f1da', 'зал с реформерами', 'Ahmet Kurt'],
+    ['1717500251741-cdbc93342d5a', 'занятие на реформере', 'Ahmet Kurt'],
+    ['1747240549807-fc3962949818', 'тренировка', 'ROXANA POPOVICI'],
+  ],
+  1006: [
+    ['1605164598708-25701594473e', 'бокс мойки', 'Zulfahmi Khani'],
+    ['1607860108855-64acf2078ed9', 'ручная мойка', 'Brad Starkey'],
+    ['1658244500543-47f32dc51dc2', 'полировка кузова', 'Vitali Adutskevich'],
+  ],
+  1007: [
+    ['1711672284661-bd70e38f31b2', 'витрина пекарни', 'Elisha Terada'],
+    ['1568254183919-78a4f43a2877', 'выпечка на витрине', 'Yeh Xintong'],
+    ['1579697096985-41fe1430e5df', 'хлеб собственной выпечки', 'Angelo Pantazis'],
+  ],
+  1008: [
+    ['1763310225537-f7161d5c93e9', 'игровая зона', 'Camila Mofsovich'],
+    ['1786667395574-8121327f52c8', 'развивающие материалы', 'Far Chinberdiev'],
+    ['1591391258564-be184031cb21', 'класс для занятий', 'Iwan Buetti'],
+  ],
+  1009: [
+    ['1633681926022-84c23e8cb2d6', 'зал студии', 'Benyamin Bohlouli'],
+    ['1632345031435-8727f6897d53', 'рабочее место мастера', 'Giorgio Trovato'],
+    ['1659391542239-9648f307c0b1', 'работа мастера', 'Stefan Lehner'],
+  ],
+  1010: [
+    ['1558803116-b443d28fa878', 'загрузка фургона', 'Matthew LeJune'],
+    ['1641199788912-9a7385a35c82', 'фургон доставки', 'Mathias Reding'],
+    ['1587293852726-70cdb56c2866', 'склад-пункт выдачи', 'CHUTTERSNAP'],
+  ],
+};
+
 const q = (v) => (v === null || v === undefined ? 'NULL' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
 const now = `CAST(strftime('%s','now') AS INTEGER) * 1000`;
 const lines = [
   '-- 10 демонстрационных объявлений (сгенерировано scripts/demo-lots.mjs).',
-  '-- Фото — статические иллюстрации public/demo/lots/. В скрытых заметках помечены как ДЕМО.',
-  `DELETE FROM business_photos WHERE r2_key LIKE 'demo/%';`,
+  '-- Фото — Unsplash (бесплатная лицензия), ключи unsplash:<id>:<ширина>. В скрытых заметках помечены как ДЕМО.',
+  `DELETE FROM business_photos WHERE r2_key LIKE 'demo/%' OR r2_key LIKE 'unsplash:%';`,
   `DELETE FROM businesses WHERE internal_notes LIKE 'ДЕМО%' AND lot_number BETWEEN 1001 AND 1010 AND NOT EXISTS (SELECT 1 FROM leads WHERE leads.business_id = businesses.id);`,
 ];
 for (const l of LOTS) {
@@ -161,9 +216,9 @@ for (const l of LOTS) {
     `'published'`, pub, pub, `'ДЕМО — пример'`, 'NULL', 'NULL', 'NULL', 'NULL', `'ДЕМО: демонстрационное объявление. Снять с публикации перед реальным запуском.'`,
     pub, pub, 'NULL', 'NULL',
   ].join(', ')});`);
-  for (const [i, alt] of [[0, `${l.title} — фасад`], [1, `${l.title} — интерьер`]]) {
-    lines.push(`INSERT INTO business_photos (business_id, r2_key, r2_key_small, width, height, sort_order, alt, created_at) SELECT id, 'demo/lots/${l.lot}-${i}-1600.webp', 'demo/lots/${l.lot}-${i}-600.webp', 1600, 1200, ${i}, ${q(alt)}, ${now} FROM businesses WHERE lot_number = ${l.lot};`);
-  }
+  PHOTOS[l.lot].forEach(([id, caption], i) => {
+    lines.push(`INSERT INTO business_photos (business_id, r2_key, r2_key_small, width, height, sort_order, alt, created_at) SELECT id, 'unsplash:${id}:1600', 'unsplash:${id}:600', 1600, 1200, ${i}, ${q(`${l.title} — ${caption}`)}, ${now} FROM businesses WHERE lot_number = ${l.lot};`);
+  });
 }
 writeFileSync(new URL('../seed/demo-lots.sql', import.meta.url), lines.join('\n') + '\n');
 console.log(`seed/demo-lots.sql: ${LOTS.length} лотов`);
