@@ -5,7 +5,7 @@ import { NumberInput, dt, useToast } from './ui';
 import type { SellerQueue } from './types';
 
 interface Overview {
-  settings: { priceIls: number; autoPublish: boolean };
+  settings: { priceIls: number; valuationPriceIls: number; auditPriceIls: number; autoPublish: boolean };
   queue: SellerQueue;
   requests: { id: number; businessId: number; text: string; createdAt: number; lotNumber: number; publicTitle: string }[];
   payment: { paypal: boolean; mode: 'live' | 'sandbox'; webhook: boolean };
@@ -17,11 +17,15 @@ export default function SellerOverview() {
   const { reloadMeta } = useMeta();
   const [o, setO] = useState<Overview | null>(null);
   const [price, setPrice] = useState<number | null>(null);
+  const [valuation, setValuation] = useState<number | null>(null);
+  const [audit, setAudit] = useState<number | null>(null);
 
   useEffect(() => {
     api<Overview>('seller').then((r) => {
       setO(r);
       setPrice(r.settings.priceIls);
+      setValuation(r.settings.valuationPriceIls);
+      setAudit(r.settings.auditPriceIls);
     }).catch((e) => toast((e as Error).message, 'error'));
   }, [toast]);
 
@@ -30,6 +34,8 @@ export default function SellerOverview() {
       const r = await api<{ settings: Overview['settings'] }>('seller/settings', { method: 'PUT', body: patch });
       setO((x) => (x ? { ...x, settings: r.settings } : x));
       setPrice(r.settings.priceIls);
+      setValuation(r.settings.valuationPriceIls);
+      setAudit(r.settings.auditPriceIls);
       toast('Сохранено');
       reloadMeta();
     } catch (e) {
@@ -55,6 +61,20 @@ export default function SellerOverview() {
           <button className="btn btn-secondary" disabled={price === null || price === o.settings.priceIls} onClick={() => save({ priceIls: price ?? 0 })}>Сохранить цену</button>
         </div>
         <p className="text-xs text-hint">0 ₪ — бесплатно (без оплаты).</p>
+        <p className="font-semibold">Дополнительные услуги</p>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="min-w-36 flex-1">
+            <span className="label">Оценка стоимости</span>
+            <NumberInput value={valuation} onChange={setValuation} suffix="₪" />
+          </label>
+          <label className="min-w-36 flex-1">
+            <span className="label">Финансовый аудит</span>
+            <NumberInput value={audit} onChange={setAudit} suffix="₪" />
+          </label>
+          <button className="btn btn-secondary" disabled={valuation === null || audit === null || (valuation === o.settings.valuationPriceIls && audit === o.settings.auditPriceIls)}
+            onClick={() => save({ valuationPriceIls: valuation ?? 0, auditPriceIls: audit ?? 0 })}>Сохранить</button>
+        </div>
+        <p className="text-xs text-hint">Продавец выбирает услуги при отправке объявления и оплачивает вместе с размещением. Бейдж «Оценка подтверждена» / «Пройден аудит» вы ставите в карточке лота после выполнения.</p>
         <label className="flex min-h-[44px] items-center gap-3">
           <input type="checkbox" className="h-5 w-5" checked={o.settings.autoPublish} onChange={(e) => save({ autoPublish: e.target.checked })} />
           <span>Публиковать сразу после оплаты <span className="text-hint">(иначе — после вашей проверки)</span></span>

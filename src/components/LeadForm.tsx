@@ -23,7 +23,8 @@ export default function LeadForm({ businessId, lotNumber, title, priceStr, cardP
   const [phone, setPhone] = useState('');
   const [contact, setContact] = useState<Contact>('phone');
   const [comment, setComment] = useState('');
-  const [consent, setConsent] = useState(false);
+  // Согласие отмечено заранее (решение владельца); снять галочку можно — тогда заявка не отправится.
+  const [consent, setConsent] = useState(true);
   const [website, setWebsite] = useState(''); // ловушка для ботов
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);

@@ -67,6 +67,10 @@ export const businesses = sqliteTable('businesses', {
   description: text('description').notNull().default(''),
   videoUrl: text('video_url'),
   isFeatured: integer('is_featured', { mode: 'boolean' }).notNull().default(false),
+  /** Бейдж «Оценка подтверждена»: когда эксперты завершили оценку (ставит администратор). */
+  valuationVerifiedAt: integer('valuation_verified_at'),
+  /** Бейдж «Пройден аудит»: когда завершён экспертный финансовый аудит (ставит администратор). */
+  auditPassedAt: integer('audit_passed_at'),
   status: text('status', { enum: BUSINESS_STATUSES }).notNull().default('draft'),
   publishedAt: integer('published_at'),
   /** Когда по лоту была рассылка подписчикам (повторно не рассылается). */
@@ -82,6 +86,8 @@ export const businesses = sqliteTable('businesses', {
   /** Telegram ID продавца, подавшего объявление сам. */
   sellerTgId: integer('seller_tg_id'),
   sellerStage: text('seller_stage', { enum: SELLER_STAGES }),
+  /** Платные услуги, заказанные продавцом: valuation (оценка), audit (аудит). */
+  extrasOrdered: text('extras_ordered', { mode: 'json' }).$type<string[]>().notNull().default([]),
   // ---- /HIDDEN ----
 
   createdAt: integer('created_at').notNull(),
@@ -232,6 +238,8 @@ export const payments = sqliteTable('payments', {
   /** Сумма в агоротах (1 ₪ = 100). */
   amount: integer('amount').notNull(),
   currency: text('currency').notNull().default('ILS'),
+  /** Что оплачено: placement (размещение), valuation, audit. */
+  items: text('items', { mode: 'json' }).$type<string[]>().notNull().default([]),
   note: text('note'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),

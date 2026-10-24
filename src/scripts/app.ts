@@ -137,10 +137,10 @@ async function initTelegram() {
     wa.MainButton.hide();
   }
 
-  // Кнопка «Админ-панель» — только для администраторов (сервер всё равно проверяет каждый запрос).
-  try {
+  // Кнопка «Админ-панель» — только на главной и только администраторам (сервер всё равно проверяет каждый запрос).
+  if (page === 'home') try {
     const r = await fetch('/api/me', { headers: await tgHeaders() });
-    if (r.ok && ((await r.json()) as { isAdmin?: boolean }).isAdmin && page !== 'admin' && page !== 'sell') {
+    if (r.ok && ((await r.json()) as { isAdmin?: boolean }).isAdmin) {
       const a = document.getElementById('admin-link');
       if (a) a.style.display = 'inline-flex';
     }

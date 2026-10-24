@@ -6,6 +6,7 @@ import {
   INCLUDED_ITEMS, LEGAL_FORMS, LICENSE_STATES, type Business,
 } from '../../db/schema';
 import { paybackMonths } from '../../lib/format';
+import { EXTRA_KEYS } from '../../lib/extras';
 import { businessPath, slugify } from '../../lib/slug';
 import { signToken } from '../../lib/crypto';
 import { HttpError } from '../http';
@@ -56,6 +57,10 @@ export const BusinessInput = z
       .nullable()
       .or(z.literal('').transform(() => null)),
     isFeatured: z.boolean(),
+    /** Бейджи: время подтверждения оценки / прохождения аудита (null — бейджа нет). */
+    valuationVerifiedAt: z.number().int().positive().nullable(),
+    auditPassedAt: z.number().int().positive().nullable(),
+    extrasOrdered: z.array(z.enum(EXTRA_KEYS)).max(EXTRA_KEYS.length),
     realName: text(200),
     exactAddress: text(300),
     ownerName: text(120),

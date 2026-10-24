@@ -102,6 +102,7 @@ bad += await shot('28-survey-buyer-result', '/?survey=1', { tg: fresh(880005), b
 bad += await shot('29-survey-seller-result', '/?survey=1', { tg: fresh(880006), before: async (p) => { await click(p, /Хочу продать/); await click(p, /Кафе/); await click(p, /Хайфа/); await click(p, /Как можно скорее/); await click(p, /Нужна оценка/); await click(p, /Готово/); await p.waitForTimeout(600); } });
 bad += await shot('30-home-for-you', '/', { tg: fresh(880005), before: async (p) => { await p.waitForTimeout(800); } });
 bad += await shot('31-survey-dark', '/?survey=1', { tg: fresh(880007), dark: true, full: false, before: async (p) => { await click(p, /Хочу купить/); } });
+bad += await shot('32-sell-extras', '/sell', { tg: seller2, before: async (p) => { await firstItem(p); await p.getByRole('button', { name: /Отправка/ }).click(); await p.waitForTimeout(800); } });
 await browser.close();
 if (bad) {
   console.error(`Горизонтальная прокрутка на ${bad} экранах`);

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { DB } from '../db/client';
 import { businesses, businessPhotos, categories, cities, editRequests, payments, type Business, type Payment } from '../db/schema';
 import { imageUrl } from './public';
+import { EXTRA_KEYS, ITEM_LABELS, extraByKey, extraPrice, orderTotal, type Prices } from '../lib/extras';
 import { escapeHtml, formatIls } from '../lib/format';
 import { businessPath } from '../lib/slug';
 import type { TgUser } from '../lib/telegram-auth';
@@ -28,36 +29,52 @@ export const MAX_OPEN_DRAFTS = 3;
 export const EDIT_REQUESTS_PER_DAY = 5;
 
 /** Поля, которые продавец заполняет сам: всё, кроме служебных («закрепить», внутренние заметки). */
-export const SellerInput = BusinessInput.omit({ isFeatured: true, internalNotes: true });
+export const SellerInput = BusinessInput
+  .omit({ isFeatured: true, internalNotes: true, valuationVerifiedAt: true, auditPassedAt: true });
 export type SellerInputT = z.infer<typeof SellerInput>;
 
 export const EditRequestInput = z.object({ text: z.string().trim().min(5, 'опишите, что изменить').max(2000) });
 
 // ---------- Настройки размещения ----------
 
-export interface SellerSettings {
-  /** Цена размещения в шекелях (0 — бесплатно). */
-  priceIls: number;
+export interface SellerSettings extends Prices {
+  /** priceIls — цена размещения в шекелях (0 — бесплатно); valuation/audit — цены услуг. */
   /** true — публиковать сразу после оплаты; false — после проверки администратором. */
   autoPublish: boolean;
 }
 const PRICE_KEY = 'seller_price_ils';
+const VALUATION_KEY = 'seller_price_valuation';
+const AUDIT_KEY = 'seller_price_audit';
 const AUTO_KEY = 'seller_auto_publish';
 export const DEFAULT_SELLER_PRICE = 199;
 
-export async function getSellerSettings(db: DB): Promise<SellerSettings> {
-  const s = await getSettings(db, [PRICE_KEY, AUTO_KEY]);
-  const price = s[PRICE_KEY] === undefined ? DEFAULT_SELLER_PRICE : Number(s[PRICE_KEY]);
-  return { priceIls: Number.isFinite(price) && price >= 0 ? Math.round(price) : DEFAULT_SELLER_PRICE, autoPublish: s[AUTO_KEY] !== '0' };
+function money(v: string | undefined, def: number): number {
+  const n = v === undefined ? def : Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : def;
 }
 
+export async function getSellerSettings(db: DB): Promise<SellerSettings> {
+  const s = await getSettings(db, [PRICE_KEY, VALUATION_KEY, AUDIT_KEY, AUTO_KEY]);
+  return {
+    priceIls: money(s[PRICE_KEY], DEFAULT_SELLER_PRICE),
+    valuationPriceIls: money(s[VALUATION_KEY], extraByKey('valuation')!.defaultPrice),
+    auditPriceIls: money(s[AUDIT_KEY], extraByKey('audit')!.defaultPrice),
+    autoPublish: s[AUTO_KEY] !== '0',
+  };
+}
+
+const price = z.number().int().min(0).max(100_000).optional();
 export const SellerSettingsInput = z.object({
-  priceIls: z.number().int().min(0).max(100_000).optional(),
+  priceIls: price,
+  valuationPriceIls: price,
+  auditPriceIls: price,
   autoPublish: z.boolean().optional(),
 });
 
 export async function saveSellerSettings(db: DB, input: z.infer<typeof SellerSettingsInput>): Promise<SellerSettings> {
   if (input.priceIls !== undefined) await setSetting(db, PRICE_KEY, String(input.priceIls));
+  if (input.valuationPriceIls !== undefined) await setSetting(db, VALUATION_KEY, String(input.valuationPriceIls));
+  if (input.auditPriceIls !== undefined) await setSetting(db, AUDIT_KEY, String(input.auditPriceIls));
   if (input.autoPublish !== undefined) await setSetting(db, AUTO_KEY, input.autoPublish ? '1' : '0');
   return getSellerSettings(db);
 }
@@ -110,7 +127,7 @@ const OWN_FIELDS = [
   'monthlyRevenueIls', 'monthlyProfitIls', 'paybackMonths', 'yearFounded', 'employeesCount', 'areaSqm', 'rentMonthlyIls',
   'leaseUntil', 'legalForm', 'businessLicense', 'includedInSale', 'ownerSupport', 'reasonForSale', 'shortDescription',
   'description', 'videoUrl', 'status', 'publishedAt', 'realName', 'exactAddress', 'ownerName', 'ownerPhone', 'ownerTelegram',
-  'sellerStage', 'createdAt', 'updatedAt',
+  'sellerStage', 'extrasOrdered', 'valuationVerifiedAt', 'auditPassedAt', 'createdAt', 'updatedAt',
 ] as const;
 
 /** Данные своего объявления для продавца (без внутренних заметок администратора). */
@@ -165,6 +182,9 @@ export async function sellerDetail(env: Env, db: DB, b: Business) {
     payments: pays,
     editRequests: reqs,
     priceIls: settings.priceIls,
+    valuationPriceIls: settings.valuationPriceIls,
+    auditPriceIls: settings.auditPriceIls,
+    total: orderTotal(settings, b.extrasOrdered ?? []).totalIls,
     autoPublish: settings.autoPublish,
     payment: paymentInfo(env),
   };
@@ -202,6 +222,8 @@ export async function createSellerDraft(env: Env, db: DB, user: TgUser, prefill:
 
 export async function updateSellerDraft(env: Env, db: DB, user: TgUser, id: number, input: SellerInputT, origin: string) {
   await getEditable(db, user, id);
+  // После оплаты состав заказанных услуг не меняется (добавить услугу — через запрос администратору).
+  if (input.extrasOrdered && (await completedPayment(db, id))) delete input.extrasOrdered;
   const after = await updateBusiness(env, db, sellerCtx(user), id, input, origin);
   return sellerDetail(env, db, after);
 }
@@ -240,9 +262,9 @@ export async function submitSellerDraft(env: Env, db: DB, user: TgUser, id: numb
   const b = await getEditable(db, user, id);
   const missing = await sellerMissing(db, b);
   if (missing.length) throw new HttpError(422, `Заполните: ${missing.join(', ')}`, { missing });
-  const { priceIls } = await getSellerSettings(db);
-  // Уже оплачено (администратор вернул на доработку) или размещение бесплатное — сразу дальше.
-  if ((await completedPayment(db, id)) || priceIls === 0) {
+  const { totalIls } = orderTotal(await getSellerSettings(db), b.extrasOrdered ?? []);
+  // Уже оплачено (администратор вернул на доработку) или платить не за что — сразу дальше.
+  if ((await completedPayment(db, id)) || totalIls === 0) {
     await afterPayment(env, db, id, null);
   } else {
     await setStage(db, id, 'awaiting_payment');
@@ -269,17 +291,19 @@ export async function startPayPal(env: Env, db: DB, user: TgUser, id: number) {
   if (b.status !== 'draft' || b.sellerStage !== 'awaiting_payment') throw new HttpError(409, 'Сначала отправьте объявление');
   if (await completedPayment(db, id)) throw new HttpError(409, 'Объявление уже оплачено');
   if (!paypalConfigured(env)) throw new HttpError(503, 'Онлайн-оплата пока не подключена — администратор свяжется с вами');
-  const { priceIls } = await getSellerSettings(db);
+  const { items, totalIls } = orderTotal(await getSellerSettings(db), b.extrasOrdered ?? []);
+  if (totalIls === 0) throw new HttpError(409, 'Оплата не нужна');
   const site = siteUrl(env);
-  const amount = priceIls * 100;
+  const amount = totalIls * 100;
   const order = await createOrder(env, {
     amount, currency: 'ILS', businessId: id, lotNumber: b.lotNumber, brand: env.PROJECT_NAME || 'BMarket',
+    description: `Объявление №${b.lotNumber}: ${items.map((i) => ITEM_LABELS[i]).join(', ')}`,
     returnUrl: `${site}/pay/paypal/return`, cancelUrl: `${site}/pay/paypal/cancel?b=${id}`,
   });
   const now = Date.now();
   await db.insert(payments).values({
     businessId: id, tgUserId: user.id, provider: 'paypal', providerOrderId: order.id, status: 'created',
-    amount, currency: 'ILS', createdAt: now, updatedAt: now,
+    amount, currency: 'ILS', items, createdAt: now, updatedAt: now,
   });
   return { approveUrl: order.approveUrl, orderId: order.id };
 }
@@ -328,7 +352,10 @@ async function afterPayment(env: Env, db: DB, businessId: number, pay: Payment |
   const { autoPublish } = await getSellerSettings(db);
   const missing = await missingForPublish(db, b);
   const amount = pay ? ` · ${formatIls(pay.amount / 100)} (${pay.provider === 'paypal' ? 'PayPal' : 'вручную'})` : '';
-  const head = `Лот №${b.lotNumber} «${escapeHtml(b.publicTitle)}»${amount}`;
+  const settings = await getSellerSettings(db);
+  const extras = (b.extrasOrdered ?? []).map((k) => `${extraByKey(k)?.title ?? k} (${formatIls(extraPrice(settings, k))})`);
+  const head = `Лот №${b.lotNumber} «${escapeHtml(b.publicTitle)}»${amount}` +
+    (extras.length ? `\n🧾 Заказаны услуги: ${escapeHtml(extras.join(', '))} — выполните и отметьте бейдж в карточке лота` : '');
   if (autoPublish && !missing.length) {
     // publishBusiness сам переводит этап в approved и пишет продавцу.
     await publishBusiness(env, db, SYSTEM, businessId, true, siteUrl(env));
@@ -385,10 +412,10 @@ export async function markPaidManually(env: Env, db: DB, admin: AdminContext, id
   const b = await getBusinessOr404(db, id);
   if (!b.sellerTgId) throw new HttpError(400, 'Это объявление создано администратором');
   if (await completedPayment(db, id)) throw new HttpError(409, 'Оплата уже отмечена');
-  const { priceIls } = await getSellerSettings(db);
+  const { items, totalIls } = orderTotal(await getSellerSettings(db), b.extrasOrdered ?? []);
   const now = Date.now();
   const [pay] = await db.insert(payments).values({
-    businessId: id, tgUserId: b.sellerTgId, provider: 'manual', status: 'completed', amount: priceIls * 100, currency: 'ILS',
+    businessId: id, tgUserId: b.sellerTgId, provider: 'manual', status: 'completed', amount: totalIls * 100, currency: 'ILS', items,
     note: `${admin.name}${note ? `: ${note}` : ''}`, createdAt: now, updatedAt: now, completedAt: now,
   }).returning();
   // Если продавец уже отправил объявление — сразу дальше; если ещё заполняет — оплата учтётся при отправке.
@@ -446,7 +473,7 @@ export async function adminSellerInfo(db: DB, b: Business) {
     db.select().from(payments).where(eq(payments.businessId, b.id)).orderBy(desc(payments.createdAt)).limit(10),
     db.select().from(editRequests).where(eq(editRequests.businessId, b.id)).orderBy(desc(editRequests.createdAt)).limit(30),
   ]);
-  return { tgId: b.sellerTgId, stage: b.sellerStage, payments: pays, editRequests: reqs, paid: pays.some((p) => p.status === 'completed') };
+  return { tgId: b.sellerTgId, stage: b.sellerStage, payments: pays, editRequests: reqs, paid: pays.some((p) => p.status === 'completed'), extrasOrdered: b.extrasOrdered ?? [] };
 }
 
 /** Сводка для вкладки объявлений: что ждёт администратора. */

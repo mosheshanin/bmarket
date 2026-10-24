@@ -98,3 +98,7 @@ INSERT INTO business_photos (business_id, r2_key, r2_key_small, width, height, s
   SELECT id, 'lots/1004/seed-0-1600.webp', 'lots/1004/seed-0-600.webp', 1600, 1200, 0, 'Магазин', CAST(strftime('%s','now') AS INTEGER) * 1000 FROM businesses WHERE lot_number = 1004;
 INSERT INTO business_photos (business_id, r2_key, r2_key_small, width, height, sort_order, alt, created_at)
   SELECT id, 'lots/1005/seed-0-1600.webp', 'lots/1005/seed-0-600.webp', 1600, 1200, 0, 'Салон', CAST(strftime('%s','now') AS INTEGER) * 1000 FROM businesses WHERE lot_number = 1005;
+
+-- Бейджи проверок (для тестов вёрстки и e2e).
+UPDATE businesses SET valuation_verified_at = published_at WHERE lot_number = 1001;
+UPDATE businesses SET audit_passed_at = published_at WHERE lot_number IN (1001, 1002);

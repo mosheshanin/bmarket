@@ -5,6 +5,7 @@ import MarkdownEditor from '../admin/MarkdownEditor';
 import PhotoManager from '../admin/PhotoManager';
 import type { BusinessDetail, Photo } from '../admin/types';
 import { getWebApp, isTg, storageGet, storageSet } from '../scripts/tg';
+import { EXTRAS, extraPrice, orderTotal } from '../lib/extras';
 import { INCLUDED_LABELS, LEGAL_FORM_LABELS, LICENSE_LABELS, formatPayback, paybackMonths } from '../lib/format';
 
 /**
@@ -34,7 +35,7 @@ const FIELDS = [
   'publicTitle', 'categoryId', 'cityId', 'areaNote', 'priceIls', 'priceNegotiable', 'monthlyRevenueIls', 'monthlyProfitIls',
   'yearFounded', 'employeesCount', 'areaSqm', 'rentMonthlyIls', 'leaseUntil', 'legalForm', 'businessLicense', 'includedInSale',
   'ownerSupport', 'reasonForSale', 'shortDescription', 'description', 'videoUrl', 'realName', 'exactAddress', 'ownerName',
-  'ownerPhone', 'ownerTelegram',
+  'ownerPhone', 'ownerTelegram', 'extrasOrdered',
 ] as const;
 type Form = {
   publicTitle: string; categoryId: number | null; cityId: number | null; areaNote: string | null; priceIls: number | null;
@@ -43,6 +44,7 @@ type Form = {
   legalForm: string | null; businessLicense: string | null; includedInSale: string[]; ownerSupport: string | null;
   reasonForSale: string | null; shortDescription: string; description: string; videoUrl: string | null; realName: string | null;
   exactAddress: string | null; ownerName: string | null; ownerPhone: string | null; ownerTelegram: string | null;
+  extrasOrdered: string[];
 };
 interface Detail {
   business: Form & { id: number; lotNumber: number; status: Row['status']; sellerStage: Stage | null; updatedAt: number; publishedAt: number | null };
@@ -53,6 +55,10 @@ interface Detail {
   paymentPending: boolean;
   editRequests: { id: number; text: string; status: 'new' | 'done' | 'rejected'; adminNote: string | null; createdAt: number; handledAt: number | null }[];
   priceIls: number;
+  valuationPriceIls: number;
+  auditPriceIls: number;
+  /** К оплате: размещение + заказанные услуги (₪). */
+  total: number;
   autoPublish: boolean;
   payment: Me['payment'];
 }
@@ -581,18 +587,54 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
           ) : (
             <p className="rounded-card bg-success/10 p-3 text-sm">Всё заполнено — можно отправлять.</p>
           )}
-          <ul className="flex flex-col gap-1 text-sm text-hint">
-            {detail.paid
-              ? <li>Размещение уже оплачено — повторно платить не нужно.</li>
-              : me.priceIls > 0
-                ? <li>Стоимость размещения: <b className="text-text">{ils(me.priceIls)}</b>, оплата через PayPal (карта или аккаунт PayPal).</li>
-                : <li>Размещение бесплатное.</li>}
-            <li>{detail.autoPublish ? 'После оплаты объявление сразу появится в каталоге.' : 'После оплаты объявление проверит администратор и опубликует.'}</li>
-            <li>После отправки изменить объявление можно только через запрос администратору.</li>
-          </ul>
-          <button className="btn btn-primary w-full" onClick={submit} disabled={submitting || state === 'conflict'}>
-            {submitting ? 'Отправляем…' : detail.paid || me.priceIls === 0 ? 'Отправить объявление' : `Отправить и перейти к оплате`}
-          </button>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold">Дополнительно — повышают доверие покупателей</p>
+            {EXTRAS.map((x) => {
+              const on = (form.extrasOrdered ?? []).includes(x.key);
+              return (
+                <label key={x.key} className={`survey-option !items-start !gap-3 ${detail.paid ? 'opacity-60' : ''}`} aria-pressed={on}>
+                  <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 accent-[var(--accent)]" checked={on} disabled={detail.paid}
+                    onChange={(e) => set('extrasOrdered', e.target.checked ? [...(form.extrasOrdered ?? []), x.key] : (form.extrasOrdered ?? []).filter((k) => k !== x.key))} />
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-2">
+                      <span className="font-semibold">{x.title}</span>
+                      <span className="font-bold">{ils(extraPrice(detail, x.key))}</span>
+                    </span>
+                    <span className="mt-0.5 block text-sm text-hint">{x.sell}</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {(() => {
+            const order = orderTotal(detail, form.extrasOrdered ?? []);
+            return (
+              <>
+                <ul className="flex flex-col gap-1 text-sm">
+                  {detail.paid ? (
+                    <li className="text-hint">Уже оплачено — повторно платить не нужно.</li>
+                  ) : (
+                    <>
+                      {detail.priceIls > 0 && <li className="flex justify-between"><span className="text-hint">Размещение</span><span>{ils(detail.priceIls)}</span></li>}
+                      {EXTRAS.filter((x) => (form.extrasOrdered ?? []).includes(x.key)).map((x) => (
+                        <li key={x.key} className="flex justify-between"><span className="text-hint">{x.title}</span><span>{ils(extraPrice(detail, x.key))}</span></li>
+                      ))}
+                      <li className="flex justify-between border-t border-line pt-1 font-bold"><span>Итого</span><span>{order.totalIls > 0 ? ils(order.totalIls) : 'бесплатно'}</span></li>
+                      {order.totalIls > 0 && <li className="text-hint">Оплата через PayPal — картой или аккаунтом PayPal.</li>}
+                    </>
+                  )}
+                </ul>
+                <ul className="flex flex-col gap-1 text-sm text-hint">
+                  <li>{detail.autoPublish ? 'После оплаты объявление сразу появится в каталоге.' : 'После оплаты объявление проверит администратор и опубликует.'}</li>
+                  {(form.extrasOrdered ?? []).length > 0 && <li>Оценку и аудит эксперты проводят после публикации; бейдж появится, когда работа будет завершена.</li>}
+                  <li>После отправки изменить объявление можно только через запрос администратору.</li>
+                </ul>
+                <button className="btn btn-primary w-full" onClick={submit} disabled={submitting || state === 'conflict'}>
+                  {submitting ? 'Отправляем…' : detail.paid || order.totalIls === 0 ? 'Отправить объявление' : `Отправить и оплатить ${ils(order.totalIls)}`}
+                </button>
+              </>
+            );
+          })()}
           <button className="btn btn-secondary w-full text-danger" onClick={remove}>Удалить черновик</button>
         </Section>
       )}
@@ -708,7 +750,12 @@ function Status({ id, onChanged }: { id: number; onChanged: () => void }) {
 
       {awaiting && (
         <section className="card flex flex-col gap-3 p-4">
-          <h2 className="text-base font-bold">Оплата размещения · {ils(d.priceIls)}</h2>
+          <h2 className="text-base font-bold">К оплате · {ils(d.total)}</h2>
+          {(d.business.extrasOrdered ?? []).length > 0 && (
+            <p className="text-sm text-hint">
+              {[d.priceIls > 0 && `размещение ${ils(d.priceIls)}`, ...EXTRAS.filter((x) => d.business.extrasOrdered.includes(x.key)).map((x) => `${x.title.toLowerCase()} ${ils(extraPrice(d, x.key))}`)].filter(Boolean).join(' · ')}
+            </p>
+          )}
           {d.paymentPending ? (
             <p className="text-sm">⏳ PayPal обрабатывает платёж. Как только он завершится, объявление обработается автоматически.</p>
           ) : d.payment.paypal ? (

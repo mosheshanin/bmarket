@@ -35,6 +35,8 @@ export const PUBLIC_BUSINESS_COLUMNS = {
   description: businesses.description,
   videoUrl: businesses.videoUrl,
   isFeatured: businesses.isFeatured,
+  valuationVerifiedAt: businesses.valuationVerifiedAt,
+  auditPassedAt: businesses.auditPassedAt,
   publishedAt: businesses.publishedAt,
   updatedAt: businesses.updatedAt,
   /** Нужен серверу для ответа 410; посетителю не выводится. */
@@ -44,7 +46,7 @@ export const PUBLIC_BUSINESS_COLUMNS = {
 /** Поля, которые запрещено отдавать посетителям (проверяются тестом). */
 export const HIDDEN_BUSINESS_FIELDS = [
   'realName', 'exactAddress', 'ownerName', 'ownerPhone', 'ownerTelegram', 'internalNotes',
-  'createdBy', 'updatedBy', 'notifiedAt', 'createdAt', 'sellerTgId', 'sellerStage',
+  'createdBy', 'updatedBy', 'notifiedAt', 'createdAt', 'sellerTgId', 'sellerStage', 'extrasOrdered',
 ] as const;
 
 export interface PublicPhoto {
@@ -73,6 +75,8 @@ export interface PublicListing {
   paybackMonths: number | null;
   shortDescription: string;
   isFeatured: boolean;
+  valuationVerifiedAt: number | null;
+  auditPassedAt: number | null;
   publishedAt: number | null;
   updatedAt: number;
   cover: PublicPhoto | null;
@@ -95,6 +99,8 @@ const listColumns = {
   paybackMonths: businesses.paybackMonths,
   shortDescription: businesses.shortDescription,
   isFeatured: businesses.isFeatured,
+  valuationVerifiedAt: businesses.valuationVerifiedAt,
+  auditPassedAt: businesses.auditPassedAt,
   publishedAt: businesses.publishedAt,
   updatedAt: businesses.updatedAt,
 };

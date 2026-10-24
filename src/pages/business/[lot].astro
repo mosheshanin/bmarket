@@ -12,6 +12,9 @@ import {
 import { renderMarkdown } from '../../lib/markdown';
 import { businessPath } from '../../lib/slug';
 import Icon from '../../components/ToneIcon.astro';
+import TrustBadge from '../../components/TrustBadge.astro';
+import { ICON } from '../../lib/icons';
+import { extraByKey } from '../../lib/extras';
 
 const d = db();
 const s = site();
@@ -41,20 +44,6 @@ const ogImage = photos[0] ? new URL(photos[0].src, s.url).href : null;
 const priceStr = b.priceIls ? formatIls(b.priceIls) : null;
 const title = `${b.publicTitle}${priceStr ? ` — ${priceStr}` : ''} | ${s.name}`;
 
-// Линейные значки (24×24) для блоков карточки.
-const ICON = {
-  revenue: 'M3 17l6-6 4 4 8-8M15 7h6v6',
-  profit: 'M12 3v18M17 7.5c0-1.9-2.2-3.5-5-3.5S7 5.6 7 7.5 9.2 11 12 11s5 1.6 5 3.5S14.8 18 12 18s-5-1.6-5-3.5',
-  payback: 'M12 7v5l3 2M21 12a9 9 0 1 1-9-9',
-  rent: 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1V10Z',
-  desc: 'M4 6h16M4 12h16M4 18h10',
-  included: 'M20 6 9 17l-5-5',
-  specs: 'M4 21V14M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
-  reason: 'M12 8v4M12 16h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
-  video: 'M23 7l-7 5 7 5V7ZM14 5H3a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z',
-  lock: 'M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4',
-};
-
 const kpis = [
   b.monthlyRevenueIls && { label: 'Оборот в месяц', value: formatIls(b.monthlyRevenueIls), tone: 'tone-blue', icon: ICON.revenue },
   b.monthlyProfitIls && { label: 'Чистая прибыль в месяц', value: formatIls(b.monthlyProfitIls), tone: 'tone-green', icon: ICON.profit },
@@ -72,6 +61,7 @@ const specs = [
   b.ownerSupport && ['Передача дел', b.ownerSupport],
 ].filter(Boolean) as [string, string][];
 
+const trust = [b.valuationVerifiedAt && 'valuation', b.auditPassedAt && 'audit'].filter(Boolean) as ('valuation' | 'audit')[];
 const included = (b.includedInSale ?? []).map((k) => INCLUDED_LABELS[k]).filter(Boolean);
 const yt = youtubeId(b.videoUrl);
 const descriptionHtml = renderMarkdown(b.description);
@@ -163,6 +153,18 @@ const jsonLd = res.kind === 'ok' && !preview ? [
               </details>
             )}
             {b.priceNegotiable && <p class="mt-2"><span class="badge bg-success/15 text-success">Торг возможен</span></p>}
+            {
+              trust.length > 0 && (
+                <ul class="mt-3 flex flex-col gap-2.5 border-t border-line pt-3">
+                  {trust.map((k) => (
+                    <li>
+                      <TrustBadge kind={k} large />
+                      <p class="mt-1 text-sm text-hint">{extraByKey(k)!.explain}</p>
+                    </li>
+                  ))}
+                </ul>
+              )
+            }
             <a href={requestPath} class="web-only btn btn-primary mt-4 hidden w-full lg:flex" data-cta>Узнать подробнее</a>
             <button type="button" class="btn btn-secondary mt-2 w-full" data-share data-share-title={b.publicTitle} data-share-lot={b.lotNumber}>Поделиться</button>
           </div>

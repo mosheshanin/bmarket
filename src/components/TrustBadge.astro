@@ -1,0 +1,18 @@
+---
+import { ICON } from '../lib/icons';
+import { extraByKey } from '../lib/extras';
+
+// Бейдж проверки: «Оценка подтверждена» / «Пройден аудит». Пояснение — в title и на странице карточки.
+interface Props {
+  kind: 'valuation' | 'audit';
+  title?: string;
+  large?: boolean;
+}
+const { kind, title, large = false } = Astro.props;
+const label = extraByKey(kind)!.badge;
+---
+
+<span class:list={['trust-badge', kind === 'audit' ? 'tone-green' : 'tone-blue', large && 'trust-badge-lg']} title={title}>
+  <svg width={large ? 16 : 13} height={large ? 16 : 13} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={ICON[kind]} /></svg>
+  {label}
+</span>

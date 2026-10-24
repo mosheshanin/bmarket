@@ -4,6 +4,7 @@ import { navigate, useMeta } from './App';
 import MarkdownEditor from './MarkdownEditor';
 import PhotoManager from './PhotoManager';
 import SellerPanel from './SellerPanel';
+import { EXTRAS } from '../lib/extras';
 import { ErrorBox, Field, NumberInput, Section, Spinner, STATUS_LABEL, STATUS_TONE, dt, useToast } from './ui';
 import type { Business, BusinessDetail } from './types';
 import { storageGet, storageSet, getWebApp } from '../scripts/tg';
@@ -13,7 +14,7 @@ import { formatPayback, paybackMonths, INCLUDED_LABELS, LEGAL_FORM_LABELS, LICEN
 const EDITABLE = [
   'publicTitle', 'categoryId', 'cityId', 'areaNote', 'priceIls', 'priceNegotiable', 'monthlyRevenueIls', 'monthlyProfitIls',
   'yearFounded', 'employeesCount', 'areaSqm', 'rentMonthlyIls', 'leaseUntil', 'legalForm', 'businessLicense', 'includedInSale',
-  'ownerSupport', 'reasonForSale', 'shortDescription', 'description', 'videoUrl', 'isFeatured',
+  'ownerSupport', 'reasonForSale', 'shortDescription', 'description', 'videoUrl', 'isFeatured', 'valuationVerifiedAt', 'auditPassedAt',
   'realName', 'exactAddress', 'ownerName', 'ownerPhone', 'ownerTelegram', 'internalNotes',
 ] as const;
 type Form = Pick<Business, (typeof EDITABLE)[number]>;
@@ -23,6 +24,7 @@ const EMPTY: Form = {
   monthlyRevenueIls: null, monthlyProfitIls: null, yearFounded: null, employeesCount: null, areaSqm: null,
   rentMonthlyIls: null, leaseUntil: null, legalForm: null, businessLicense: null, includedInSale: [],
   ownerSupport: null, reasonForSale: null, shortDescription: '', description: '', videoUrl: null, isFeatured: false,
+  valuationVerifiedAt: null, auditPassedAt: null,
   realName: null, exactAddress: null, ownerName: null, ownerPhone: null, ownerTelegram: null, internalNotes: null,
 };
 
@@ -278,6 +280,24 @@ export default function ListingForm({ id: initialId }: { id: number | null }) {
           <input type="checkbox" className="h-5 w-5" checked={form.isFeatured} onChange={(e) => set('isFeatured', e.target.checked)} />
           <span>📌 Закрепить в начале списка</span>
         </label>
+        <div className="rounded-card bg-bg p-3">
+          <p className="text-sm font-semibold">Бейджи проверок</p>
+          <p className="mb-1 text-xs text-hint">Отмечайте только после того, как услуга действительно выполнена — бейдж видят покупатели.</p>
+          {EXTRAS.map((x) => {
+            const k = x.key === 'valuation' ? 'valuationVerifiedAt' : 'auditPassedAt';
+            const ordered = detail?.business.extrasOrdered?.includes(x.key);
+            return (
+              <label key={x.key} className="flex min-h-[44px] items-center gap-3">
+                <input type="checkbox" className="h-5 w-5" checked={!!form[k]} onChange={(e) => set(k, e.target.checked ? Date.now() : null)} />
+                <span>
+                  {x.badge} <span className="text-xs text-hint">— {x.explain.toLowerCase()}</span>
+                  {ordered && !form[k] && <span className="badge ml-1 bg-warn text-text">заказано продавцом</span>}
+                  {form[k] ? <span className="ml-1 text-xs text-hint">с {dt(form[k])}</span> : null}
+                </span>
+              </label>
+            );
+          })}
+        </div>
       </Section>
 
       <Section title="Цифры">

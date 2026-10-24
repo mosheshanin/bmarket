@@ -79,14 +79,14 @@ export const fromPayPalValue = (v: string) => Math.round(Number(v) * 100);
 
 export async function createOrder(
   env: PayPalEnv,
-  o: { amount: number; currency: string; businessId: number; lotNumber: number; brand: string; returnUrl: string; cancelUrl: string },
+  o: { amount: number; currency: string; businessId: number; lotNumber: number; brand: string; returnUrl: string; cancelUrl: string; description?: string },
 ): Promise<{ id: string; approveUrl: string }> {
   const order = await call<PayPalOrder>(env, 'POST', '/v2/checkout/orders', {
     intent: 'CAPTURE',
     purchase_units: [{
       reference_id: `lot-${o.lotNumber}`,
       custom_id: String(o.businessId),
-      description: `Размещение объявления №${o.lotNumber}`.slice(0, 127),
+      description: (o.description ?? `Размещение объявления №${o.lotNumber}`).slice(0, 127),
       amount: { currency_code: o.currency, value: toPayPalValue(o.amount) },
     }],
     payment_source: {

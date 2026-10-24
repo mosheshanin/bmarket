@@ -428,6 +428,28 @@ const homeTg = await req('/');
 check('главная: место для подборки и данные карточек', homeTg.text.includes('id="for-you"') && /data-category="\d+"/.test(homeTg.text) && /data-price="\d+"/.test(homeTg.text));
 await req('/api/admin/survey', { method: 'PUT', auth: ADMIN, body: { enabled: false } });
 
+// ---------- Бейджи проверок и платные услуги ----------
+const homeB = await req('/?b=' + Date.now());
+check('бейджи в ленте', homeB.text.includes('Оценка подтверждена') && homeB.text.includes('Пройден аудит'));
+const cardB = await req('/business/1001');
+const cardB2 = cardB.status === 301 ? await req(cardB.headers.get('location')) : cardB;
+check('пояснение бейджей в карточке', cardB2.text.includes('Бизнес оценили эксперты Бизнес Маркета') && cardB2.text.includes('Проведён экспертный финансовый аудит'));
+check('заказанные услуги не публикуются', !/extras_?ordered/i.test(cardB2.text));
+const SELLER5 = initData({ id: 777005, first_name: 'Продавец5' });
+const sx = await req('/api/seller/businesses', { method: 'POST', auth: SELLER5 });
+const sxid = sx.json.business.id;
+check('цены услуг по умолчанию', sx.json.valuationPriceIls === 1500 && sx.json.auditPriceIls === 4000 && sx.json.total === 199);
+const sxu = await req(`/api/seller/businesses/${sxid}`, { method: 'PUT', auth: SELLER5, body: { publicTitle: 'Ресторан у моря в Хайфе', cityId: haifa.id, categoryId: sme.json.categories[0].id, priceIls: 900000, shortDescription: 'Ресторан', description: 'Описание', ownerPhone: '+972500000005', extrasOrdered: ['valuation', 'audit'], valuationVerifiedAt: Date.now() } });
+check('продавец заказал оценку и аудит', sxu.status === 200 && sxu.json.total === 199 + 1500 + 4000 && sxu.json.business.extrasOrdered.length === 2, sxu.text.slice(0, 200));
+check('продавец не ставит бейдж сам', sxu.json?.business?.valuationVerifiedAt === null);
+await req(`/api/seller/businesses/${sxid}/photos`, { method: 'POST', auth: SELLER5, form: sform });
+check('отправка с услугами', (await req(`/api/seller/businesses/${sxid}/submit`, { method: 'POST', auth: SELLER5 })).json?.business?.sellerStage === 'awaiting_payment');
+const mpx = await req(`/api/admin/businesses/${sxid}/mark-paid`, { method: 'POST', auth: ADMIN, body: {} });
+check('оплата учитывает услуги', mpx.json?.seller?.payments?.[0]?.amount === (199 + 1500 + 4000) * 100 && mpx.json.seller.payments[0].items.join() === 'placement,valuation,audit' && mpx.json.seller.extrasOrdered.length === 2, JSON.stringify(mpx.json?.seller?.payments?.[0]));
+const badge = await req(`/api/admin/businesses/${sxid}`, { method: 'PUT', auth: ADMIN, body: { valuationVerifiedAt: Date.now() } });
+check('админ ставит бейдж', badge.status === 200 && badge.json.business.valuationVerifiedAt > 0);
+await req(`/api/admin/businesses/${sxid}/hide`, { method: 'POST', auth: ADMIN });
+
 // ---------- Группа менеджеров: /setgroup ----------
 const setgroup = { update_id: 2, message: { message_id: 2, date: 1, chat: { id: -100555, type: 'supergroup', title: 'Менеджеры' }, from: { id: ADMIN_ID, is_bot: false, first_name: 'Админ' }, text: '/setgroup', entities: [{ type: 'bot_command', offset: 0, length: 9 }] } };
 const strangerSet = { ...setgroup, update_id: 3, message: { ...setgroup.message, chat: { id: -100666, type: 'supergroup', title: 'Чужая' }, from: { id: 999001, is_bot: false, first_name: 'Гость' } } };

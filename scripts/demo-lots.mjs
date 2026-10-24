@@ -198,6 +198,10 @@ const PHOTOS = {
   ],
 };
 
+// Бейджи проверок у части демо-лотов (выбраны случайно) — чтобы было видно, как они выглядят.
+const VALUATION = [1001, 1003, 1005, 1007];
+const AUDIT = [1003, 1004, 1009];
+
 const q = (v) => (v === null || v === undefined ? 'NULL' : typeof v === 'number' ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
 const now = `CAST(strftime('%s','now') AS INTEGER) * 1000`;
 const lines = [
@@ -220,5 +224,7 @@ for (const l of LOTS) {
     lines.push(`INSERT INTO business_photos (business_id, r2_key, r2_key_small, width, height, sort_order, alt, created_at) SELECT id, 'unsplash:${id}:1600', 'unsplash:${id}:600', 1600, 1200, ${i}, ${q(`${l.title} — ${caption}`)}, ${now} FROM businesses WHERE lot_number = ${l.lot};`);
   });
 }
+lines.push(`UPDATE businesses SET valuation_verified_at = published_at WHERE lot_number IN (${VALUATION.join(', ')}) AND internal_notes LIKE 'ДЕМО%';`);
+lines.push(`UPDATE businesses SET audit_passed_at = published_at WHERE lot_number IN (${AUDIT.join(', ')}) AND internal_notes LIKE 'ДЕМО%';`);
 writeFileSync(new URL('../seed/demo-lots.sql', import.meta.url), lines.join('\n') + '\n');
 console.log(`seed/demo-lots.sql: ${LOTS.length} лотов`);

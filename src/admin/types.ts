@@ -37,6 +37,9 @@ export interface Business {
   description: string;
   videoUrl: string | null;
   isFeatured: boolean;
+  valuationVerifiedAt: number | null;
+  auditPassedAt: number | null;
+  extrasOrdered: string[];
   status: 'draft' | 'published' | 'hidden';
   publishedAt: number | null;
   notifiedAt: number | null;
@@ -70,13 +73,13 @@ export type SellerStage = 'editing' | 'awaiting_payment' | 'in_review' | 'approv
 export interface SellerQueue { inReview: number; awaitingPayment: number; openEditRequests: number }
 export interface PaymentRow {
   id: number; provider: 'paypal' | 'manual'; status: 'created' | 'pending' | 'completed' | 'failed' | 'refunded';
-  amount: number; currency: string; providerOrderId: string | null; note: string | null; createdAt: number; completedAt: number | null;
+  amount: number; currency: string; providerOrderId: string | null; note: string | null; createdAt: number; completedAt: number | null; items?: string[];
 }
 export interface EditRequestRow {
   id: number; businessId: number; text: string; status: 'new' | 'done' | 'rejected'; adminNote: string | null;
   handledByName: string | null; createdAt: number; handledAt: number | null;
 }
-export interface SellerInfo { tgId: number; stage: SellerStage | null; payments: PaymentRow[]; editRequests: EditRequestRow[]; paid: boolean }
+export interface SellerInfo { tgId: number; stage: SellerStage | null; payments: PaymentRow[]; editRequests: EditRequestRow[]; paid: boolean; extrasOrdered: string[] }
 
 export interface ListingRow {
   id: number; lotNumber: number; publicTitle: string; status: Business['status']; cityName: string | null;

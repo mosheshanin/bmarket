@@ -3,6 +3,7 @@ import { api } from './api';
 import { useMeta } from './App';
 import { PAYMENT_STATUS_LABEL, SELLER_STAGE_LABEL, SELLER_STAGE_TONE, Section, confirmDialog, dt, fmtNum, useToast } from './ui';
 import type { BusinessDetail, SellerInfo } from './types';
+import { ITEM_LABELS, extraByKey } from '../lib/extras';
 
 /** Блок в карточке лота, поданного продавцом: оплата, возврат на доработку, запросы на изменение. */
 export default function SellerPanel({ detail, onDetail }: { detail: BusinessDetail; onDetail: (d: BusinessDetail) => void }) {
@@ -54,12 +55,25 @@ export default function SellerPanel({ detail, onDetail }: { detail: BusinessDeta
         <p className="rounded-card bg-accent/10 p-3 text-sm">Оплачено и ждёт вашей проверки. Отредактируйте при необходимости и нажмите «Опубликовать» — продавец получит сообщение.</p>
       )}
 
+      {s.extrasOrdered.length > 0 && (
+        <div className="rounded-card bg-warn p-3 text-sm">
+          <p className="font-semibold">Заказаны услуги</p>
+          <ul className="mt-1">
+            {s.extrasOrdered.map((k) => {
+              const x = extraByKey(k);
+              const done = k === 'valuation' ? b.valuationVerifiedAt : b.auditPassedAt;
+              return <li key={k}>{done ? '✅' : '⏳'} {x?.title ?? k}{done ? ' — бейдж стоит' : ' — после выполнения отметьте бейдж в блоке «Основное»'}</li>;
+            })}
+          </ul>
+        </div>
+      )}
+
       {s.payments.length > 0 && (
         <ul className="flex flex-col gap-1 text-sm">
           {s.payments.map((p) => (
             <li key={p.id} className="flex justify-between gap-2">
               <span>
-                {p.provider === 'paypal' ? 'PayPal' : 'Вручную'} · ₪ {fmtNum(p.amount / 100)} · <b>{PAYMENT_STATUS_LABEL[p.status]}</b>
+                {p.provider === 'paypal' ? 'PayPal' : 'Вручную'} · ₪ {fmtNum(p.amount / 100)}{p.items?.length ? ` (${p.items.map((i) => ITEM_LABELS[i] ?? i).join(', ')})` : ''} · <b>{PAYMENT_STATUS_LABEL[p.status]}</b>
                 {p.note && <span className="text-hint"> · {p.note}</span>}
               </span>
               <span className="shrink-0 text-hint">{dt(p.completedAt ?? p.createdAt)}</span>
