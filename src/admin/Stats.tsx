@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from './api';
-import { ErrorBox, Section, Segmented, Spinner } from './ui';
+import { ErrorBox, Section, Segmented, Spinner, dt, useToast } from './ui';
+import { prettyPhone } from '../lib/format';
 
 type P = '7' | '30' | '90' | 'all';
 interface LotStat { lot?: number; title?: string; path?: string; n: number }
@@ -118,6 +119,7 @@ export default function Stats() {
               </tbody>
             </table>
           </Section>
+          <SurveyStats />
           <Section title="Источники заявок">
             <ul className="text-sm">
               {d.leadSources.map((s, i) => (
@@ -129,5 +131,80 @@ export default function Stats() {
         </>
       )}
     </div>
+  );
+}
+
+interface SurveyData {
+  enabled: boolean;
+  completed: { buy: number; sell: number; browse: number };
+  skipped: number;
+  budgets: { label: string; n: number }[];
+  timelines: { label: string; n: number }[];
+  topCategories: { name: string; buy: number; sell: number }[];
+  consults: { userId: number; username: string | null; firstName: string | null; phone: string | null; intent: string | null; at: number; summary: string; comment: string | null }[];
+}
+
+/** Опрос при первом запуске: включение, предпросмотр, ответы и запросы на консультацию. */
+function SurveyStats() {
+  const toast = useToast();
+  const [s, setS] = useState<SurveyData | null>(null);
+  useEffect(() => {
+    api<SurveyData>('survey').then(setS).catch(() => {});
+  }, []);
+  if (!s) return null;
+  async function toggle(enabled: boolean) {
+    try {
+      setS(await api<SurveyData>('survey', { method: 'PUT', body: { enabled } }));
+      toast(enabled ? 'Опрос включён для новых пользователей' : 'Опрос выключен');
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  }
+  const total = s.completed.buy + s.completed.sell + s.completed.browse;
+  const bar = (n: number, max: number) => (
+    <span className="ml-2 inline-block h-2 rounded-full bg-accent/60 align-middle" style={{ width: `${max ? Math.max(4, (n / max) * 120) : 0}px` }} />
+  );
+  const maxB = Math.max(1, ...s.budgets.map((b) => b.n));
+  return (
+    <Section title="Опрос при первом запуске">
+      <label className="flex min-h-[44px] items-center gap-3">
+        <input type="checkbox" className="h-5 w-5" checked={s.enabled} onChange={(e) => toggle(e.target.checked)} />
+        <span>Показывать новым пользователям мини-приложения</span>
+      </label>
+      <a className="btn btn-secondary self-start" href="/?survey=1">Пройти опрос самому (предпросмотр)</a>
+      <p className="text-sm">
+        Ответили: <b>{total}</b> · купить {s.completed.buy} · продать {s.completed.sell} · смотрят {s.completed.browse} · пропустили {s.skipped}
+      </p>
+      {s.completed.buy > 0 && (
+        <div className="text-sm">
+          <p className="font-semibold">Бюджет покупателей</p>
+          <ul>{s.budgets.map((b) => <li key={b.label} className="flex items-center justify-between gap-2 py-0.5"><span>{b.label}</span><span>{b.n}{bar(b.n, maxB)}</span></li>)}</ul>
+        </div>
+      )}
+      {s.topCategories.length > 0 && (
+        <table className="w-full text-sm">
+          <thead><tr className="text-left text-hint"><th className="font-normal">Сфера</th><th className="text-right font-normal">Купить</th><th className="text-right font-normal">Продать</th></tr></thead>
+          <tbody>{s.topCategories.map((c) => <tr key={c.name} className="border-t border-line"><td className="py-1">{c.name}</td><td className="text-right">{c.buy}</td><td className="text-right">{c.sell}</td></tr>)}</tbody>
+        </table>
+      )}
+      {s.consults.length > 0 && (
+        <div className="text-sm">
+          <p className="font-semibold">Просили связаться</p>
+          <ul className="flex flex-col gap-2">
+            {s.consults.map((c) => (
+              <li key={c.userId} className="rounded-lg bg-bg p-2">
+                <p className="text-xs text-hint">{dt(c.at)} · {c.intent === 'sell' ? 'продаёт' : 'покупает'}</p>
+                <p>
+                  <a href={c.username ? `https://t.me/${c.username}` : `tg://user?id=${c.userId}`}>{c.username ? `@${c.username}` : c.firstName ?? 'Профиль'}</a>
+                  {c.phone && <> · <a href={`tel:${c.phone}`}>{prettyPhone(c.phone)}</a></>}
+                </p>
+                <p className="text-hint">{c.summary}</p>
+                {c.comment && <p className="whitespace-pre-line">{c.comment}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </Section>
   );
 }

@@ -28,6 +28,7 @@ src/server/              серверная логика (public, leads, broadca
 src/bot/bot.ts           команды и кнопки бота
 src/admin/               React-админка (открывается только внутри Telegram)
 src/seller/              «Мои объявления» продавца (/sell): черновик, оплата PayPal, запросы на изменение
+src/onboarding/          опрос при первом запуске и «Подборка для вас» (грузится только в Telegram на главной)
 src/components/          Astro/React-компоненты публичной части (Splash.astro — заставка при открытии)
 src/lib/                 чистые функции: форматы, slug, markdown, initData, crypto
 src/db/schema.ts         схема БД; миграции — migrations/ (drizzle-kit)
@@ -42,8 +43,8 @@ tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозн�
 cp .dev.vars.example .dev.vars
 npm run db:migrate:local && npm run db:seed:local && bash scripts/seed-photos.sh --local
 npm run build && npx astro preview --port 8787 --host 127.0.0.1
-npm test                    # юнит-тесты (31)
-npm run test:e2e            # 144 сквозные проверки на локальном Worker (с поддельным PayPal на :8799)
+npm test                    # юнит-тесты (36)
+npm run test:e2e            # 163 сквозные проверки на локальном Worker (с поддельным PayPal на :8799)
 npx astro check             # типы
 npm run size                # размер Worker < 3 МБ gzip (сейчас ≈0,42 МБ)
 npm run db:generate         # после изменения src/db/schema.ts

@@ -7,7 +7,7 @@ import { db, env } from '../../server/site';
 
 // lead_submit и subscribe/unsubscribe пишет сервер сам — с клиента принимаются только эти.
 const Input = z.object({
-  type: z.enum(['app_open', 'listing_view', 'lead_form_open']),
+  type: z.enum(['app_open', 'listing_view', 'lead_form_open', 'survey_open']),
   businessId: z.number().int().positive().optional(),
   initData: z.string().max(8192).optional(),
   visitorId: z.string().min(8).max(64).optional(),
@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Просмотры администраторов не учитываются.
     if (tg && isAdminId(env, tg.user.id)) return json({ ok: true, skipped: 'admin' });
     if (!tg && !input.visitorId) return json({ ok: true, skipped: 'anonymous' });
-    if (input.type !== 'app_open' && !input.businessId) return json({ ok: true, skipped: 'no business' });
+    if (input.type !== 'app_open' && input.type !== 'survey_open' && !input.businessId) return json({ ok: true, skipped: 'no business' });
     const recorded = await recordEvent(db(), {
       type: input.type,
       source: tg ? 'mini_app' : 'web',

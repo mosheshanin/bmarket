@@ -146,3 +146,34 @@ describe('адреса фото', () => {
     expect(imageUrl({ PUBLIC_IMAGES_URL: 'https://img.x.com/' }, 'lots/1/a.webp')).toBe('https://img.x.com/lots/1/a.webp');
   });
 });
+
+import { describePrefs, matchesPrefs } from '../src/lib/match';
+
+describe('подбор под ответы опроса', () => {
+  const lot = { categoryId: 1, cityId: 2, priceIls: 450_000, paybackMonths: 13 };
+  const any = { categories: [], cities: [], budget: null, wishes: [] };
+  it('пустые ответы — подходит всё', () => expect(matchesPrefs(lot, any)).toBe(true));
+  it('сфера и город', () => {
+    expect(matchesPrefs(lot, { ...any, categories: [1, 3] })).toBe(true);
+    expect(matchesPrefs(lot, { ...any, categories: [3] })).toBe(false);
+    expect(matchesPrefs(lot, { ...any, cities: [5] })).toBe(false);
+    expect(matchesPrefs({ ...lot, cityId: null }, { ...any, cities: [2] })).toBe(false);
+  });
+  it('бюджет — потолок; цена неизвестна — не исключаем', () => {
+    expect(matchesPrefs(lot, { ...any, budget: 'b500' })).toBe(true);
+    expect(matchesPrefs(lot, { ...any, budget: 'b250' })).toBe(false);
+    expect(matchesPrefs(lot, { ...any, budget: 'b2000plus' })).toBe(true);
+    expect(matchesPrefs({ ...lot, priceIls: null }, { ...any, budget: 'b250' })).toBe(true);
+  });
+  it('окупаемость до 2 лет', () => {
+    expect(matchesPrefs(lot, { ...any, wishes: ['payback24'] })).toBe(true);
+    expect(matchesPrefs({ ...lot, paybackMonths: 40 }, { ...any, wishes: ['payback24'] })).toBe(false);
+    expect(matchesPrefs({ ...lot, paybackMonths: 40 }, { ...any, wishes: ['staff'] })).toBe(true);
+  });
+  it('описание запроса', () => {
+    const names = { categories: new Map([[1, 'Кафе и рестораны']]), cities: new Map([[2, 'Хайфа']]) };
+    expect(describePrefs({ ...any, categories: [1], cities: [2], budget: 'b500' }, names)).toBe('Кафе и рестораны, Хайфа · до ₪ 500 000');
+    expect(describePrefs({ ...any, intent: 'sell', categories: [1], timeline: 'asap' }, names)).toBe('Кафе и рестораны, вся страна · как можно скорее');
+    expect(describePrefs(any, names)).toBe('любая сфера, вся страна');
+  });
+});

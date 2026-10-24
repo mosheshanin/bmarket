@@ -15,7 +15,14 @@ const paginate = items.length > 50;
 <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-listing-grid data-page-size={paginate ? PAGE : undefined}>
   {
     items.map((item, i) => (
-      <li data-idx={i} hidden={paginate && i >= PAGE ? true : undefined}>
+      <li
+        data-idx={i}
+        hidden={paginate && i >= PAGE ? true : undefined}
+        data-category={item.categoryId ?? undefined}
+        data-city={item.cityId ?? undefined}
+        data-price={item.priceIls ?? undefined}
+        data-payback={item.paybackMonths ?? undefined}
+      >
         <ListingCard item={item} rate={rate} eager={i < 2} />
       </li>
     ))

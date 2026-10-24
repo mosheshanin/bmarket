@@ -1,7 +1,8 @@
 import { and, asc, desc, eq, gt, inArray, isNull, lte } from 'drizzle-orm';
 import type { InlineKeyboardButton } from 'grammy/types';
 import type { DB } from '../db/client';
-import { broadcasts, businesses, subscribers, type Broadcast } from '../db/schema';
+import { broadcasts, businesses, subscribers, visitorProfiles, type Broadcast } from '../db/schema';
+import { matchesPrefs, type MatchPrefs } from '../lib/match';
 import { escapeHtml, formatIls, groupDigits } from '../lib/format';
 import { businessPath } from '../lib/slug';
 import { photosFor } from './public';
@@ -45,6 +46,9 @@ export async function queueLotNotification(db: DB, businessId: number, now = Dat
 interface DigestLot {
   id: number;
   lotNumber: number;
+  categoryId?: number | null;
+  cityId?: number | null;
+  paybackMonths?: number | null;
   slug: string;
   publicTitle: string;
   priceIls: number | null;
@@ -58,6 +62,7 @@ async function loadLots(db: DB, ids: number[]): Promise<DigestLot[]> {
     .select({
       id: businesses.id, lotNumber: businesses.lotNumber, slug: businesses.slug, publicTitle: businesses.publicTitle,
       priceIls: businesses.priceIls, monthlyProfitIls: businesses.monthlyProfitIls,
+      categoryId: businesses.categoryId, cityId: businesses.cityId, paybackMonths: businesses.paybackMonths,
     })
     .from(businesses)
     .where(and(inArray(businesses.id, ids), eq(businesses.status, 'published')));
@@ -126,10 +131,25 @@ export async function processBroadcasts(env: Env, db: DB, now = Date.now()): Pro
     await db.update(broadcasts).set({ status: 'done', finishedAt: now }).where(eq(broadcasts.id, job.id));
     return;
   }
-  const msg = buildMessage(env, lots);
+  const full = buildMessage(env, lots);
+  // Кто в опросе выбрал «только подходящие» — получает подборку из своих лотов (или ничего).
+  const messages = new Map<string, ReturnType<typeof buildMessage>>();
+  const messageFor = (p: MatchPrefs | null) => {
+    if (!p) return full;
+    const own = lots.filter((l) => matchesPrefs({ categoryId: l.categoryId ?? null, cityId: l.cityId ?? null, priceIls: l.priceIls, paybackMonths: l.paybackMonths ?? null }, p));
+    if (!own.length) return null;
+    if (own.length === lots.length) return full;
+    const key = own.map((l) => l.id).join(',');
+    if (!messages.has(key)) messages.set(key, buildMessage(env, own));
+    return messages.get(key)!;
+  };
   const batch = await db
-    .select({ id: subscribers.telegramUserId })
+    .select({
+      id: subscribers.telegramUserId, notifyMatching: visitorProfiles.notifyMatching, intent: visitorProfiles.intent,
+      categories: visitorProfiles.categories, cities: visitorProfiles.cities, budget: visitorProfiles.budget, wishes: visitorProfiles.wishes,
+    })
     .from(subscribers)
+    .leftJoin(visitorProfiles, eq(visitorProfiles.telegramUserId, subscribers.telegramUserId))
     .where(and(eq(subscribers.isActive, true), gt(subscribers.telegramUserId, job.cursor)))
     .orderBy(asc(subscribers.telegramUserId))
     .limit(BATCH_SIZE);
@@ -138,6 +158,14 @@ export async function processBroadcasts(env: Env, db: DB, now = Date.now()): Pro
   let { cursor, delivered, blocked, failed } = job;
   let throttled = false;
   for (const s of batch) {
+    const prefs = s.notifyMatching && s.intent === 'buy'
+      ? { categories: s.categories ?? [], cities: s.cities ?? [], budget: s.budget, wishes: s.wishes ?? [] }
+      : null;
+    const msg = messageFor(prefs);
+    if (!msg) {
+      cursor = s.id; // ничего подходящего — не беспокоим
+      continue;
+    }
     try {
       const other = { parse_mode: 'HTML' as const, reply_markup: { inline_keyboard: msg.keyboard } };
       if (msg.photo) await api.sendPhoto(s.id, msg.photo, { ...other, caption: msg.text });

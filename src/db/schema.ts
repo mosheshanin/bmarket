@@ -173,7 +173,7 @@ export const exchangeRates = sqliteTable('exchange_rates', {
 });
 
 export const EVENT_TYPES = [
-  'app_open', 'listing_view', 'lead_form_open', 'lead_submit', 'subscribe', 'unsubscribe',
+  'app_open', 'listing_view', 'lead_form_open', 'lead_submit', 'subscribe', 'unsubscribe', 'survey_open',
 ] as const;
 
 export const events = sqliteTable('events', {
@@ -257,6 +257,34 @@ export const editRequests = sqliteTable('edit_requests', {
   handledAt: integer('handled_at'),
 }, (t) => [index('edit_requests_business_idx').on(t.businessId, t.createdAt), index('edit_requests_status_idx').on(t.status)]);
 
+/**
+ * Ответы опроса при первом запуске мини-приложения (купить / продать / смотрю, пожелания).
+ * Используются для подборки на главной, уведомлений «только подходящие» и подсказок менеджерам.
+ */
+export const SURVEY_INTENTS = ['buy', 'sell', 'browse'] as const;
+export const visitorProfiles = sqliteTable('visitor_profiles', {
+  telegramUserId: integer('telegram_user_id').primaryKey(),
+  intent: text('intent', { enum: SURVEY_INTENTS }),
+  categories: text('categories', { mode: 'json' }).$type<number[]>().notNull().default([]),
+  cities: text('cities', { mode: 'json' }).$type<number[]>().notNull().default([]),
+  /** Покупатель: потолок бюджета (ключ из BUDGETS в src/lib/match.ts). */
+  budget: text('budget'),
+  /** Продавец: когда планирует продажу. */
+  timeline: text('timeline'),
+  wishes: text('wishes', { mode: 'json' }).$type<string[]>().notNull().default([]),
+  comment: text('comment'),
+  /** Уведомлять только о лотах, подходящих под ответы. */
+  notifyMatching: integer('notify_matching', { mode: 'boolean' }).notNull().default(false),
+  consultRequestedAt: integer('consult_requested_at'),
+  phone: text('phone'),
+  username: text('username'),
+  firstName: text('first_name'),
+  completedAt: integer('completed_at'),
+  skippedAt: integer('skipped_at'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+}, (t) => [index('profiles_intent_idx').on(t.intent, t.completedAt), index('profiles_consult_idx').on(t.consultRequestedAt)]);
+
 /** Небольшое хранилище служебных значений (например, дата последнего оповещения). */
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
@@ -271,4 +299,5 @@ export type Photo = typeof businessPhotos.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 export type Broadcast = typeof broadcasts.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type VisitorProfile = typeof visitorProfiles.$inferSelect;
 export type EditRequest = typeof editRequests.$inferSelect;

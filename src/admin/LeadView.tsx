@@ -17,6 +17,8 @@ interface Detail {
     realName: string | null; exactAddress: string | null; ownerName: string | null; ownerPhone: string | null;
     ownerTelegram: string | null; internalNotes: string | null;
   } | null;
+  /** Ответы опроса этого посетителя (что ищет), если он их давал. */
+  buyerRequest?: string | null;
 }
 
 const STATUSES = ['new', 'in_progress', 'closed_won', 'closed_lost'] as const;
@@ -106,6 +108,7 @@ export default function LeadView({ id }: { id: number }) {
         <p className="text-sm">Предпочитает: <b>{CONTACT_LABELS[lead.preferredContact]}</b></p>
         {lead.telegramUsername && <p className="text-sm">Telegram: @{lead.telegramUsername}</p>}
         {lead.comment && <p className="whitespace-pre-line rounded-lg bg-bg p-3 text-sm">{lead.comment}</p>}
+        {d.buyerRequest && <p className="whitespace-pre-line rounded-lg bg-accent/10 p-3 text-sm">🎯 Из опроса. {d.buyerRequest}</p>}
         {(lead.utmSource || lead.utmCampaign) && <p className="text-xs text-hint">UTM: {[lead.utmSource, lead.utmMedium, lead.utmCampaign].filter(Boolean).join(' / ')}</p>}
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {lead.phone && <a className="btn btn-primary" href={`tel:${lead.phone}`}>Позвонить</a>}

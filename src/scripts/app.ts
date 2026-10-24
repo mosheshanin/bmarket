@@ -149,6 +149,9 @@ async function initTelegram() {
   }
 
   initSubscribeBlocks();
+
+  // Опрос при первом запуске и «Подборка для вас» — отдельный модуль, грузится только в Telegram на главной.
+  if (page === 'home') import('../onboarding').then((m) => m.initOnboarding()).catch((e) => console.warn('onboarding', e));
 }
 
 if (isTg()) initTelegram();

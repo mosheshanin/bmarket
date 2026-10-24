@@ -90,6 +90,17 @@ bad += await shot('20-sell-edit-submit', '/sell', { tg: seller2, before: async (
 bad += await shot('21-sell-web', '/sell', { width: 390 });
 bad += await shot('22-admin-sellers', '/admin', { tg: admin, before: async (p) => { await p.getByRole('button', { name: /От продавцов/ }).click(); await p.waitForTimeout(1200); } });
 bad += await shot('23-admin-seller-form', '/admin', { tg: admin, before: async (p) => { await p.getByRole('button', { name: /От продавцов/ }).click(); await p.waitForTimeout(1000); await p.locator('ul a[href^="#/listings/"]').first().click(); await p.waitForTimeout(1200); } });
+// Опрос при первом запуске (предпросмотр /?survey=1).
+const fresh = (id) => initData({ id, first_name: 'Новый' });
+const click = async (p, name) => { await p.getByRole('button', { name }).first().click(); await p.waitForTimeout(450); };
+bad += await shot('24-survey-intent', '/?survey=1', { tg: fresh(880001), full: false, before: async (p) => { await p.waitForSelector('[role=dialog]'); } });
+bad += await shot('25-survey-categories', '/?survey=1', { tg: fresh(880002), full: false, before: async (p) => { await click(p, /Хочу купить/); await click(p, /Кафе/); } });
+bad += await shot('26-survey-budget', '/?survey=1', { tg: fresh(880003), full: false, before: async (p) => { await click(p, /Хочу купить/); await click(p, /Далее/); await click(p, /Хайфа/); await click(p, /Далее/); } });
+bad += await shot('27-survey-wishes', '/?survey=1', { tg: fresh(880004), full: false, before: async (p) => { await click(p, /Хочу купить/); await click(p, /Далее/); await click(p, /Далее/); await click(p, /до ₪ 500 000/); await click(p, /Окупаемость/); } });
+bad += await shot('28-survey-buyer-result', '/?survey=1', { tg: fresh(880005), before: async (p) => { await click(p, /Хочу купить/); await click(p, /Далее/); await click(p, /Далее/); await click(p, /до ₪ 500 000/); await click(p, /Готово/); await p.waitForTimeout(600); } });
+bad += await shot('29-survey-seller-result', '/?survey=1', { tg: fresh(880006), before: async (p) => { await click(p, /Хочу продать/); await click(p, /Кафе/); await click(p, /Хайфа/); await click(p, /Как можно скорее/); await click(p, /Нужна оценка/); await click(p, /Готово/); await p.waitForTimeout(600); } });
+bad += await shot('30-home-for-you', '/', { tg: fresh(880005), before: async (p) => { await p.waitForTimeout(800); } });
+bad += await shot('31-survey-dark', '/?survey=1', { tg: fresh(880007), dark: true, full: false, before: async (p) => { await click(p, /Хочу купить/); } });
 await browser.close();
 if (bad) {
   console.error(`Горизонтальная прокрутка на ${bad} экранах`);

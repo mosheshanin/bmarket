@@ -6,6 +6,7 @@ import { CONTACT_LABELS, LEAD_STATUS_LABELS, escapeHtml, formatDateTime, formatI
 import { GrammyError } from 'grammy';
 import { MANAGERS_CHAT_KEY, MANAGERS_ERROR_KEY, getManagersChat, managersChatId, miniAppLink, sendToManagers, siteUrl, sleep, tgApi } from './telegram';
 import { getSettings } from './settings';
+import { profileSummary } from './profiles';
 
 export const LEADS_PER_HOUR_LIMIT = 5;
 
@@ -27,7 +28,8 @@ interface LeadLot {
 }
 
 /** Текст сообщения в группу менеджеров (раздел 6.2). Скрытые поля лота сюда не попадают. */
-export function renderLeadMessage(lead: Lead, lot: LeadLot): string {
+/** buyerRequest — ответы опроса этого посетителя (уже экранированный HTML), если он их давал. */
+export function renderLeadMessage(lead: Lead, lot: LeadLot, buyerRequest?: string | null): string {
   const e = escapeHtml;
   const lines = [
     `🆕 <b>Новая заявка №${lead.id}</b>`,
@@ -45,6 +47,7 @@ export function renderLeadMessage(lead: Lead, lot: LeadLot): string {
   if (lead.telegramUsername) lines.push(`Telegram: @${e(lead.telegramUsername)}`);
   else if (lead.telegramUserId) lines.push(`Telegram: <a href="tg://user?id=${lead.telegramUserId}">профиль</a>`);
   if (lead.comment) lines.push(`Комментарий: ${e(lead.comment)}`);
+  if (buyerRequest) lines.push('', `🎯 Из опроса. ${buyerRequest}`);
   lines.push('');
   const src = lead.source === 'mini_app' ? 'мини-приложение' : 'сайт';
   const utm = [lead.utmSource, lead.utmMedium, lead.utmCampaign].filter(Boolean).join(' / ');
@@ -82,7 +85,7 @@ export async function deliverLead(env: Env, db: DB, leadId: number, pauses = [10
   const [lead] = await db.select().from(leads).where(eq(leads.id, leadId));
   if (!lead) return { ok: false, error: 'Заявка не найдена' };
   const lot = await lotFor(db, lead.businessId);
-  const text = renderLeadMessage(lead, lot);
+  const text = renderLeadMessage(lead, lot, await profileSummary(db, lead.telegramUserId).catch(() => null));
   let error = '';
   for (let attempt = 0; attempt <= pauses.length; attempt++) {
     try {
@@ -115,7 +118,8 @@ export async function syncLeadMessage(env: Env, db: DB, leadId: number): Promise
   if (!chat) return;
   const lot = await lotFor(db, lead.businessId);
   try {
-    await tgApi(env).editMessageText(chat, lead.tgMessageId, renderLeadMessage(lead, lot), {
+    const request = await profileSummary(db, lead.telegramUserId).catch(() => null);
+    await tgApi(env).editMessageText(chat, lead.tgMessageId, renderLeadMessage(lead, lot, request), {
       parse_mode: 'HTML',
       reply_markup: leadKeyboard(env, lead),
       link_preview_options: { is_disabled: true },

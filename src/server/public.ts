@@ -61,6 +61,8 @@ export interface PublicListing {
   lotNumber: number;
   slug: string;
   publicTitle: string;
+  categoryId: number | null;
+  cityId: number | null;
   cityName: string | null;
   cityPrepositional: string | null;
   citySlug: string | null;
@@ -81,6 +83,8 @@ const listColumns = {
   lotNumber: businesses.lotNumber,
   slug: businesses.slug,
   publicTitle: businesses.publicTitle,
+  categoryId: businesses.categoryId,
+  cityId: businesses.cityId,
   cityName: cities.name,
   cityPrepositional: cities.namePrepositional,
   citySlug: cities.slug,

@@ -5,7 +5,7 @@ import { getTelegramUser } from '../../../server/auth';
 import { HttpError, errorResponse, json, readJson } from '../../../server/http';
 import { listDicts } from '../../../server/admin/dicts';
 import {
-  EditRequestInput, SellerInput, backToEditing, createEditRequest, createSellerDraft, deleteSellerDraft, getSellerSettings,
+  DraftPrefill, EditRequestInput, SellerInput, backToEditing, createEditRequest, createSellerDraft, deleteSellerDraft, getSellerSettings,
   listOwn, ownDetail, paymentInfo, sellerAddPhoto, sellerReorderPhotos, sellerUpdatePhoto, startPayPal, submitSellerDraft,
   updateSellerDraft,
 } from '../../../server/seller';
@@ -42,7 +42,15 @@ const routes: [string, RegExp, Handler][] = [
       payment: paymentInfo(env),
     });
   }],
-  ['POST', /^businesses$/, async ({ user }) => json(await createSellerDraft(env, db(), user), { status: 201 })],
+  ['POST', /^businesses$/, async ({ ctx, user }) => {
+    const raw = await ctx.request.text();
+    let body: unknown = {};
+    try {
+      body = raw ? JSON.parse(raw) : {};
+    } catch { /* пустое тело — без предзаполнения */ }
+    const prefill = DraftPrefill.safeParse(body);
+    return json(await createSellerDraft(env, db(), user, prefill.success ? prefill.data : {}), { status: 201 });
+  }],
   ['GET', /^businesses\/(\d+)$/, async ({ user, params }) => json(await ownDetail(env, db(), user, num(params[0])))],
   ['PUT', /^businesses\/(\d+)$/, async ({ ctx, user, params, origin }) =>
     json(await updateSellerDraft(env, db(), user, num(params[0]), await readJson(ctx.request, SellerInput), origin))],

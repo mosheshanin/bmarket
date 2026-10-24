@@ -27,6 +27,8 @@ const firstCover = items.find((i) => i.cover)?.cover;
 <Layout title={title} description={description} canonicalPath="/" jsonLd={[org]} ogImage={firstCover ? new URL(imageUrl(env, firstCover.r2Key), s.url).href : null} data={{ page: 'home' }}>
   <h1 class="mb-1 text-2xl font-extrabold tracking-tight sm:text-3xl">Готовый бизнес на продажу в Израиле</h1>
   <p class="mb-4 text-hint">Проверенные предложения с ценами и показателями. Название и адрес — после заявки.</p>
+  <!-- Опрос и «Подборка для вас» (только в Telegram, src/onboarding). -->
+  <div id="for-you" class="tg-only"></div>
 
   {
     items.length > 0 ? (

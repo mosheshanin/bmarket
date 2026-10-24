@@ -167,10 +167,24 @@ function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
-  async function create() {
+  // Пришли из опроса («Разместить объявление»): открыть начатый черновик или создать новый со сферой и городом.
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    if (q.get('new') !== '1') return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    const draft = me.items.find((r) => r.status === 'draft' && r.sellerStage === 'editing');
+    if (draft) return go(`#/edit/${draft.id}`, true);
+    const prefill: Record<string, number> = {};
+    if (Number(q.get('category'))) prefill.categoryId = Number(q.get('category'));
+    if (Number(q.get('city'))) prefill.cityId = Number(q.get('city'));
+    create(prefill);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function create(prefill: Record<string, number> = {}) {
     setBusy(true);
     try {
-      const d = await api<Detail>('businesses', { method: 'POST' });
+      const d = await api<Detail>('businesses', { method: 'POST', body: prefill });
       onChanged();
       go(`#/edit/${d.business.id}`);
     } catch (e) {
@@ -192,7 +206,7 @@ function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
           <li>Изменить опубликованное объявление можно через запрос администратору.</li>
         </ol>
       </section>
-      <button className="btn btn-primary w-full" onClick={create} disabled={busy}>+ Новое объявление</button>
+      <button className="btn btn-primary w-full" onClick={() => create()} disabled={busy}>+ Новое объявление</button>
       <ul className="flex flex-col gap-2">
         {me.items.map((r) => {
           const [label, tone] = stageLabel(r);

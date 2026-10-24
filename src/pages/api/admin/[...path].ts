@@ -12,6 +12,7 @@ import {
 import { leadDetail, leadsCsv, leadsSummary, listLeads, patchLead, sendCsvToAdmin, syncLeadMessage } from '../../../server/admin/leads';
 import { CategoryInput, CityInput, createCategory, createCity, deleteDict, listDicts, reorderDict, updateCategory, updateCity } from '../../../server/admin/dicts';
 import { getStats, subscribersSummary } from '../../../server/admin/stats';
+import { profileSummary, setSurveyEnabled, surveyStats } from '../../../server/profiles';
 import { deliverLead, managersStatus, undeliveredLeadIds } from '../../../server/leads';
 import {
   MarkPaidInput, ResolveInput, ReturnInput, SellerSettingsInput, adminSellerInfo, getSellerSettings, markPaidManually,
@@ -141,7 +142,13 @@ const routes: [string, RegExp, Handler][] = [
     ]);
     return json({ items, summary });
   }],
-  ['GET', /^leads\/(\d+)$/, async ({ params }) => json(await leadDetail(db(), num(params[0])))],
+  ['GET', /^leads\/(\d+)$/, async ({ params }) => {
+    const d = db();
+    const detail = await leadDetail(d, num(params[0]));
+    // Ответы опроса посетителя (HTML-экранированный текст → обычный текст для админки).
+    const request = await profileSummary(d, detail.lead.telegramUserId);
+    return json({ ...detail, buyerRequest: request ? request.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&') : null });
+  }],
   ['PATCH', /^leads\/(\d+)$/, async ({ ctx, admin, params }) => {
     const patch = await readJson(ctx.request, LeadPatch);
     const d = db();
@@ -213,6 +220,14 @@ const routes: [string, RegExp, Handler][] = [
   ['DELETE', /^categories\/(\d+)$/, async ({ params }) => {
     await deleteDict(db(), 'category', num(params[0]));
     return json({ ok: true });
+  }],
+
+  // ---- Опрос при первом запуске ----
+  ['GET', /^survey$/, async () => json(await surveyStats(db()))],
+  ['PUT', /^survey$/, async ({ ctx }) => {
+    const { enabled } = await readJson(ctx.request, z.object({ enabled: z.boolean() }));
+    await setSurveyEnabled(db(), enabled);
+    return json(await surveyStats(db()));
   }],
 
   // ---- Подписчики и статистика ----

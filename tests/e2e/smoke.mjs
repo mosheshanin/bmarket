@@ -57,7 +57,7 @@ const SECRET_RE = /SECRET-|secret_owner|\+97250000000\d/;
 if (LOCAL) {
   // Чистое состояние: тестовые лоты заново, без заявок и событий.
   execSync('npx wrangler d1 execute catalog-prod --local --file seed/test-lots.sql', { stdio: 'ignore' });
-  execSync(`npx wrangler d1 execute catalog-prod --local --command "DELETE FROM leads; DELETE FROM events; DELETE FROM subscribers; DELETE FROM broadcasts; DELETE FROM edit_requests; DELETE FROM payments; DELETE FROM settings WHERE key LIKE 'seller_%' OR key LIKE 'managers_%'; UPDATE businesses SET status='deleted' WHERE lot_number > 1005;"`, { stdio: 'ignore' });
+  execSync(`npx wrangler d1 execute catalog-prod --local --command "DELETE FROM leads; DELETE FROM events; DELETE FROM subscribers; DELETE FROM broadcasts; DELETE FROM edit_requests; DELETE FROM payments; DELETE FROM visitor_profiles; DELETE FROM settings WHERE key LIKE 'seller_%' OR key LIKE 'managers_%' OR key LIKE 'survey_%'; UPDATE businesses SET status='deleted' WHERE lot_number > 1005;"`, { stdio: 'ignore' });
 }
 
 // ---------- Публичный каталог ----------
@@ -394,6 +394,39 @@ check('страница /sell', (await req('/sell')).status === 200);
 await req('/api/admin/seller/settings', { method: 'PUT', auth: ADMIN, body: { autoPublish: true } });
 for (const x of [sid, sid2]) await req(`/api/admin/businesses/${x}/hide`, { method: 'POST', auth: ADMIN });
 paypal.close();
+
+// ---------- Опрос при первом запуске ----------
+check('опрос: только из Telegram', (await req('/api/profile')).status === 401);
+const pr0 = await req('/api/profile', { auth: VISITOR });
+check('опрос выключен по умолчанию, ответов нет', pr0.status === 200 && pr0.json.surveyEnabled === false && pr0.json.profile === null, pr0.text);
+check('включить опрос — только админ', (await req('/api/admin/survey', { method: 'PUT', auth: VISITOR, body: { enabled: true } })).status === 403);
+check('админ включил опрос', (await req('/api/admin/survey', { method: 'PUT', auth: ADMIN, body: { enabled: true } })).json?.enabled === true);
+check('опрос включён для пользователя', (await req('/api/profile', { auth: VISITOR })).json?.surveyEnabled === true);
+const fac = await req('/api/survey/facets');
+check('данные опроса: справочники и лоты', fac.status === 200 && fac.json.categories.length > 5 && fac.json.cities.length > 5 && fac.json.lots.length >= 2);
+check('данные опроса без скрытых полей', !SECRET_RE.test(fac.text) && !/real_?name|exact_?address|owner|internal/i.test(fac.text));
+check('данные опроса: только опубликованные', !fac.text.includes('Салон красоты в Нетании') && !fac.text.includes('Минимаркет'));
+const cafeLot = fac.json.lots.find((l) => l.title.includes('Кофейня'));
+check('опрос: неверный бюджет → 400', (await req('/api/profile', { method: 'PUT', auth: VISITOR, body: { intent: 'buy', budget: 'b9', status: 'completed' } })).status === 400);
+const pr1 = await req('/api/profile', { method: 'PUT', auth: VISITOR, body: { intent: 'buy', categories: [cafeLot.categoryId], cities: [haifa.id], budget: 'b500', timeline: 'asap', wishes: ['payback24', 'staff'], comment: 'Ищу с террасой', status: 'completed' } });
+check('опрос покупателя сохранён', pr1.status === 200 && pr1.json.profile.completed === true && pr1.json.profile.budget === 'b500' && pr1.json.profile.timeline === null, pr1.text);
+check('уведомления только о подходящих', (await req('/api/profile/notify', { method: 'POST', auth: VISITOR, body: { on: true } })).json?.notifyMatching === true);
+check('ответы видны с другого устройства', (await req('/api/profile', { auth: VISITOR })).json?.profile?.notifyMatching === true);
+const cons = await req('/api/profile/consult', { method: 'POST', auth: VISITOR, body: { phone: '972541234567' } });
+check('запрос менеджеру', cons.status === 200 && cons.json.repeated === false, cons.text);
+check('повторный запрос не дублируется', (await req('/api/profile/consult', { method: 'POST', auth: VISITOR, body: {} })).json?.repeated === true);
+const SKIPPER = initData({ id: 777004, first_name: 'Пропустил' });
+check('опрос пропущен', (await req('/api/profile', { method: 'PUT', auth: SKIPPER, body: { intent: null, status: 'skipped' } })).json?.profile?.skipped === true);
+const sst = await req('/api/admin/survey', { auth: ADMIN });
+check('статистика опроса', sst.status === 200 && sst.json.completed.buy >= 1 && sst.json.skipped >= 1 && sst.json.consults.some((c) => c.userId === 999001 && c.phone === '+972541234567'), sst.text.slice(0, 300));
+const leadDet = await req(`/api/admin/leads/${leadTg.json.id}`, { auth: ADMIN });
+check('в заявке — запрос из опроса', /Ищет: .*Хайфа · до ₪ 500 000/.test(leadDet.json?.buyerRequest ?? ''), leadDet.json?.buyerRequest);
+const SELLER3 = initData({ id: 777003, first_name: 'Продавец3' });
+const pre = await req('/api/seller/businesses', { method: 'POST', auth: SELLER3, body: { categoryId: cafeLot.categoryId, cityId: haifa.id } });
+check('черновик продавца со сферой и городом из опроса', pre.status === 201 && pre.json.business.categoryId === cafeLot.categoryId && pre.json.business.cityId === haifa.id);
+const homeTg = await req('/');
+check('главная: место для подборки и данные карточек', homeTg.text.includes('id="for-you"') && /data-category="\d+"/.test(homeTg.text) && /data-price="\d+"/.test(homeTg.text));
+await req('/api/admin/survey', { method: 'PUT', auth: ADMIN, body: { enabled: false } });
 
 // ---------- Группа менеджеров: /setgroup ----------
 const setgroup = { update_id: 2, message: { message_id: 2, date: 1, chat: { id: -100555, type: 'supergroup', title: 'Менеджеры' }, from: { id: ADMIN_ID, is_bot: false, first_name: 'Админ' }, text: '/setgroup', entities: [{ type: 'bot_command', offset: 0, length: 9 }] } };

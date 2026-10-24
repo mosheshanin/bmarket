@@ -233,3 +233,56 @@ a {
     transition: none !important;
   }
 }
+
+/* ---------- Опрос при первом запуске ---------- */
+@layer components {
+  .survey-option {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.9rem;
+    min-height: 64px;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: var(--shadow);
+    border: 2px solid transparent;
+    text-align: left;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .survey-option[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--card));
+  }
+  .survey-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    padding: 0 0.95rem;
+    border-radius: 999px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    border: 2px solid transparent;
+    font-size: 0.95rem;
+  }
+  .survey-chip[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 10%, var(--card));
+    font-weight: 600;
+  }
+  .survey-step {
+    animation: survey-in 0.22s ease-out;
+  }
+  .survey-count {
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.2s;
+  }
+}
+@keyframes survey-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .survey-step { animation: none; }
+}

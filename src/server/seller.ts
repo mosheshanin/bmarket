@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, isNull, lt, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import type { DB } from '../db/client';
-import { businesses, businessPhotos, cities, editRequests, payments, type Business, type Payment } from '../db/schema';
+import { businesses, businessPhotos, categories, cities, editRequests, payments, type Business, type Payment } from '../db/schema';
 import { imageUrl } from './public';
 import { escapeHtml, formatIls } from '../lib/format';
 import { businessPath } from '../lib/slug';
@@ -176,17 +176,25 @@ export async function ownDetail(env: Env, db: DB, user: TgUser, id: number) {
 
 // ---------- Черновик ----------
 
-export async function createSellerDraft(env: Env, db: DB, user: TgUser) {
+export const DraftPrefill = z.object({
+  categoryId: z.number().int().positive().optional(),
+  cityId: z.number().int().positive().optional(),
+});
+
+/** prefill — сфера и город из опроса при первом запуске. */
+export async function createSellerDraft(env: Env, db: DB, user: TgUser, prefill: z.infer<typeof DraftPrefill> = {}) {
   const [open] = await db.select({ n: sql<number>`count(*)` }).from(businesses)
     .where(and(eq(businesses.sellerTgId, user.id), eq(businesses.status, 'draft'), inArray(businesses.sellerStage, ['editing', 'awaiting_payment'])));
   if ((open?.n ?? 0) >= MAX_OPEN_DRAFTS) {
     throw new HttpError(429, `У вас уже ${MAX_OPEN_DRAFTS} неотправленных черновика — завершите или удалите один из них`);
   }
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || null;
+  const [cat] = prefill.categoryId ? await db.select({ id: categories.id }).from(categories).where(eq(categories.id, prefill.categoryId)) : [];
+  const [city] = prefill.cityId ? await db.select({ id: cities.id }).from(cities).where(eq(cities.id, prefill.cityId)) : [];
   const b = await createBusiness(
     db,
     sellerCtx(user),
-    { ownerName: name, ownerTelegram: user.username ? '@' + user.username : null },
+    { ownerName: name, ownerTelegram: user.username ? '@' + user.username : null, categoryId: cat?.id ?? null, cityId: city?.id ?? null },
     { sellerTgId: user.id, sellerStage: 'editing' },
   );
   return sellerDetail(env, db, b);

@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull, isNull, lt, sql } from 'drizzle-orm';
 import type { DB } from '../db/client';
-import { businesses, businessPhotos, leads, payments } from '../db/schema';
+import { businesses, businessPhotos, leads, payments, visitorProfiles } from '../db/schema';
 import { deletePhotos } from './storage';
 
 export const LEAD_RETENTION_MS = 730 * 86_400_000; // 24 месяца
@@ -13,6 +13,11 @@ export async function anonymizeOldLeads(db: DB, now = Date.now()): Promise<numbe
     .set({ name: null, phone: null, comment: null, telegramUserId: null, telegramUsername: null, ipHash: null, anonymizedAt: now })
     .where(and(lt(leads.createdAt, now - LEAD_RETENTION_MS), isNull(leads.anonymizedAt)))
     .returning({ id: leads.id });
+  // Ответы опроса: свободный текст и телефон тоже стираются через 24 месяца без обновлений.
+  await db
+    .update(visitorProfiles)
+    .set({ comment: null, phone: null, username: null, firstName: null })
+    .where(and(lt(visitorProfiles.updatedAt, now - LEAD_RETENTION_MS), isNotNull(visitorProfiles.comment)));
   return r.length;
 }
 
