@@ -2,7 +2,7 @@
 /**
  * Заставка при каждом открытии мини-приложения (≈14 с, «Пропустить» в любой момент).
  * Стиль — современный «аврора»: живой градиент из размытых цветных пятен, стеклянные плашки,
- * округлый шрифт Nunito (как во всём приложении), мягкие подъёмы текста, полоски прогресса как в сторис.
+ * округлый шрифт Nunito (как во всём приложении), мягкие подъёмы текста.
  * Сцены: HaifaBusinessClub представляет → бренд → фото из каталога → цифры и гарантии.
  * Показывается только внутри Telegram и только на первой странице открытия (решение — в <head>, класс .splash-on),
  * не показывается в админ-панели и при «уменьшении движения».
@@ -24,6 +24,9 @@ try {
 } catch {
   /* заставка не должна ломать страницу */
 }
+// «от ₪ 70 000» — цифра владельца для заставки; если в каталоге появится лот дешевле, покажем его цену.
+const SPLASH_FROM_PRICE = 70_000;
+const fromPrice = minPrice ? Math.min(minPrice, SPLASH_FROM_PRICE) : SPLASH_FROM_PRICE;
 const offers = count ? plural(count, ['предложение', 'предложения', 'предложений']) : 'новые предложения';
 const check = 'M20 6 9 17l-5-5';
 ---
@@ -51,14 +54,14 @@ const check = 'M20 6 9 17l-5-5';
     <div class="sp-card sp-in" style="--d:7.2s">
       {photo ? <img src={photo} alt="" decoding="async" /> : <div class="sp-card-ph"></div>}
     </div>
-    <p class="sp-head sp-in" style="--d:7.9s">Кафе, салоны, магазины и&nbsp;сервис</p>
-    <p class="sp-lead sp-in" style="--d:8.5s">Цена, оборот и прибыль — открыто</p>
+    <p class="sp-head sp-in" style="--d:7.9s">Кафе, магазины, салоны и&nbsp;многое другое</p>
+    <p class="sp-lead sp-in" style="--d:8.5s">Показываем цену, оборот, прибыль и&nbsp;окупаемость</p>
   </section>
 
   <!-- 4. Цифры и гарантии -->
   <section class="sp-sc sp-s3" aria-hidden="true">
     <p class="sp-num sp-in" style="--d:10.5s"><span class="sp-grad">{count || '—'}</span></p>
-    <p class="sp-lead sp-in" style="--d:11s">{offers}{minPrice ? ` · от ₪ ${groupDigits(minPrice)}` : ''}</p>
+    <p class="sp-lead sp-in" style="--d:11s">{offers} · от ₪ {groupDigits(fromPrice)}</p>
     <ul class="sp-pills">
       {['Оценка экспертов', 'Финансовый аудит', 'Полная конфиденциальность'].map((t, i) => (
         <li class="sp-in" style={`--d:${11.6 + i * 0.35}s`}>
@@ -69,9 +72,6 @@ const check = 'M20 6 9 17l-5-5';
     </ul>
   </section>
 
-  <div class="sp-bars" aria-hidden="true">
-    <span style="--d:0s;--t:3.8s"></span><span style="--d:3.8s;--t:3.2s"></span><span style="--d:7s;--t:3.2s"></span><span style="--d:10.2s;--t:3.2s"></span>
-  </div>
   <button type="button" class="sp-skip" id="bm-splash-skip">Пропустить</button>
 </div>
 
@@ -205,11 +205,6 @@ const check = 'M20 6 9 17l-5-5';
   }
   .sp-check { display: inline-flex; height: 26px; width: 26px; align-items: center; justify-content: center; border-radius: 50%; background: #fff; color: #4f46e5; }
 
-  /* Полоски прогресса сверху, как в сторис. */
-  .sp-bars { position: absolute; z-index: 7; top: calc(10px + max(env(safe-area-inset-top), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px)); left: 14px; right: 14px; display: flex; gap: 6px; }
-  .sp-bars span { position: relative; flex: 1; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
-  .sp-bars span::after { content: ''; position: absolute; inset: 0; border-radius: 3px; background: #fff; transform: scaleX(0); transform-origin: left; animation: sp-bar var(--t) linear var(--d) both; }
-
   .sp-skip {
     position: absolute;
     left: 50%;
@@ -231,7 +226,6 @@ const check = 'M20 6 9 17l-5-5';
   @keyframes sp-in-sc { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: none; } }
   @keyframes sp-out-sc { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-16px) scale(0.98); } }
   @keyframes sp-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-  @keyframes sp-bar { to { transform: scaleX(1); } }
   @keyframes sp-zoom { from { transform: scale(1.12); } to { transform: scale(1); } }
   @keyframes sp-float1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(18%, 12%) scale(1.15); } }
   @keyframes sp-float2 { from { transform: translate(0, 0) scale(1.1); } to { transform: translate(-20%, 18%) scale(0.95); } }
