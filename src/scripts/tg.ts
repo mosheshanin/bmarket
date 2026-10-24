@@ -4,6 +4,14 @@ export function isTg(): boolean {
   return typeof document !== 'undefined' && document.documentElement.classList.contains('tg');
 }
 
+/** Дождаться конца заставки (если она сейчас показывается). */
+export function afterSplash(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!document.documentElement.classList.contains('splash-on')) return resolve();
+    window.addEventListener('bm:splash-done', () => resolve(), { once: true });
+  });
+}
+
 let waPromise: Promise<TgWebApp | null> | null = null;
 
 /** WebApp появляется после загрузки telegram-web-app.js (подключается только в Telegram). */

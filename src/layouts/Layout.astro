@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { site } from '../server/site';
+import Splash from '../components/Splash.astro';
 import manropeCyrillic from '@fontsource-variable/manrope/files/manrope-cyrillic-wght-normal.woff2?url';
 
 interface Props {
@@ -59,6 +60,16 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
           if (!tg) return;
           sessionStorage.setItem('bm_tg', '1');
           document.documentElement.classList.add('tg');
+          // Заставка — один раз на открытие мини-приложения (сессия Telegram WebView),
+          // не в админке, не при «уменьшении движения». Если сейчас будет переход по прямой
+          // ссылке (?startapp=lot-…), заставку покажет страница, на которую ведёт ссылка.
+          var url = location.search + location.hash;
+          var willRedirect = /tgWebAppStartParam=(lot|lead)-\d+/.test(url) && !sessionStorage.getItem('bm_sp');
+          var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (!willRedirect && !calm && !sessionStorage.getItem('bm_splash') && location.pathname.indexOf('/admin') !== 0) {
+            sessionStorage.setItem('bm_splash', '1');
+            document.documentElement.classList.add('splash-on');
+          }
           var s = document.createElement('script');
           s.src = 'https://telegram.org/js/telegram-web-app.js?59';
           s.async = false;
@@ -73,6 +84,7 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     }
   </head>
   <body {...dataAttrs}>
+    {!bare && <Splash />}
     {
       !bare && (
         <header class="web-only sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur">

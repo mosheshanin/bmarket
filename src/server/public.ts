@@ -204,6 +204,15 @@ export async function getDisplayRate(db: DB, now = Date.now()): Promise<DisplayR
   return { date: r.date, usdIls: r.usdIls, eurIls: r.eurIls };
 }
 
+/** Сводка для заставки: сколько опубликовано и минимальная цена. */
+export async function catalogSummary(db: DB): Promise<{ count: number; minPrice: number | null }> {
+  const [r] = await db
+    .select({ count: sql<number>`count(*)`, minPrice: sql<number | null>`min(${businesses.priceIls})` })
+    .from(businesses)
+    .where(eq(businesses.status, 'published'));
+  return { count: r?.count ?? 0, minPrice: r?.minPrice ?? null };
+}
+
 export async function sitemapEntries(db: DB) {
   const lots = await db
     .select({ lotNumber: businesses.lotNumber, slug: businesses.slug, updatedAt: businesses.updatedAt })

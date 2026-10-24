@@ -5,7 +5,7 @@
  */
 import {
   captureUtm, fetchSubscription, getWebApp, isTg, requestSubscribe, requestUnsubscribe,
-  storageGet, storageSet, tgHeaders, track,
+  storageGet, storageSet, tgHeaders, track, afterSplash,
 } from './tg';
 
 const body = document.body;
@@ -79,11 +79,25 @@ async function initTelegram() {
   if (!wa) return;
   wa.ready();
   wa.expand();
-  try {
-    wa.setHeaderColor('secondary_bg_color');
-    wa.setBackgroundColor('secondary_bg_color');
-  } catch {
-    /* старые клиенты */
+  // Во время заставки шапка Telegram — в цвет заставки, потом — в цвет темы.
+  const themeColors = () => {
+    try {
+      wa.setHeaderColor('secondary_bg_color');
+      wa.setBackgroundColor('secondary_bg_color');
+    } catch {
+      /* старые клиенты */
+    }
+  };
+  if (document.documentElement.classList.contains('splash-on')) {
+    try {
+      wa.setHeaderColor('#0B1630');
+      wa.setBackgroundColor('#0B1630');
+    } catch {
+      themeColors();
+    }
+    afterSplash().then(themeColors);
+  } else {
+    themeColors();
   }
 
   // Прямые ссылки: ?startapp=lot-1001 → карточка; lead-57 → заявка в админке.
@@ -111,8 +125,9 @@ async function initTelegram() {
   // Карточка: «Узнать подробнее» — системная нижняя кнопка.
   if (page === 'card' && body.dataset.requestPath) {
     const go = () => (location.href = body.dataset.requestPath!);
-    wa.MainButton.setText('Узнать подробнее').show().enable();
+    wa.MainButton.setText('Узнать подробнее').enable();
     wa.MainButton.onClick(go);
+    afterSplash().then(() => wa.MainButton.show());
     window.addEventListener('pagehide', () => wa.MainButton.offClick(go));
   } else if (page !== 'request' && page !== 'admin') {
     wa.MainButton.hide();

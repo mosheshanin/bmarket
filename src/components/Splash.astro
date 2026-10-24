@@ -1,0 +1,130 @@
+---
+/**
+ * Заставка «Сторис» (вариант A): 5 сцен ≈ 6,7 с при каждом открытии мини-приложения.
+ * Показывается только внутри Telegram и только на первой странице открытия (sessionStorage),
+ * не показывается в админ-панели и при «уменьшении движения» в системе.
+ * Решение о показе принимает встроенный скрипт в <head> (класс .splash-on) — до отрисовки страницы.
+ */
+import { catalogSummary } from '../server/public';
+import { db, site } from '../server/site';
+import { groupDigits } from '../lib/format';
+
+const s = site();
+let priceLine = 'Цена, оборот, прибыль';
+try {
+  const { minPrice } = await catalogSummary(db());
+  if (minPrice) priceLine = `от ₪ ${groupDigits(minPrice)}`;
+} catch {
+  /* заставка не должна ломать страницу */
+}
+---
+
+<div id="bm-splash" class="bm-splash">
+  <div class="sp-sc sp-s1" aria-hidden="true">
+    <div class="sp-blob" style="width:300px;height:300px;right:-90px;bottom:-80px;background:rgba(255,255,255,.35);animation-delay:.25s"></div>
+    <div class="sp-blob" style="width:70px;height:70px;right:60px;top:22%;background:#0B1630;animation-delay:.5s"></div>
+    <p class="sp-big"><span class="sp-ln"><span style="animation-delay:.35s">Готовый</span></span><span class="sp-ln"><span style="animation-delay:.45s">бизнес</span></span></p>
+  </div>
+  <div class="sp-sc sp-s2" aria-hidden="true">
+    <div class="sp-ring" style="width:240px;height:240px;right:-60px;top:16%"></div>
+    <div class="sp-dot" style="width:46px;height:46px;right:74px;top:calc(16% + 97px);animation-delay:1.75s"></div>
+    <p class="sp-big" style="color:#fff"><span class="sp-ln"><span style="animation-delay:1.55s">на продажу</span></span><span class="sp-ln"><span style="animation-delay:1.65s;color:#F5B83D">в Израиле</span></span></p>
+  </div>
+  <div class="sp-sc sp-s3" aria-hidden="true">
+    <div class="sp-bar" style="top:16%;width:240px;background:rgba(11,22,48,.12);animation-delay:2.7s"></div>
+    <div class="sp-bar" style="bottom:18%;width:300px;background:rgba(255,255,255,.55);animation-delay:2.85s"></div>
+    <p class="sp-mid"><span class="sp-ln"><span style="animation-delay:2.75s">Кафе</span></span><span class="sp-ln"><span style="animation-delay:2.85s">Салоны</span></span><span class="sp-ln"><span style="animation-delay:2.95s">Магазины</span></span><span class="sp-ln"><span style="animation-delay:3.05s">Производство</span></span></p>
+  </div>
+  <div class="sp-sc sp-s4" aria-hidden="true">
+    <div class="sp-stripe" style="top:9%;background:rgba(255,255,255,.18);animation-delay:3.9s"></div>
+    <div class="sp-stripe" style="bottom:7%;background:rgba(11,22,48,.10);animation-delay:4.05s"></div>
+    <p class="sp-big"><span class="sp-ln"><span style="animation-delay:4s">{priceLine}</span></span></p>
+    <p class="sp-small"><span class="sp-ln"><span style="animation-delay:4.2s">Цена, оборот, прибыль</span></span><span class="sp-ln"><span style="animation-delay:4.3s">и окупаемость — сразу</span></span></p>
+  </div>
+  <div class="sp-sc sp-s5" aria-hidden="true">
+    <div class="sp-ring" style="width:200px;height:200px;right:-50px;top:38%"></div>
+    <div style="position:relative;z-index:2;align-self:flex-start">
+      <p class="sp-big" style="color:#fff"><span class="sp-ln"><span style="animation-delay:5.25s">{s.name}</span></span></p>
+      <div class="sp-ul"></div>
+    </div>
+    <p class="sp-small" style="color:rgba(255,255,255,.78)"><span class="sp-ln"><span style="animation-delay:5.5s">Заявка в один клик</span></span></p>
+    <div class="sp-dot" style="width:40px;height:40px;right:72px;top:46%;animation-delay:5.65s"></div>
+  </div>
+  <div class="sp-prog" aria-hidden="true"></div>
+  <button type="button" class="sp-skip" id="bm-splash-skip">Пропустить</button>
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.documentElement;
+    var el = document.getElementById('bm-splash');
+    if (!el) return;
+    if (!root.classList.contains('splash-on')) {
+      el.remove();
+      return;
+    }
+    var finished = false;
+    function done() {
+      if (finished) return;
+      finished = true;
+      root.classList.remove('splash-on');
+      el.remove();
+      window.__bmSplashDone = true;
+      window.dispatchEvent(new Event('bm:splash-done'));
+    }
+    window.__bmSplashDone = false;
+    document.getElementById('bm-splash-skip').addEventListener('click', done);
+    // Конец «занавеса» (6,15 с + 0,6 с) — с запасом.
+    setTimeout(done, 6850);
+  })();
+</script>
+
+<style is:global>
+  .bm-splash { display: none; }
+  .splash-on .bm-splash {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    overflow: hidden;
+    background: #0b1630;
+    font-family: var(--font-sans);
+    animation: sp-curtain 0.6s cubic-bezier(0.7, 0, 0.2, 1) 6.15s both;
+  }
+  .splash-on body { overflow: hidden; }
+  .sp-sc { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 28px; overflow: hidden; color: #0b1630; }
+  .sp-s1 { background: #f5b83d; animation: sp-wipe-up 0.6s cubic-bezier(0.7, 0, 0.2, 1) 0.05s both; }
+  .sp-s2 { background: #0b1630; animation: sp-circ 0.75s cubic-bezier(0.7, 0, 0.2, 1) 1.25s both; }
+  .sp-s3 { background: #8fd3ff; animation: sp-from-right 0.6s cubic-bezier(0.7, 0, 0.2, 1) 2.5s both; }
+  .sp-s4 { background: #ff7a45; animation: sp-from-top 0.6s cubic-bezier(0.7, 0, 0.2, 1) 3.75s both; }
+  .sp-s5 { background: #0b1630; animation: sp-from-left 0.6s cubic-bezier(0.7, 0, 0.2, 1) 5s both; }
+  .sp-big { position: relative; z-index: 2; margin: 0; font-weight: 800; font-size: clamp(40px, 13.5vw, 64px); line-height: 1; letter-spacing: -0.035em; }
+  .sp-mid { position: relative; z-index: 2; margin: 0; font-weight: 800; font-size: clamp(30px, 9.8vw, 46px); line-height: 1.08; letter-spacing: -0.03em; }
+  .sp-small { position: relative; z-index: 2; margin: 14px 0 0; font-weight: 600; font-size: 17px; line-height: 1.35; }
+  .sp-ln { display: block; overflow: hidden; padding-bottom: 4px; }
+  .sp-ln > span { display: inline-block; animation: sp-rise 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .sp-blob { position: absolute; border-radius: 50%; animation: sp-grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .sp-ring { position: absolute; border-radius: 50%; border: 2px dashed rgba(255, 255, 255, 0.35); animation: sp-spin 14s linear infinite; }
+  .sp-dot { position: absolute; border-radius: 50%; background: #f5b83d; animation: sp-grow 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+  .sp-bar { position: absolute; left: -20px; height: 34px; border-radius: 17px; animation: sp-slide 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .sp-stripe { position: absolute; left: -60px; right: -60px; height: 120px; animation: sp-slide 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .sp-ul { height: 5px; width: 100%; background: #f5b83d; border-radius: 3px; transform-origin: left; animation: sp-draw 0.5s cubic-bezier(0.7, 0, 0.2, 1) 5.55s both; }
+  .sp-prog { position: absolute; left: 0; bottom: 0; height: 4px; background: #fff; z-index: 7; animation: sp-prog 6.15s linear both; }
+  .sp-skip {
+    position: absolute; right: 16px; bottom: max(22px, env(safe-area-inset-bottom)); z-index: 8;
+    min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px;
+    background: rgba(11, 22, 48, 0.78); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.55); color: #fff; font: 600 14px var(--font-sans); cursor: pointer;
+  }
+  @keyframes sp-wipe-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes sp-from-top { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes sp-from-right { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes sp-from-left { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes sp-circ { from { clip-path: circle(0% at 82% 76%); } to { clip-path: circle(150% at 82% 76%); } }
+  @keyframes sp-rise { from { transform: translateY(115%); } to { transform: translateY(0); } }
+  @keyframes sp-grow { from { transform: scale(0); } to { transform: scale(1); } }
+  @keyframes sp-spin { to { transform: rotate(360deg); } }
+  @keyframes sp-slide { from { transform: translateX(-110%) rotate(-14deg); } to { transform: translateX(0) rotate(-14deg); } }
+  @keyframes sp-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  @keyframes sp-prog { from { width: 0; } to { width: 100%; } }
+  @keyframes sp-curtain { to { transform: translateY(-100%); } }
+</style>

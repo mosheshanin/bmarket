@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getUtm, getWebApp, initData, isTg, fetchSubscription, requestSubscribe, visitorId, track } from '../scripts/tg';
+import { afterSplash, getUtm, getWebApp, initData, isTg, fetchSubscription, requestSubscribe, visitorId, track } from '../scripts/tg';
 
 interface Props {
   businessId: number;
@@ -46,7 +46,8 @@ export default function LeadForm({ businessId, lotNumber, title, priceStr, cardP
       const u = wa.initDataUnsafe.user;
       if (u) setName((n) => n || [u.first_name, u.last_name].filter(Boolean).join(' ').slice(0, 60));
       setCanShareContact(wa.isVersionAtLeast('6.9'));
-      wa.MainButton.setText('Отправить заявку').show().enable();
+      wa.MainButton.setText('Отправить заявку').enable();
+      afterSplash().then(() => wa.MainButton.show());
       const handler = () => submitRef.current();
       wa.MainButton.onClick(handler);
     });
