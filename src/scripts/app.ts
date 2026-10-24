@@ -90,8 +90,8 @@ async function initTelegram() {
   };
   if (document.documentElement.classList.contains('splash-on')) {
     try {
-      wa.setHeaderColor('#0A0B0E');
-      wa.setBackgroundColor('#0A0B0E');
+      wa.setHeaderColor('#0C1024');
+      wa.setBackgroundColor('#0C1024');
     } catch {
       themeColors();
     }

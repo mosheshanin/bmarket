@@ -3,6 +3,10 @@ import '../styles/global.css';
 import { site } from '../server/site';
 import Splash from '../components/Splash.astro';
 import manropeCyrillic from '@fontsource-variable/manrope/files/manrope-cyrillic-wght-normal.woff2?url';
+// Шрифт заставки (округлый Nunito) — подгружается заранее только когда заставка действительно будет показана.
+import nunitoCyrillic from '@fontsource-variable/nunito/files/nunito-cyrillic-wght-normal.woff2?url';
+import nunitoLatin from '@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2?url';
+const splashFonts = [nunitoCyrillic, nunitoLatin];
 
 interface Props {
   title: string;
@@ -53,7 +57,7 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     <link rel="preload" href={manropeCyrillic} as="font" type="font/woff2" crossorigin />
     {ldJson.map((j) => <script type="application/ld+json" set:html={j} />)}
     <!-- Внутри Telegram: пометить документ и подключить SDK мини-приложения (в браузере не грузится). -->
-    <script is:inline>
+    <script is:inline define:vars={{ splashFonts }}>
       (function () {
         try {
           var tg = /tgWebApp/.test(location.hash + location.search) || sessionStorage.getItem('bm_tg') === '1';
@@ -69,6 +73,15 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
           if (!willRedirect && !calm && !sessionStorage.getItem('bm_splash') && location.pathname.indexOf('/admin') !== 0) {
             sessionStorage.setItem('bm_splash', '1');
             document.documentElement.classList.add('splash-on');
+            splashFonts.forEach(function (href) {
+              var l = document.createElement('link');
+              l.rel = 'preload';
+              l.as = 'font';
+              l.type = 'font/woff2';
+              l.crossOrigin = 'anonymous';
+              l.href = href;
+              document.head.appendChild(l);
+            });
           }
           var s = document.createElement('script');
           s.src = 'https://telegram.org/js/telegram-web-app.js?59';
