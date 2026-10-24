@@ -229,6 +229,8 @@ export function isNew(publishedAt: number | null, now = Date.now()): boolean {
 }
 
 export function imageUrl(env: Pick<Env, 'PUBLIC_IMAGES_URL'>, key: string): string {
+  // Фото демо-объявлений лежат в статике приложения (public/demo/…), а не в хранилище.
+  if (key.startsWith('demo/')) return `/${key}`;
   const base = (env.PUBLIC_IMAGES_URL || '').replace(/\/$/, '');
   return base ? `${base}/${key}` : `/img/${key}`;
 }

@@ -137,3 +137,12 @@ describe('секрет приложения', () => {
     expect(await appSecret({ TELEGRAM_BOT_TOKEN: '1:A', TELEGRAM_WEBHOOK_SECRET: 'x' } as Env)).toBe('x');
   });
 });
+
+describe('адреса фото', () => {
+  it('демо-фото — из статики, остальные — через /img или PUBLIC_IMAGES_URL', async () => {
+    const { imageUrl } = await import('../src/server/public');
+    expect(imageUrl({ PUBLIC_IMAGES_URL: '' }, 'demo/lots/1001-0-600.webp')).toBe('/demo/lots/1001-0-600.webp');
+    expect(imageUrl({ PUBLIC_IMAGES_URL: '' }, 'lots/1001/a-600.webp')).toBe('/img/lots/1001/a-600.webp');
+    expect(imageUrl({ PUBLIC_IMAGES_URL: 'https://img.x.com/' }, 'lots/1/a.webp')).toBe('https://img.x.com/lots/1/a.webp');
+  });
+});

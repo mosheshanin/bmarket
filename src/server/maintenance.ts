@@ -24,7 +24,7 @@ export async function purgeDeletedPhotos(env: Env, db: DB, now = Date.now()): Pr
     .where(and(isNotNull(businessPhotos.deletedAt), lt(businessPhotos.deletedAt, now - PHOTO_PURGE_MS)))
     .limit(100); // KV: удаление = запись, лимит 1000 в день
   if (!rows.length) return 0;
-  await deletePhotos(env, rows.flatMap((r) => [r.k1, r.k2]));
+  await deletePhotos(env, rows.flatMap((r) => [r.k1, r.k2]).filter((k) => !k.startsWith('demo/')));
   await db.delete(businessPhotos).where(inArray(businessPhotos.id, rows.map((r) => r.id)));
   return rows.length;
 }

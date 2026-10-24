@@ -45,7 +45,9 @@
     "db:seed:local": "wrangler d1 execute catalog-prod --local --file seed/test-lots.sql",
     "db:migrate:prod": "wrangler d1 migrations apply catalog-prod --remote",
     "deploy": "astro build && wrangler deploy",
-    "bot:setup": "node scripts/setup-bot.mjs"
+    "bot:setup": "node scripts/setup-bot.mjs",
+    "demo:sql": "node --experimental-strip-types --no-warnings scripts/demo-lots.mjs",
+    "demo:photos": "NODE_PATH=$(npm root -g) node scripts/make-demo-photos.cjs"
   },
   "engines": {
     "node": ">=20"

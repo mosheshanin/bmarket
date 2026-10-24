@@ -1,7 +1,8 @@
 # BMarket — правила для ИИ-ассистента
 
-Каталог израильских бизнесов на продажу: Telegram Mini App + сайт. **Единственный источник правды — `docs/SPEC.md`.**
-Отступления от ТЗ фиксируются в `docs/DECISIONS.md`.
+Каталог израильских бизнесов на продажу: Telegram Mini App + сайт. **ТЗ — `docs/SPEC.md`** (источник правды).
+Текущее состояние, адреса, ID и список дел — **`docs/STATUS.md`** (читать первым). Отступления от ТЗ — `docs/DECISIONS.md`.
+Общение с владельцем — на русском.
 
 ## Главное правило безопасности
 Скрытые поля лота (`real_name`, `exact_address`, `owner_*`, `internal_notes`, служебные) **никогда** не попадают
@@ -12,38 +13,49 @@
 
 ## Стек
 Astro 7 (SSR) + `@astrojs/cloudflare` 14 → Cloudflare Workers (Free). React-острова (админка, форма заявки, галерея).
-Tailwind 4 + цвета темы Telegram. D1 + Drizzle ORM. R2 для фото. grammY для бота. Zod для входных данных.
+Tailwind 4 + цвета темы Telegram, шрифт Manrope (`@fontsource-variable/manrope`). D1 + Drizzle ORM.
+Фото — Workers KV (`PHOTOS_KV`), R2 (`PHOTOS`) подключается привязкой без правки кода (`src/server/storage.ts`).
+grammY для бота. Zod для входных данных.
 
 ## Структура
 ```
-src/worker.ts            точка входа Worker: кеш страниц + cron (рассылки, курсы, обслуживание)
+src/worker.ts            точка входа Worker: кеш страниц + cron (самонастройка бота, рассылки, курсы, обслуживание)
 src/pages/               страницы и API (api/admin/[...path].ts — роутер админ-API)
-src/server/              серверная логика (public, leads, broadcast, rates, cache, auth, admin/*)
+src/server/              серверная логика (public, leads, broadcast, rates, cache, auth, storage, secrets, bot-setup, admin/*)
 src/bot/bot.ts           команды и кнопки бота
 src/admin/               React-админка (открывается только внутри Telegram)
-src/components/          Astro/React-компоненты публичной части
+src/components/          Astro/React-компоненты публичной части (Splash.astro — заставка при открытии)
 src/lib/                 чистые функции: форматы, slug, markdown, initData, crypto
 src/db/schema.ts         схема БД; миграции — migrations/ (drizzle-kit)
-seed/                    тестовые лоты и фото (только локально/staging)
-tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозной на Worker)
+public/demo/lots/        иллюстрации демо-объявлений (ключи фото `demo/...` отдаются из статики)
+seed/                    test-lots.sql + photos — локальные тесты; demo-lots.sql — 10 демо-лотов для production
+scripts/                 генераторы демо-фото и SQL, проверка размера, setup-bot (запасной вариант)
+tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозной на Worker), screens.mjs (скриншоты)
 ```
 
 ## Команды
 ```
-npm run dev                 # разработка (workerd через Vite)
-npm run build && npm run size
-npm test                    # юнит-тесты
+cp .dev.vars.example .dev.vars
 npm run db:migrate:local && npm run db:seed:local && bash scripts/seed-photos.sh --local
-npx astro preview --port 8787 --host 127.0.0.1   # затем:
-npm run test:e2e            # 96 сквозных проверок
+npm run build && npx astro preview --port 8787 --host 127.0.0.1
+npm test                    # юнит-тесты (28)
+npm run test:e2e            # 96 сквозных проверок на локальном Worker
 npx astro check             # типы
+npm run size                # размер Worker < 3 МБ gzip (сейчас ≈0,42 МБ)
 npm run db:generate         # после изменения src/db/schema.ts
+NODE_PATH=$(npm root -g) node tests/e2e/screens.mjs   # скриншоты (Playwright из глобальной установки)
 ```
 
+## Деплой
+`git push origin main` → Cloudflare Workers Builds сам собирает и выкладывает (≈1 мин). Staging нет.
+Перед push: `npm test`, `npx astro check`, сборка, e2e. Миграции D1 в production — вручную (см. `docs/STATUS.md`).
+Из облачной среды ассистента нет доступа к api.telegram.org / api.cloudflare.com / *.workers.dev — не пытаться `wrangler deploy`.
+
 ## Правила
-- Секреты — только `.dev.vars` (в .gitignore) и `wrangler secret put`. Никогда в коде и в чате.
+- Секреты — только `.dev.vars` (в .gitignore) и панель Cloudflare / `wrangler secret put`. Никогда в коде, коммитах и чате.
+- Без `TELEGRAM_BOT_TOKEN` сайт обязан работать (см. `src/server/secrets.ts`).
 - После изменения `wrangler.jsonc` — `npm run types`.
-- Размер Worker < 3 МБ gzip (`npm run size`), CPU 10 мс: не подключать тяжёлые библиотеки на сервере.
+- CPU 10 мс на запрос: не подключать тяжёлые библиотеки на сервере.
 - Тексты интерфейса — по-русски; цены «₪ 450 000», даты «24.10.2026», время Asia/Jerusalem (`src/lib/format.ts`).
-- Публичные страницы кешируются 10 минут; после изменений в админке вызывается `purgePaths`.
-- Этап = коммит → проверка на staging → слияние в `main`.
+- Публичные страницы кешируются 10 минут (ключ включает версию Worker); после изменений в админке вызывается `purgePaths`.
+- После работы — обновить `docs/STATUS.md`; отступления от ТЗ — в `docs/DECISIONS.md`.
