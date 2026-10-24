@@ -1,6 +1,7 @@
 ---
 /**
- * Заставка при каждом открытии мини-приложения (≈14 с, «Пропустить» в любой момент).
+ * Заставка при каждом открытии мини-приложения (≈21,5 с, «Пропустить» в любой момент).
+ * Уход — «раскрытие»: в центре появляется круглый вырез и растёт, пока не откроет всё приложение.
  * Стиль — современный «аврора»: живой градиент из размытых цветных пятен, стеклянные плашки,
  * округлый шрифт Nunito (как во всём приложении), мягкие подъёмы текста.
  * Сцены: HaifaBusinessClub представляет → бренд → фото из каталога → цифры и гарантии.
@@ -32,39 +33,40 @@ const check = 'M20 6 9 17l-5-5';
 ---
 
 <div id="bm-splash" class="bm-splash">
+  <div class="sp-ring" aria-hidden="true"></div>
   <div class="sp-aurora" aria-hidden="true">
     <i class="a1"></i><i class="a2"></i><i class="a3"></i><i class="a4"></i>
   </div>
 
   <!-- 1. HaifaBusinessClub представляет -->
   <section class="sp-sc sp-s0" aria-hidden="true">
-    <div class="sp-tile sp-in" style="--d:.3s">HBC</div>
-    <p class="sp-club sp-in" style="--d:.8s">HaifaBusinessClub</p>
-    <p class="sp-sub sp-in" style="--d:1.6s">представляет</p>
+    <div class="sp-tile sp-in" style="--d:0.45s">HBC</div>
+    <p class="sp-club sp-in" style="--d:1.2s">HaifaBusinessClub</p>
+    <p class="sp-sub sp-in" style="--d:2.4s">представляет</p>
   </section>
 
   <!-- 2. Бренд -->
   <section class="sp-sc sp-s1" aria-hidden="true">
-    <p class="sp-brand sp-in" style="--d:4.1s">{s.name}</p>
-    <p class="sp-lead sp-in" style="--d:4.8s">Покупка и продажа бизнеса <span class="sp-grad">в&nbsp;Израиле</span></p>
+    <p class="sp-brand sp-in" style="--d:6.15s">{s.name}</p>
+    <p class="sp-lead sp-in" style="--d:7.2s">Покупка и продажа бизнеса <span class="sp-grad">в&nbsp;Израиле</span></p>
   </section>
 
   <!-- 3. Фото из каталога -->
   <section class="sp-sc sp-s2" aria-hidden="true">
-    <div class="sp-card sp-in" style="--d:7.2s">
+    <div class="sp-card sp-in" style="--d:10.8s">
       {photo ? <img src={photo} alt="" decoding="async" /> : <div class="sp-card-ph"></div>}
     </div>
-    <p class="sp-head sp-in" style="--d:7.9s">Кафе, магазины, салоны и&nbsp;многое другое</p>
-    <p class="sp-lead sp-in" style="--d:8.5s">Показываем цену, оборот, прибыль и&nbsp;окупаемость</p>
+    <p class="sp-head sp-in" style="--d:11.85s">Кафе, магазины, салоны и&nbsp;многое другое</p>
+    <p class="sp-lead sp-in" style="--d:12.75s">Показываем цену, оборот, прибыль и&nbsp;окупаемость</p>
   </section>
 
   <!-- 4. Цифры и гарантии -->
   <section class="sp-sc sp-s3" aria-hidden="true">
-    <p class="sp-num sp-in" style="--d:10.5s"><span class="sp-grad">{count || '—'}</span></p>
-    <p class="sp-lead sp-in" style="--d:11s">{offers} · от ₪ {groupDigits(fromPrice)}</p>
+    <p class="sp-num sp-in" style="--d:15.75s"><span class="sp-grad">{count || '—'}</span></p>
+    <p class="sp-lead sp-in" style="--d:16.5s">{offers} · от ₪ {groupDigits(fromPrice)}</p>
     <ul class="sp-pills">
       {['Оценка экспертов', 'Финансовый аудит', 'Полная конфиденциальность'].map((t, i) => (
-        <li class="sp-in" style={`--d:${11.6 + i * 0.35}s`}>
+        <li class="sp-in" style={`--d:${(17.4 + i * 0.5).toFixed(2)}s`}>
           <span class="sp-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={check} /></svg></span>
           {t}
         </li>
@@ -85,6 +87,7 @@ const check = 'M20 6 9 17l-5-5';
       return;
     }
     var finished = false;
+    var revealing = false;
     function done() {
       if (finished) return;
       finished = true;
@@ -93,10 +96,20 @@ const check = 'M20 6 9 17l-5-5';
       window.__bmSplashDone = true;
       window.dispatchEvent(new Event('bm:splash-done'));
     }
+    // Раскрытие круглым вырезом из центра; без поддержки CSS @property — плавное исчезновение.
+    function reveal(ms) {
+      if (revealing) return;
+      revealing = true;
+      el.style.setProperty('--sp-reveal-t', ms + 'ms');
+      if (!(window.CSS && CSS.registerProperty)) el.classList.add('sp-fade');
+      el.classList.add('sp-reveal');
+      window.dispatchEvent(new Event('bm:splash-reveal'));
+      setTimeout(done, ms + 50);
+    }
     window.__bmSplashDone = false;
-    document.getElementById('bm-splash-skip').addEventListener('click', done);
-    // Уход заставки начинается в 13,4 с и длится 0,9 с.
-    setTimeout(done, 14350);
+    document.getElementById('bm-splash-skip').addEventListener('click', function () { reveal(800); });
+    // Раскрытие начинается в 20,1 с и длится 1,4 с.
+    setTimeout(function () { reveal(1400); }, 20100);
   })();
 </script>
 
@@ -116,7 +129,6 @@ const check = 'M20 6 9 17l-5-5';
     background: linear-gradient(165deg, #312e81 0%, #1e1b4b 45%, #0f3d4c 100%);
     color: var(--sp-ink);
     font-family: 'Nunito Variable', 'Nunito', var(--font-sans);
-    animation: sp-exit 0.9s ease-in-out 13.4s both;
   }
 
   /* Живой градиент: крупные размытые пятна медленно плывут. */
@@ -137,12 +149,12 @@ const check = 'M20 6 9 17l-5-5';
     padding: 0 28px;
     opacity: 0;
   }
-  .sp-s0 { align-items: center; text-align: center; animation: sp-in-sc 1.2s var(--sp-ease) 0s both, sp-out-sc 0.9s ease 3.5s forwards; }
-  .sp-s1 { animation: sp-in-sc 1.2s var(--sp-ease) 3.7s both, sp-out-sc 0.9s ease 6.7s forwards; }
-  .sp-s2 { animation: sp-in-sc 1.2s var(--sp-ease) 6.9s both, sp-out-sc 0.9s ease 9.9s forwards; }
-  .sp-s3 { animation: sp-in-sc 1.2s var(--sp-ease) 10.1s both; }
+  .sp-s0 { align-items: center; text-align: center; animation: sp-in-sc 1.8s var(--sp-ease) 0s both, sp-out-sc 1.35s ease 5.25s forwards; }
+  .sp-s1 { animation: sp-in-sc 1.8s var(--sp-ease) 5.55s both, sp-out-sc 1.35s ease 10.05s forwards; }
+  .sp-s2 { animation: sp-in-sc 1.8s var(--sp-ease) 10.35s both, sp-out-sc 1.35s ease 14.85s forwards; }
+  .sp-s3 { animation: sp-in-sc 1.8s var(--sp-ease) 15.15s both; }
 
-  .sp-in { opacity: 0; animation: sp-rise 1.4s var(--sp-ease) var(--d, 0s) both; }
+  .sp-in { opacity: 0; animation: sp-rise 2.1s var(--sp-ease) var(--d, 0s) both; }
 
   .sp-grad {
     background: linear-gradient(90deg, #67e8f9, #c4b5fd 50%, #f0abfc);
@@ -185,7 +197,7 @@ const check = 'M20 6 9 17l-5-5';
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 24px 60px rgba(12, 16, 36, 0.45);
   }
-  .sp-card img, .sp-card-ph { display: block; height: 100%; width: 100%; object-fit: cover; animation: sp-zoom 4s ease-out 7s both; }
+  .sp-card img, .sp-card-ph { display: block; height: 100%; width: 100%; object-fit: cover; animation: sp-zoom 6s ease-out 10.5s both; }
   .sp-card-ph { background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05)); }
 
   .sp-num { margin: 0; font-size: clamp(110px, 36vw, 170px); font-weight: 900; letter-spacing: -0.05em; line-height: 0.85; font-variant-numeric: tabular-nums; }
@@ -222,6 +234,34 @@ const check = 'M20 6 9 17l-5-5';
     font: 700 15px 'Nunito Variable', 'Nunito', var(--font-sans);
     cursor: pointer;
   }
+
+  /* Раскрытие: прозрачный круг в центре растёт до углов экрана (72vmax — больше половины диагонали любого экрана). */
+  @property --sp-hole { syntax: '<length>'; inherits: true; initial-value: 0px; }
+  .splash-on .bm-splash.sp-reveal {
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--sp-hole), #000 calc(var(--sp-hole) + 1.5px));
+    mask-image: radial-gradient(circle at 50% 50%, transparent var(--sp-hole), #000 calc(var(--sp-hole) + 1.5px));
+    animation: sp-hole var(--sp-reveal-t, 1.4s) cubic-bezier(0.7, 0, 0.25, 1) forwards;
+    pointer-events: none;
+  }
+  /* Светящаяся кромка выреза. */
+  .sp-ring { display: none; }
+  .sp-reveal .sp-ring {
+    display: block;
+    position: absolute;
+    z-index: 9;
+    left: 50%;
+    top: 50%;
+    width: calc(var(--sp-hole) * 2);
+    height: calc(var(--sp-hole) * 2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.6), 0 0 28px 8px rgba(167, 139, 250, 0.5);
+    pointer-events: none;
+  }
+  .sp-reveal .sp-skip { opacity: 0; transition: opacity 0.3s; }
+  .splash-on .bm-splash.sp-reveal.sp-fade { -webkit-mask-image: none; mask-image: none; animation: sp-exit var(--sp-reveal-t, 1.4s) ease-in-out forwards; }
+  .sp-fade .sp-ring { display: none; }
+  @keyframes sp-hole { from { --sp-hole: 0px; } to { --sp-hole: 72vmax; } }
 
   @keyframes sp-in-sc { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: none; } }
   @keyframes sp-out-sc { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-16px) scale(0.98); } }

@@ -104,7 +104,11 @@ async function initTelegram() {
     } catch {
       themeColors();
     }
-    afterSplash().then(() => {
+    // Возвращаем обычный режим в начале «раскрытия» — под растущим вырезом уже итоговая раскладка приложения.
+    let restored = false;
+    const restore = () => {
+      if (restored) return;
+      restored = true;
       try {
         if (fullscreen && wa.isFullscreen) wa.exitFullscreen?.();
         if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('bottom_bar_bg_color');
@@ -112,7 +116,9 @@ async function initTelegram() {
         /* старые клиенты */
       }
       themeColors();
-    });
+    };
+    window.addEventListener('bm:splash-reveal', restore, { once: true });
+    afterSplash().then(restore);
   } else {
     themeColors();
   }
