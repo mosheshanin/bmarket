@@ -89,13 +89,30 @@ async function initTelegram() {
     }
   };
   if (document.documentElement.classList.contains('splash-on')) {
+    // Заставка — во весь экран: на телефонах полноэкранный режим Telegram (Bot API 8.0+),
+    // иначе шапка и нижняя панель Telegram окрашиваются в цвета градиента заставки.
+    const mobile = wa.platform === 'ios' || wa.platform === 'android';
+    let fullscreen = false;
     try {
-      wa.setHeaderColor('#0C1024');
-      wa.setBackgroundColor('#0C1024');
+      wa.setHeaderColor('#312E81');
+      wa.setBackgroundColor('#1E1B4B');
+      if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('#0F3D4C');
+      if (mobile && wa.isVersionAtLeast('8.0') && wa.requestFullscreen && !wa.isFullscreen) {
+        wa.requestFullscreen();
+        fullscreen = true;
+      }
     } catch {
       themeColors();
     }
-    afterSplash().then(themeColors);
+    afterSplash().then(() => {
+      try {
+        if (fullscreen && wa.isFullscreen) wa.exitFullscreen?.();
+        if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('bottom_bar_bg_color');
+      } catch {
+        /* старые клиенты */
+      }
+      themeColors();
+    });
   } else {
     themeColors();
   }

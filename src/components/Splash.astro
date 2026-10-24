@@ -43,7 +43,7 @@ const check = 'M20 6 9 17l-5-5';
   <!-- 2. Бренд -->
   <section class="sp-sc sp-s1" aria-hidden="true">
     <p class="sp-brand sp-in" style="--d:4.1s">{s.name}</p>
-    <p class="sp-lead sp-in" style="--d:4.8s">Готовый бизнес <span class="sp-grad">в&nbsp;Хайфе</span></p>
+    <p class="sp-lead sp-in" style="--d:4.8s">Покупка и продажа бизнеса <span class="sp-grad">в&nbsp;Израиле</span></p>
   </section>
 
   <!-- 3. Фото из каталога -->
@@ -206,14 +206,14 @@ const check = 'M20 6 9 17l-5-5';
   .sp-check { display: inline-flex; height: 26px; width: 26px; align-items: center; justify-content: center; border-radius: 50%; background: #fff; color: #4f46e5; }
 
   /* Полоски прогресса сверху, как в сторис. */
-  .sp-bars { position: absolute; z-index: 7; top: calc(10px + env(safe-area-inset-top)); left: 14px; right: 14px; display: flex; gap: 6px; }
+  .sp-bars { position: absolute; z-index: 7; top: calc(10px + max(env(safe-area-inset-top), var(--tg-safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px)); left: 14px; right: 14px; display: flex; gap: 6px; }
   .sp-bars span { position: relative; flex: 1; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
   .sp-bars span::after { content: ''; position: absolute; inset: 0; border-radius: 3px; background: #fff; transform: scaleX(0); transform-origin: left; animation: sp-bar var(--t) linear var(--d) both; }
 
   .sp-skip {
     position: absolute;
     left: 50%;
-    bottom: max(24px, env(safe-area-inset-bottom));
+    bottom: calc(20px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
     z-index: 8;
     transform: translateX(-50%);
     min-height: 46px;

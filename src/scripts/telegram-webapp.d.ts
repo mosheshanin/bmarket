@@ -29,6 +29,10 @@ interface TgWebApp {
   close(): void;
   setHeaderColor(c: string): void;
   setBackgroundColor(c: string): void;
+  setBottomBarColor?(c: string): void;
+  isFullscreen?: boolean;
+  requestFullscreen?(): void;
+  exitFullscreen?(): void;
   BackButton: { isVisible: boolean; show(): void; hide(): void; onClick(cb: () => void): void; offClick(cb: () => void): void };
   MainButton: TgBottomButton;
   HapticFeedback?: {
