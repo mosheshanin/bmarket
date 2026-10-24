@@ -187,6 +187,18 @@ function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function removeDraft(r: Row) {
+    if (!(await confirmDialog(`Удалить черновик №${r.lotNumber}${r.publicTitle ? ` «${r.publicTitle}»` : ''}? Это нельзя отменить.`))) return;
+    try {
+      await api(`businesses/${r.id}`, { method: 'DELETE' });
+      storageSet(localKey(r.id), '');
+      toast('Черновик удалён');
+      onChanged();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  }
+
   async function create(prefill: Record<string, number> = {}) {
     setBusy(true);
     try {
@@ -217,9 +229,16 @@ function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
         {me.items.map((r) => {
           const [label, tone] = stageLabel(r);
           const href = r.status === 'draft' && r.sellerStage === 'editing' ? `#/edit/${r.id}` : `#/b/${r.id}`;
+          const deletable = r.status === 'draft' && (r.sellerStage === 'editing' || r.sellerStage === 'awaiting_payment');
           return (
-            <li key={r.id}>
-              <a href={href} className="card flex gap-3 p-2.5 text-text no-underline">
+            <li key={r.id} className="relative">
+              {deletable && (
+                <button type="button" onClick={() => removeDraft(r)} aria-label={`Удалить черновик №${r.lotNumber}`}
+                  className="absolute right-1.5 top-1.5 z-10 flex h-10 w-10 items-center justify-center rounded-full text-hint hover:bg-danger/10 hover:text-danger">
+                  <TrashIcon />
+                </button>
+              )}
+              <a href={href} className={`card flex gap-3 p-2.5 text-text no-underline ${deletable ? 'pr-12' : ''}`}>
                 <div className="h-[72px] w-24 shrink-0 overflow-hidden rounded-lg bg-line">
                   {r.cover && <img src={r.cover} alt="" className="h-full w-full object-cover" loading="lazy" />}
                 </div>
@@ -239,6 +258,12 @@ function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
     </div>
   );
 }
+
+const TrashIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+  </svg>
+);
 
 // ---------- форма ----------
 const STEPS = ['Основное', 'Цифры', 'Описание', 'Фото', 'Контакты', 'Отправка'] as const;
@@ -274,6 +299,8 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
   const [submitting, setSubmitting] = useState(false);
   /** Подсвечивать незаполненное — после первого захода на шаг «Отправка». */
   const [tried, setTried] = useState(false);
+  /** Пройденные шаги — отмечаются галочкой, если на них всё заполнено. */
+  const [visited, setVisited] = useState<Set<number>>(() => new Set([0]));
   const formRef = useRef<Form | null>(null);
   formRef.current = form;
   const detailRef = useRef<Detail | null>(null);
@@ -377,6 +404,7 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
   async function goStep(n: number) {
     if (state === 'dirty' || state === 'offline') await save();
     if (n === STEPS.length - 1) setTried(true);
+    setVisited((v) => new Set(v).add(step).add(n));
     setStep(n);
     window.scrollTo({ top: 0 });
   }
@@ -428,7 +456,12 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
     <div className="flex flex-col gap-3">
       <div>
         <a href="#/" onClick={(e) => { e.preventDefault(); go('#/'); }} className="text-sm">← Мои объявления</a>
-        <h1 className="text-xl font-extrabold">Объявление №{detail.business.lotNumber}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="text-xl font-extrabold">Объявление №{detail.business.lotNumber}</h1>
+          <button type="button" onClick={remove} className="flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-danger hover:bg-danger/10" aria-label="Удалить черновик">
+            <TrashIcon /> Удалить
+          </button>
+        </div>
         <p className={`text-xs ${state === 'offline' || state === 'conflict' ? 'text-danger' : 'text-hint'}`} aria-live="polite">{status}</p>
       </div>
       {state === 'conflict' && (
@@ -438,12 +471,16 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
         </div>
       )}
 
-      <nav className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 py-1" aria-label="Шаги">
+      {/* Все шаги видны сразу: сетка 3×2 вместо прокручиваемой ленты. */}
+      <nav className="grid grid-cols-3 gap-1.5" aria-label="Шаги">
         {STEPS.map((s, i) => {
-          const bad = missing.some((m) => STEP_OF[m] === i);
+          const bad = tried && missing.some((m) => STEP_OF[m] === i);
+          const done = visited.has(i) && i !== step && !missing.some((m) => STEP_OF[m] === i);
           return (
-            <button key={s} type="button" className="chip !min-h-[40px] shrink-0 !text-sm" aria-current={step === i ? 'page' : undefined} onClick={() => goStep(i)}>
-              {i + 1}. {s}{bad && tried ? ' •' : ''}
+            <button key={s} type="button" aria-current={step === i ? 'step' : undefined} onClick={() => goStep(i)}
+              className={`step-tab ${step === i ? 'step-tab-on' : ''}`}>
+              <span className={`step-num ${bad ? 'step-num-bad' : done ? 'step-num-done' : ''}`}>{bad ? '!' : done ? '✓' : i + 1}</span>
+              <span className="truncate">{s}</span>
             </button>
           );
         })}

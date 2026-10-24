@@ -87,6 +87,7 @@ bad += await shot('16-tg-home-admin-button', '/', { tg: admin, full: false });
 bad += await shot('17-sell-list', '/sell', { tg: seller });
 bad += await shot('18-sell-status', '/sell', { tg: seller, before: firstItem });
 bad += await shot('19-sell-edit', '/sell', { tg: seller2, before: firstItem });
+bad += await shot('19b-sell-edit-320', '/sell', { tg: seller2, width: 320, height: 640, full: false, before: firstItem });
 bad += await shot('20-sell-edit-submit', '/sell', { tg: seller2, before: async (p) => { await firstItem(p); await p.getByRole('button', { name: /Отправка/ }).click(); await p.waitForTimeout(800); } });
 bad += await shot('21-sell-web', '/sell', { width: 390 });
 bad += await shot('22-admin-sellers', '/admin', { tg: admin, before: async (p) => { await p.getByRole('button', { name: /От продавцов/ }).click(); await p.waitForTimeout(1200); } });
