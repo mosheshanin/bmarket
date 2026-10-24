@@ -4,7 +4,7 @@ import { describePrefs, matchesPrefs } from '../lib/match';
 import { plural } from '../lib/format';
 import { afterSplash } from '../scripts/tg';
 import Survey from './Survey';
-import { EMPTY, fetchFacets, fetchProfile, readLocal, writeLocal, toPrefs, type Answers, type Facets, type Profile } from './data';
+import { EMPTY, fetchFacets, fetchProfile, readLocal, writeLocal, toPrefs, type Answers, type Facets, type OpenListing, type Profile } from './data';
 
 /**
  * Опрос при первом запуске (только мини-приложение, только главная).
@@ -18,10 +18,13 @@ export async function initOnboarding(): Promise<void> {
   const forced = new URLSearchParams(location.search).has('survey');
   let profile = readLocal();
   let enabled = false;
-  if (!profile || forced) {
+  let openListing: OpenListing | null = null;
+  // Продавцу всегда нужен свежий статус его объявления (черновик могли удалить или отправить).
+  if (!profile || forced || profile.intent === 'sell') {
     try {
       const r = await fetchProfile();
       enabled = r.surveyEnabled;
+      openListing = r.openListing;
       if (r.profile) {
         profile = r.profile;
         writeLocal(profile);
@@ -32,7 +35,7 @@ export async function initOnboarding(): Promise<void> {
   }
   const open = forced || (enabled && !profile);
   if (open) await afterSplash();
-  createRoot(slot).render(<Onboarding initialProfile={profile} openSurvey={open} preview={forced} />);
+  createRoot(slot).render(<Onboarding initialProfile={profile} openSurvey={open} preview={forced} openListing={openListing} />);
 }
 
 interface GridItem { el: HTMLElement; lot: { categoryId: number | null; cityId: number | null; priceIls: number | null; paybackMonths: number | null } }
@@ -45,7 +48,7 @@ function gridItems(): GridItem[] {
   }));
 }
 
-function Onboarding({ initialProfile, openSurvey, preview }: { initialProfile: Profile | null; openSurvey: boolean; preview: boolean }) {
+function Onboarding({ initialProfile, openSurvey, preview, openListing }: { initialProfile: Profile | null; openSurvey: boolean; preview: boolean; openListing: OpenListing | null }) {
   const [profile, setProfile] = useState<Profile | null>(initialProfile);
   const [surveyOpen, setSurveyOpen] = useState(openSurvey);
   const [onlyMine, setOnlyMine] = useState(true);
@@ -121,21 +124,24 @@ function Onboarding({ initialProfile, openSurvey, preview }: { initialProfile: P
       </section>
     );
   } else if (profile?.completed && profile.intent === 'sell') {
-    const q = new URLSearchParams({ new: '1' });
-    if (profile.categories[0]) q.set('category', String(profile.categories[0]));
-    if (profile.cities[0]) q.set('city', String(profile.cities[0]));
-    bar = (
-      <section className="card mb-4 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="font-semibold">Продаёте бизнес{names && profile.categories[0] ? ` · ${names.categories.get(profile.categories[0])}` : ''}</p>
-          <p className="mt-0.5 text-sm text-hint">Разместите объявление — черновик сохраняется автоматически.</p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <a className="btn btn-primary" href={`/sell?${q}`}>Разместить</a>
-          <button type="button" className="btn btn-secondary" onClick={() => setSurveyOpen(true)}>Ответы</button>
-        </div>
-      </section>
-    );
+    // Продавцу — только реальное состояние его объявления; нет незавершённого объявления — нет и блока.
+    if (openListing) {
+      const o = openListing;
+      const text = o.stage === 'editing'
+        ? { head: `Черновик объявления №${o.lotNumber}`, sub: o.title || 'Без названия — продолжите заполнение', btn: 'Продолжить', href: `/sell?edit=${o.id}` }
+        : o.stage === 'awaiting_payment'
+          ? { head: `Заявка на размещение №${o.lotNumber} отправлена`, sub: 'Менеджер свяжется, чтобы согласовать оплату.', btn: 'Открыть', href: `/sell?b=${o.id}` }
+          : { head: `Объявление №${o.lotNumber} на проверке`, sub: 'После публикации бот пришлёт сообщение.', btn: 'Открыть', href: `/sell?b=${o.id}` };
+      bar = (
+        <section className="card mb-4 flex items-center justify-between gap-3 p-4">
+          <div className="min-w-0">
+            <p className="font-semibold">{text.head}</p>
+            <p className="mt-0.5 truncate text-sm text-hint">{text.sub}</p>
+          </div>
+          <a className="btn btn-primary shrink-0" href={text.href}>{text.btn}</a>
+        </section>
+      );
+    }
   } else if (profile) {
     // Пропустил опрос или «просто смотрю» — ненавязчивый вход обратно.
     bar = (

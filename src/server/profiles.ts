@@ -218,3 +218,18 @@ export async function surveyStats(db: DB) {
     })),
   };
 }
+
+/** Незавершённое объявление продавца (черновик, заявка, проверка) — для блока на главной. */
+export async function openSellerListing(db: DB, userId: number) {
+  const [b] = await db
+    .select({ id: businesses.id, lotNumber: businesses.lotNumber, title: businesses.publicTitle, stage: businesses.sellerStage })
+    .from(businesses)
+    .where(and(
+      eq(businesses.sellerTgId, userId),
+      eq(businesses.status, 'draft'),
+      sql`${businesses.sellerStage} in ('editing', 'awaiting_payment', 'in_review')`,
+    ))
+    .orderBy(desc(businesses.updatedAt))
+    .limit(1);
+  return b ?? null;
+}

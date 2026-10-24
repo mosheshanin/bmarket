@@ -44,7 +44,7 @@ cp .dev.vars.example .dev.vars
 npm run db:migrate:local && npm run db:seed:local && bash scripts/seed-photos.sh --local
 npm run build && npx astro preview --port 8787 --host 127.0.0.1
 npm test                    # юнит-тесты (37)
-npm run test:e2e            # 177 сквозных проверок на локальном Worker (с поддельным PayPal на :8799)
+npm run test:e2e            # 179 сквозных проверок на локальном Worker (с поддельным PayPal на :8799)
 npx astro check             # типы
 npm run size                # размер Worker < 3 МБ gzip (сейчас ≈0,42 МБ)
 npm run db:generate         # после изменения src/db/schema.ts

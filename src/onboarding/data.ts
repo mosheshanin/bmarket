@@ -58,7 +58,8 @@ async function call<T>(path: string, init: { method?: string; body?: unknown } =
   return data as T;
 }
 
-export const fetchProfile = () => call<{ surveyEnabled: boolean; profile: Profile | null }>('/api/profile');
+export interface OpenListing { id: number; lotNumber: number; title: string; stage: 'editing' | 'awaiting_payment' | 'in_review' }
+export const fetchProfile = () => call<{ surveyEnabled: boolean; profile: Profile | null; openListing: OpenListing | null }>('/api/profile');
 export const fetchFacets = () => call<Facets>('/api/survey/facets');
 export const saveAnswers = (a: Answers, status: 'completed' | 'skipped') =>
   call<{ profile: Profile }>('/api/profile', { method: 'PUT', body: { ...a, comment: a.comment.trim() || null, status } });

@@ -424,6 +424,9 @@ check('в заявке — запрос из опроса', /Ищет: .*Хай�
 const SELLER3 = initData({ id: 777003, first_name: 'Продавец3' });
 const pre = await req('/api/seller/businesses', { method: 'POST', auth: SELLER3, body: { categoryId: cafeLot.categoryId, cityId: haifa.id } });
 check('черновик продавца со сферой и городом из опроса', pre.status === 201 && pre.json.business.categoryId === cafeLot.categoryId && pre.json.business.cityId === haifa.id);
+check('главная: незавершённый черновик продавца', (await req('/api/profile', { auth: SELLER3 })).json?.openListing?.stage === 'editing');
+await req(`/api/seller/businesses/${pre.json.business.id}`, { method: 'DELETE', auth: SELLER3 });
+check('после удаления черновика блока нет', (await req('/api/profile', { auth: SELLER3 })).json?.openListing === null);
 const homeTg = await req('/');
 check('главная: место для подборки и данные карточек', homeTg.text.includes('id="for-you"') && /data-category="\d+"/.test(homeTg.text) && /data-price="\d+"/.test(homeTg.text));
 await req('/api/admin/survey', { method: 'PUT', auth: ADMIN, body: { enabled: false } });
