@@ -49,6 +49,6 @@
     "demo:sql": "node --experimental-strip-types --no-warnings scripts/demo-lots.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.23.4"
   }
 }
