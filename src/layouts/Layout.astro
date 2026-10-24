@@ -1,0 +1,111 @@
+---
+import '../styles/global.css';
+import { site } from '../server/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Путь канонического адреса, например «/city/haifa». */
+  canonicalPath?: string;
+  ogImage?: string | null;
+  ogType?: string;
+  jsonLd?: unknown[];
+  noindex?: boolean;
+  /** data-атрибуты для клиентского скрипта: page, business-id, lot, request-path… */
+  data?: Record<string, string | number | undefined>;
+  bare?: boolean;
+}
+
+const { title, description, canonicalPath, ogImage, ogType = 'website', jsonLd = [], noindex = false, data = {}, bare = false } = Astro.props;
+const s = site();
+const canonical = canonicalPath ? s.url + canonicalPath : undefined;
+const dataAttrs = Object.fromEntries(
+  Object.entries({ ...data, miniapp: s.miniAppLink ?? undefined })
+    .filter(([, v]) => v !== undefined && v !== null && v !== '')
+    .map(([k, v]) => [`data-${k}`, String(v)]),
+);
+const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
+    <meta property="og:site_name" content={s.name} />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={title} />
+    {description && <meta property="og:description" content={description} />}
+    {canonical && <meta property="og:url" content={canonical} />}
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {ldJson.map((j) => <script type="application/ld+json" set:html={j} />)}
+    <!-- Внутри Telegram: пометить документ и подключить SDK мини-приложения (в браузере не грузится). -->
+    <script is:inline>
+      (function () {
+        try {
+          var tg = /tgWebApp/.test(location.hash + location.search) || sessionStorage.getItem('bm_tg') === '1';
+          if (!tg) return;
+          sessionStorage.setItem('bm_tg', '1');
+          document.documentElement.classList.add('tg');
+          var s = document.createElement('script');
+          s.src = 'https://telegram.org/js/telegram-web-app.js?59';
+          s.async = false;
+          document.head.appendChild(s);
+        } catch (e) {}
+      })();
+    </script>
+    {
+      s.analyticsToken && (
+        <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon={JSON.stringify({ token: s.analyticsToken })} />
+      )
+    }
+  </head>
+  <body {...dataAttrs}>
+    {
+      !bare && (
+        <header class="web-only sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur">
+          <div class="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4">
+            <a href="/" class="text-lg font-extrabold tracking-tight text-text no-underline">
+              {s.name}
+            </a>
+            {s.miniAppLink && (
+              <a href={s.miniAppLink} class="btn btn-secondary !min-h-[40px] text-sm" rel="noopener">
+                Открыть в Telegram
+              </a>
+            )}
+          </div>
+        </header>
+      )
+    }
+    <a id="admin-link" href="/admin" class="fixed right-3 top-3 z-40 rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accent-text shadow-card no-underline" style="display:none">
+      Админ-панель
+    </a>
+    <main class="mx-auto w-full max-w-[1200px] px-4 pb-28 pt-4">
+      <slot />
+    </main>
+    {
+      !bare && (
+        <footer class="web-only border-t border-line">
+          <div class="mx-auto flex max-w-[1200px] flex-wrap gap-x-5 gap-y-2 px-4 py-6 text-sm text-hint">
+            <span>© {new Date().getFullYear()} {s.name}</span>
+            <a href="/about">О сервисе</a>
+            <a href="/privacy">Политика конфиденциальности</a>
+          </div>
+        </footer>
+      )
+    }
+    <script>
+      import '../scripts/app';
+    </script>
+  </body>
+</html>

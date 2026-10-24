@@ -1,0 +1,32 @@
+---
+import { site } from '../server/site';
+const s = site();
+---
+
+<!-- В Telegram: подписка через requestWriteAccess. В браузере: кнопка «Подписаться в Telegram». -->
+<section class="tg-only card p-4" data-subscribe-block>
+  <div data-state="idle">
+    <p class="font-semibold">Получать уведомления о новых бизнесах</p>
+    <p class="mt-1 text-sm text-hint">Бот пришлёт сообщение, когда в каталоге появится новое предложение.</p>
+    <button type="button" class="btn btn-primary mt-3 w-full sm:w-auto" data-subscribe>Получать уведомления</button>
+  </div>
+  <div data-state="subscribed" hidden>
+    <p class="font-semibold">✓ Вы подписаны</p>
+    <p class="mt-1 text-sm text-hint">
+      Пришлём уведомление о новых бизнесах. <button type="button" class="btn-ghost min-h-[44px] underline" data-unsubscribe>Отписаться</button>
+    </p>
+  </div>
+</section>
+{
+  s.botSubscribeLink && (
+    <section class="web-only card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="font-semibold">Узнавайте о новых бизнесах первыми</p>
+        <p class="mt-1 text-sm text-hint">Уведомления приходят в Telegram — без спама, только новые предложения.</p>
+      </div>
+      <a href={s.botSubscribeLink} class="btn btn-primary shrink-0" rel="noopener">
+        Подписаться в Telegram
+      </a>
+    </section>
+  )
+}

@@ -1,0 +1,34 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ListingGrid from './ListingGrid.astro';
+import type { PublicBusiness, PublicListing, DisplayRate } from '../server/public';
+import { site } from '../server/site';
+
+interface Props {
+  b: PublicBusiness;
+  others: PublicListing[];
+  rate: DisplayRate | null;
+}
+const { b, others, rate } = Astro.props;
+const s = site();
+---
+
+<Layout title={`Бизнес снят с продажи | ${s.name}`} noindex data={{ page: 'gone' }}>
+  <div class="card p-6 text-center">
+    <p class="text-sm text-hint">Лот №{b.lotNumber}</p>
+    <h1 class="mt-1 text-xl font-bold">Этот бизнес снят с продажи</h1>
+    <p class="mt-2 text-hint">Посмотрите другие предложения{b.cityPrepositional ? ` в ${b.cityPrepositional}` : ''}.</p>
+    <div class="mt-4 flex flex-wrap justify-center gap-2">
+      {b.citySlug && <a href={`/city/${b.citySlug}`} class="btn btn-primary">Бизнесы в городе {b.cityName}</a>}
+      <a href="/" class="btn btn-secondary">Весь каталог</a>
+    </div>
+  </div>
+  {
+    others.length > 0 && (
+      <section class="mt-6">
+        <h2 class="mb-3 text-lg font-bold">Другие предложения</h2>
+        <ListingGrid items={others} rate={rate} />
+      </section>
+    )
+  }
+</Layout>

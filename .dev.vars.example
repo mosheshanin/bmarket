@@ -1,0 +1,9 @@
+# Скопируйте в .dev.vars для локального запуска (файл в .gitignore).
+# В Cloudflare секреты задаются через `wrangler secret put <ИМЯ>`.
+TELEGRAM_BOT_TOKEN=123456:TEST-TOKEN-FOR-LOCAL-DEV
+TELEGRAM_WEBHOOK_SECRET=local-webhook-secret
+TURNSTILE_SECRET_KEY=
+SITE_URL=http://localhost:4321
+ADMIN_TELEGRAM_IDS=111111,222222
+MANAGERS_CHAT_ID=
+TELEGRAM_BOT_USERNAME=bmarket_test_bot

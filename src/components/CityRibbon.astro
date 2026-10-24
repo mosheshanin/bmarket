@@ -1,0 +1,32 @@
+---
+import type { CityWithCount } from '../server/public';
+
+interface Props {
+  cities: CityWithCount[];
+  activeSlug?: string;
+  total: number;
+}
+const { cities, activeSlug, total } = Astro.props;
+---
+
+<nav aria-label="Города" class="-mx-4 mb-4">
+  <ul class="no-scrollbar flex gap-2 overflow-x-auto px-4 py-1" data-city-ribbon>
+    <li>
+      <a href="/" class="chip" aria-current={!activeSlug ? 'page' : undefined}>Все города · {total}</a>
+    </li>
+    {
+      cities.map((c) => (
+        <li>
+          <a href={`/city/${c.slug}`} class="chip" aria-current={activeSlug === c.slug ? 'page' : undefined}>
+            {c.name} · {c.count}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>
+<script>
+  // Подсвеченный город — в зону видимости ленты.
+  const active = document.querySelector<HTMLElement>('[data-city-ribbon] [aria-current="page"]');
+  active?.scrollIntoView({ inline: 'center', block: 'nearest' });
+</script>

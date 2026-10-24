@@ -1,0 +1,14 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { site } from '../server/site';
+const s = site();
+Astro.response.status = 404;
+---
+
+<Layout title={`Страница не найдена | ${s.name}`} noindex data={{ page: 'static' }}>
+  <div class="card mx-auto max-w-xl p-6 text-center">
+    <h1 class="text-xl font-bold">Страница не найдена</h1>
+    <p class="mt-2 text-hint">Возможно, объявление ещё не опубликовано или адрес набран с ошибкой.</p>
+    <a href="/" class="btn btn-primary mt-4">Вернуться в каталог</a>
+  </div>
+</Layout>

@@ -1,0 +1,64 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Production: ветка main, основной домен, база catalog-prod.
+  "name": "bmarket",
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // ID версии Worker входит в ключ кеша страниц: после деплоя HTML не ссылается на удалённые CSS/JS.
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
+  "assets": { "binding": "ASSETS", "directory": "./dist/client" },
+  // 2 задачи по расписанию из 5 бесплатных:
+  //   каждую минуту — рассылка подписчикам порциями;
+  //   ежедневно в 14:00 UTC — курсы Банка Израиля и обслуживание базы.
+  "triggers": { "crons": ["* * * * *", "0 14 * * *"] },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "catalog-prod",
+      // Замените на ID из `wrangler d1 create catalog-prod --location weur`
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "bmarket-photos" }],
+  "vars": {
+    "SITE_URL": "https://bmarket.example.workers.dev",
+    "PUBLIC_IMAGES_URL": "",
+    "ADMIN_TELEGRAM_IDS": "",
+    "MANAGERS_CHAT_ID": "",
+    "TELEGRAM_BOT_USERNAME": "",
+    "TELEGRAM_APP_SHORT_NAME": "app",
+    "TURNSTILE_SITE_KEY": "",
+    "CF_ANALYTICS_TOKEN": "",
+    "PROJECT_NAME": "BMarket"
+  },
+  "env": {
+    // Staging: отдельный Worker на *.workers.dev, своя база и тестовый бот.
+    "staging": {
+      "name": "bmarket-staging",
+      "triggers": { "crons": ["* * * * *", "0 14 * * *"] },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "catalog-staging",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "bmarket-photos-staging" }],
+      "vars": {
+        "SITE_URL": "https://bmarket-staging.example.workers.dev",
+        "PUBLIC_IMAGES_URL": "",
+        "ADMIN_TELEGRAM_IDS": "",
+        "MANAGERS_CHAT_ID": "",
+        "TELEGRAM_BOT_USERNAME": "",
+        "TELEGRAM_APP_SHORT_NAME": "app",
+        "TURNSTILE_SITE_KEY": "",
+        "CF_ANALYTICS_TOKEN": "",
+        "PROJECT_NAME": "BMarket"
+      }
+    }
+  }
+}

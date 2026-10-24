@@ -1,0 +1,38 @@
+---
+import ListingCard from './ListingCard.astro';
+import type { PublicListing, DisplayRate } from '../server/public';
+
+interface Props {
+  items: PublicListing[];
+  rate: DisplayRate | null;
+}
+const { items, rate } = Astro.props;
+// Больше 50 лотов — подгрузка по 20 при прокрутке (раздел 5.1).
+const PAGE = 20;
+const paginate = items.length > 50;
+---
+
+<ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-listing-grid data-page-size={paginate ? PAGE : undefined}>
+  {
+    items.map((item, i) => (
+      <li data-idx={i} hidden={paginate && i >= PAGE ? true : undefined}>
+        <ListingCard item={item} rate={rate} eager={i < 2} />
+      </li>
+    ))
+  }
+</ul>
+{paginate && <div data-grid-sentinel class="h-10" />}
+<script>
+  const grid = document.querySelector<HTMLElement>('[data-listing-grid][data-page-size]');
+  const sentinel = document.querySelector('[data-grid-sentinel]');
+  if (grid && sentinel) {
+    const size = Number(grid.dataset.pageSize);
+    const io = new IntersectionObserver((entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      const hidden = [...grid.querySelectorAll<HTMLElement>('li[hidden]')].slice(0, size);
+      hidden.forEach((li) => (li.hidden = false));
+      if (!grid.querySelector('li[hidden]')) io.disconnect();
+    }, { rootMargin: '600px' });
+    io.observe(sentinel);
+  }
+</script>

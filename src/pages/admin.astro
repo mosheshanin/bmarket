@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AdminApp from '../admin/App.tsx';
+import { site } from '../server/site';
+// Админ-панель: только внутри Telegram; данные — через /api/admin/* с проверкой initData.
+Astro.response.headers.set('cache-control', 'no-store');
+---
+
+<Layout title={`Админ-панель | ${site().name}`} noindex bare data={{ page: 'admin' }}>
+  <AdminApp client:only="react" />
+</Layout>

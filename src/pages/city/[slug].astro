@@ -1,0 +1,61 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import CityRibbon from '../../components/CityRibbon.astro';
+import ListingGrid from '../../components/ListingGrid.astro';
+import SubscribeBlock from '../../components/SubscribeBlock.astro';
+import { citiesWithListings, getCityBySlug, getDisplayRate, listPublished } from '../../server/public';
+import { db, site } from '../../server/site';
+import { plural } from '../../lib/format';
+
+const d = db();
+const city = await getCityBySlug(d, Astro.params.slug ?? '');
+Astro.response.headers.set('x-bm-cacheable', '1');
+if (!city) {
+  Astro.response.status = 404;
+}
+const [items, cityList, rate] = city
+  ? await Promise.all([listPublished(d, { cityId: city.id }), citiesWithListings(d), getDisplayRate(d)])
+  : [[], [], null];
+const total = cityList.reduce((a, c) => a + c.count, 0);
+const s = site();
+const n = items.length;
+const title = city
+  ? `Бизнес на продажу в ${city.namePrepositional} — ${n} ${plural(n, ['предложение', 'предложения', 'предложений'])} | ${s.name}`
+  : `Город не найден | ${s.name}`;
+const description = city
+  ? `Готовый бизнес на продажу в ${city.namePrepositional}: ${n} ${plural(n, ['предложение', 'предложения', 'предложений'])} с ценами в шекелях, оборотом и прибылью. Оставьте заявку — менеджер расскажет подробности.`
+  : undefined;
+const breadcrumbs = city && {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Главная', item: s.url + '/' },
+    { '@type': 'ListItem', position: 2, name: city.name, item: `${s.url}/city/${city.slug}` },
+  ],
+};
+---
+
+<Layout title={title} description={description} canonicalPath={city ? `/city/${city.slug}` : undefined} noindex={!city || n === 0} jsonLd={breadcrumbs ? [breadcrumbs] : []} data={{ page: 'city' }}>
+  {
+    city ? (
+      <>
+        <h1 class="mb-4 text-2xl font-extrabold tracking-tight sm:text-3xl">Бизнесы на продажу в {city.namePrepositional}</h1>
+        <CityRibbon cities={cityList} activeSlug={city.slug} total={total} />
+        {n > 0 ? (
+          <ListingGrid items={items} rate={rate} />
+        ) : (
+          <div class="card p-6 text-center">
+            <p class="font-semibold">В этом городе сейчас нет предложений</p>
+            <a href="/" class="btn btn-secondary mt-3">Все города</a>
+          </div>
+        )}
+        <div class="mt-6"><SubscribeBlock /></div>
+      </>
+    ) : (
+      <div class="card p-6 text-center">
+        <h1 class="text-xl font-bold">Город не найден</h1>
+        <a href="/" class="btn btn-primary mt-4">Вернуться в каталог</a>
+      </div>
+    )
+  }
+</Layout>

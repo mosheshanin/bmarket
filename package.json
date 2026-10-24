@@ -1,0 +1,55 @@
+{
+  "name": "bmarket",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "dependencies": {
+    "@astrojs/cloudflare": "^14.4.2",
+    "@astrojs/react": "^7.1.1",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.4.2",
+    "drizzle-orm": "^0.45.4",
+    "grammy": "^1.46.0",
+    "marked": "^18.1.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.12",
+    "@cloudflare/workers-types": "^5.20261024.1",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "drizzle-kit": "^0.31.11",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.152.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro build && wrangler dev --port 8787",
+    "check": "astro check && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:e2e": "node tests/e2e/smoke.mjs",
+    "size": "node scripts/check-size.mjs",
+    "types": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply catalog-prod --local",
+    "db:seed:local": "wrangler d1 execute catalog-prod --local --file seed/test-lots.sql",
+    "db:migrate:staging": "wrangler d1 migrations apply catalog-staging --remote --env staging",
+    "db:seed:staging": "wrangler d1 execute catalog-staging --remote --env staging --file seed/test-lots.sql",
+    "db:migrate:prod": "wrangler d1 migrations apply catalog-prod --remote",
+    "deploy": "astro build && wrangler deploy",
+    "deploy:staging": "CLOUDFLARE_ENV=staging astro build && wrangler deploy --env staging",
+    "bot:setup": "node scripts/setup-bot.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

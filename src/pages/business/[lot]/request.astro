@@ -1,0 +1,43 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import LeadForm from '../../../components/LeadForm.tsx';
+import GonePage from '../../../components/GonePage.astro';
+import { loadCard } from '../../../server/card';
+import { getDisplayRate } from '../../../server/public';
+import { db, env, site } from '../../../server/site';
+import { formatIls } from '../../../lib/format';
+import { businessPath } from '../../../lib/slug';
+
+const d = db();
+const s = site();
+const res = await loadCard(env, d, Astro.params.lot ?? '', Astro.url, '/request');
+if (res.kind === 'redirect') {
+  return new Response(null, { status: 301, headers: { location: res.to, 'x-bm-cacheable': '1' } });
+}
+if (res.kind === 'notfound') return Astro.rewrite('/404');
+Astro.response.headers.set('x-bm-cacheable', '1');
+if (res.kind === 'gone') Astro.response.status = 410;
+const rate = res.kind === 'gone' ? await getDisplayRate(d) : null;
+const b = res.b;
+const cardPath = businessPath(b.lotNumber, b.slug);
+---
+
+{
+  res.kind === 'gone' ? (
+    <GonePage b={res.b} others={res.others} rate={rate} />
+  ) : (
+    <Layout title={`Заявка: ${b.publicTitle} | ${s.name}`} noindex canonicalPath={cardPath} data={{ page: 'request', 'business-id': b.id, lot: b.lotNumber }}>
+      <div class="mx-auto max-w-xl">
+        <LeadForm
+          client:load
+          businessId={b.id}
+          lotNumber={b.lotNumber}
+          title={b.publicTitle}
+          priceStr={b.priceIls ? formatIls(b.priceIls) : null}
+          cardPath={cardPath}
+          turnstileSiteKey={s.turnstileSiteKey}
+        />
+      </div>
+    </Layout>
+  )
+}

@@ -1,0 +1,49 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CityRibbon from '../components/CityRibbon.astro';
+import ListingGrid from '../components/ListingGrid.astro';
+import SubscribeBlock from '../components/SubscribeBlock.astro';
+import { citiesWithListings, getDisplayRate, listPublished, imageUrl } from '../server/public';
+import { db, env, site } from '../server/site';
+
+const d = db();
+const [items, cityList, rate] = await Promise.all([listPublished(d), citiesWithListings(d), getDisplayRate(d)]);
+const s = site();
+Astro.response.headers.set('x-bm-cacheable', '1');
+
+const title = `Готовый бизнес на продажу в Израиле | ${s.name}`;
+const description = `Каталог готовых бизнесов на продажу в Израиле: кафе, магазины, салоны, производство и услуги. ${items.length ? `${items.length} предложений с ценами, оборотом и прибылью.` : ''} Оставьте заявку — менеджер расскажет подробности.`.trim();
+const org = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: s.name,
+  url: s.url + '/',
+  ...(s.botLink ? { sameAs: [s.botLink] } : {}),
+};
+const firstCover = items.find((i) => i.cover)?.cover;
+---
+
+<Layout title={title} description={description} canonicalPath="/" jsonLd={[org]} ogImage={firstCover ? new URL(imageUrl(env, firstCover.r2Key), s.url).href : null} data={{ page: 'home' }}>
+  <h1 class="mb-1 text-2xl font-extrabold tracking-tight sm:text-3xl">Готовый бизнес на продажу в Израиле</h1>
+  <p class="mb-4 text-hint">Проверенные предложения с ценами и показателями. Название и адрес — после заявки.</p>
+
+  {
+    items.length > 0 ? (
+      <>
+        <CityRibbon cities={cityList} total={items.length} />
+        <ListingGrid items={items} rate={rate} />
+        <div class="mt-6">
+          <SubscribeBlock />
+        </div>
+      </>
+    ) : (
+      <div class="card flex flex-col items-center gap-3 p-8 text-center">
+        <p class="text-lg font-semibold">Скоро здесь появятся новые предложения</p>
+        <p class="text-hint">Подпишитесь, чтобы узнать о них первыми.</p>
+        <div class="w-full max-w-md text-left">
+          <SubscribeBlock />
+        </div>
+      </div>
+    )
+  }
+</Layout>

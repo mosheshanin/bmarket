@@ -1,0 +1,233 @@
+@import 'tailwindcss';
+
+/*
+ * Нейтральная тема, подстраивается под Telegram (themeParams → --tg-theme-*),
+ * в браузере — под системную светлую/тёмную тему. Акцентный цвет — одна переменная --accent-base.
+ */
+:root {
+  --accent-base: #1f6feb;
+
+  --fb-bg: #f3f4f6;
+  --fb-card: #ffffff;
+  --fb-text: #111827;
+  --fb-hint: #5b6472;
+  --fb-border: rgb(17 24 39 / 0.08);
+  --fb-danger: #c62828;
+  --fb-success: #1b7f3b;
+  --fb-warn-bg: #fff4d6;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.tg) {
+    --fb-bg: #0f1115;
+    --fb-card: #181b21;
+    --fb-text: #eef0f3;
+    --fb-hint: #9aa3af;
+    --fb-border: rgb(255 255 255 / 0.08);
+    --fb-danger: #ff6b6b;
+    --fb-success: #4cc27a;
+    --fb-warn-bg: #3a3016;
+    --accent-base: #4c8dff;
+    color-scheme: dark;
+  }
+}
+
+:root {
+  --bg: var(--tg-theme-secondary-bg-color, var(--fb-bg));
+  --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, var(--fb-card)));
+  --text: var(--tg-theme-text-color, var(--fb-text));
+  --hint: var(--tg-theme-hint-color, var(--fb-hint));
+  --link: var(--tg-theme-link-color, var(--accent-base));
+  --accent: var(--tg-theme-button-color, var(--accent-base));
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --danger: var(--tg-theme-destructive-text-color, var(--fb-danger));
+  --border: var(--fb-border);
+  --success: var(--fb-success);
+  --warn-bg: var(--fb-warn-bg);
+  --radius: 12px;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 14px rgb(0 0 0 / 0.06);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-text: var(--text);
+  --color-hint: var(--hint);
+  --color-link: var(--link);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-line: var(--border);
+  --color-warn: var(--warn-bg);
+  --radius-card: var(--radius);
+  --shadow-card: var(--shadow);
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
+
+@layer base {
+html {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+a {
+  color: var(--link);
+}
+
+}
+
+@layer components {
+/* Видимость: в мини-приложении / только в браузере */
+.tg-only {
+  display: none !important;
+}
+.tg .tg-only {
+  display: revert !important;
+}
+.tg .web-only {
+  display: none !important;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  cursor: pointer;
+  user-select: none;
+}
+.btn:active {
+  opacity: 0.8;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.btn-secondary {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--link);
+}
+.btn-ghost {
+  color: var(--link);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.chip[aria-current='page'] {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.prose-md :where(p, ul, ol) {
+  margin: 0.6em 0;
+}
+.prose-md :where(ul) {
+  list-style: disc;
+  padding-left: 1.3em;
+}
+.prose-md :where(ol) {
+  list-style: decimal;
+  padding-left: 1.3em;
+}
+.prose-md :where(h3, h4, h5) {
+  font-weight: 700;
+  margin: 1em 0 0.3em;
+  font-size: 1.08em;
+}
+.prose-md :where(strong) {
+  font-weight: 700;
+}
+.prose-md :where(blockquote) {
+  border-left: 3px solid var(--border);
+  padding-left: 0.8em;
+  color: var(--hint);
+}
+
+.field {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-size: 16px; /* без автоматического зума на iOS */
+}
+.field:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 0;
+}
+.label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
