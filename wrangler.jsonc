@@ -26,7 +26,7 @@
   // "r2_buckets": [{ "binding": "PHOTOS", "bucket_name": "bmarket-photos" }] — код подхватит её сам.
   "kv_namespaces": [{ "binding": "PHOTOS_KV", "id": "a173fe0067944711b424d830b5905315" }],
   "vars": {
-    "SITE_URL": "https://bmarket.SUBDOMAIN.workers.dev",
+    "SITE_URL": "https://bmarket.moshemadwords.workers.dev",
     "PUBLIC_IMAGES_URL": "",
     "ADMIN_TELEGRAM_IDS": "352078684",
     "MANAGERS_CHAT_ID": "-5528365586",
