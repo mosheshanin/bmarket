@@ -1,6 +1,7 @@
 import { and, inArray, isNotNull, isNull, lt } from 'drizzle-orm';
 import type { DB } from '../db/client';
 import { businessPhotos, leads } from '../db/schema';
+import { deletePhotos } from './storage';
 
 export const LEAD_RETENTION_MS = 730 * 86_400_000; // 24 месяца
 export const PHOTO_PURGE_MS = 30 * 86_400_000;
@@ -21,9 +22,9 @@ export async function purgeDeletedPhotos(env: Env, db: DB, now = Date.now()): Pr
     .select({ id: businessPhotos.id, k1: businessPhotos.r2Key, k2: businessPhotos.r2KeySmall })
     .from(businessPhotos)
     .where(and(isNotNull(businessPhotos.deletedAt), lt(businessPhotos.deletedAt, now - PHOTO_PURGE_MS)))
-    .limit(200);
+    .limit(100); // KV: удаление = запись, лимит 1000 в день
   if (!rows.length) return 0;
-  await env.PHOTOS.delete(rows.flatMap((r) => [r.k1, r.k2]));
+  await deletePhotos(env, rows.flatMap((r) => [r.k1, r.k2]));
   await db.delete(businessPhotos).where(inArray(businessPhotos.id, rows.map((r) => r.id)));
   return rows.length;
 }

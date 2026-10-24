@@ -1,7 +1,7 @@
 name: Резервная копия D1
 
-# Еженедельная выгрузка рабочей базы в закрытый бакет R2 (раздел 12.4).
-# Копии старше 8 недель удаляет правило жизненного цикла бакета (см. docs/DEPLOY.md, шаг «Резервные копии»).
+# Еженедельная выгрузка рабочей базы (раздел 12.4). R2 в аккаунте не включён, поэтому копия
+# хранится как артефакт GitHub Actions в этом приватном репозитории; срок хранения — 8 недель.
 on:
   schedule:
     - cron: '17 2 * * 0' # воскресенье, 02:17 UTC
@@ -20,9 +20,12 @@ jobs:
           node-version: 22
       - run: npm install --no-save wrangler@4
       - name: Выгрузка базы
-        run: npx wrangler d1 export catalog-prod --remote --output backup.sql
-      - name: Сжатие и загрузка в R2
         run: |
-          STAMP=$(date -u +%Y-%m-%d)
+          npx wrangler d1 export catalog-prod --remote --output backup.sql
           gzip -9 backup.sql
-          npx wrangler r2 object put "bmarket-backups/d1/catalog-prod-${STAMP}.sql.gz" --file backup.sql.gz --content-type application/gzip --remote
+          echo "STAMP=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: catalog-prod-${{ env.STAMP }}
+          path: backup.sql.gz
+          retention-days: 56

@@ -9,6 +9,7 @@ import { getTelegramUser, isAdminId } from '../../server/auth';
 import { deliverLead, isRateLimited } from '../../server/leads';
 import { recordEvent } from '../../server/events';
 import { db, env } from '../../server/site';
+import { appSecret } from '../../server/secrets';
 
 const utmValue = z.string().max(100).optional();
 const LeadInput = z.object({
@@ -60,7 +61,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const [b] = await d.select({ id: businesses.id, status: businesses.status }).from(businesses).where(eq(businesses.id, input.businessId));
     if (!b || b.status !== 'published') throw new HttpError(404, 'Объявление не найдено или снято с продажи');
 
-    const ipHash = (await sha256Hex(`${env.TELEGRAM_WEBHOOK_SECRET}:ip:${ip}`)).slice(0, 32);
+    const ipHash = (await sha256Hex(`${await appSecret(env)}:ip:${ip}`)).slice(0, 32);
     if (await isRateLimited(d, ipHash, tg?.user.id ?? null)) {
       throw new HttpError(429, 'Слишком много заявок за час. Попробуйте позже или напишите нам в Telegram.');
     }

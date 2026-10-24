@@ -5,6 +5,8 @@ import { processBroadcasts } from './server/broadcast';
 import { updateRates } from './server/rates';
 import { anonymizeOldLeads, purgeDeletedPhotos } from './server/maintenance';
 import { setVisitorSalt } from './server/events';
+import { appSecret } from './server/secrets';
+import { ensureBotSetup } from './server/bot-setup';
 
 /**
  * Точка входа Worker: страницы и API отдаёт Astro, публичные страницы кешируются на 10 минут,
@@ -12,7 +14,7 @@ import { setVisitorSalt } from './server/events';
  */
 export default {
   async fetch(request, env, ctx) {
-    setVisitorSalt(env.TELEGRAM_WEBHOOK_SECRET);
+    setVisitorSalt(await appSecret(env));
     setBuildVersion(env.CF_VERSION_METADATA?.id);
     const url = new URL(request.url);
     if (request.method === 'GET' && isCacheablePath(url.pathname)) {
@@ -22,7 +24,7 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    setVisitorSalt(env.TELEGRAM_WEBHOOK_SECRET);
+    setVisitorSalt(await appSecret(env));
     const db = getDb(env.DB);
     if (controller.cron === '0 14 * * *') {
       // Ежедневно 14:00 UTC — после публикации курса Банком Израиля.
@@ -36,7 +38,12 @@ export default {
       );
       return;
     }
-    // Каждую минуту — порция рассылки подписчикам.
-    ctx.waitUntil(processBroadcasts(env, db));
+    // Каждую минуту: после нового деплоя — самонастройка бота; затем порция рассылки подписчикам.
+    ctx.waitUntil(
+      (async () => {
+        await ensureBotSetup(env, db).catch((e) => console.error('bot setup failed', e));
+        await processBroadcasts(env, db);
+      })(),
+    );
   },
 } satisfies ExportedHandler<Env>;

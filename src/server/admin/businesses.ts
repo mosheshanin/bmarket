@@ -15,6 +15,7 @@ import { queueLotNotification } from '../broadcast';
 import { previewSecret } from '../card';
 import { imageUrl } from '../public';
 import { siteUrl } from '../telegram';
+import { copyPhoto, putPhoto } from '../storage';
 
 export const FIRST_LOT_NUMBER = 1001;
 export const MAX_PHOTOS = 15;
@@ -247,10 +248,8 @@ export async function duplicateBusiness(env: Env, db: DB, admin: AdminContext, i
   const now = Date.now();
   for (const p of photos) {
     const keys = photoKeys(copy.lotNumber);
-    for (const [from, to] of [[p.r2Key, keys.large], [p.r2KeySmall, keys.small]] as const) {
-      const obj = await env.PHOTOS.get(from);
-      if (obj) await env.PHOTOS.put(to, obj.body, { httpMetadata: obj.httpMetadata });
-    }
+    await copyPhoto(env, p.r2Key, keys.large);
+    await copyPhoto(env, p.r2KeySmall, keys.small);
     await db.insert(businessPhotos).values({
       businessId: copy.id, r2Key: keys.large, r2KeySmall: keys.small, width: p.width, height: p.height,
       sortOrder: p.sortOrder, alt: p.alt, createdAt: now,
@@ -293,8 +292,8 @@ export async function addPhoto(env: Env, db: DB, admin: AdminContext, id: number
   if ((cnt?.n ?? 0) >= MAX_PHOTOS) throw new HttpError(400, `Не больше ${MAX_PHOTOS} фото`);
 
   const keys = photoKeys(b.lotNumber, fmt);
-  const httpMetadata = { contentType: fmt === 'webp' ? 'image/webp' : 'image/jpeg', cacheControl: 'public, max-age=31536000, immutable' };
-  await Promise.all([env.PHOTOS.put(keys.large, lb, { httpMetadata }), env.PHOTOS.put(keys.small, sb, { httpMetadata })]);
+  const contentType = fmt === 'webp' ? 'image/webp' : 'image/jpeg';
+  await Promise.all([putPhoto(env, keys.large, lb, contentType), putPhoto(env, keys.small, sb, contentType)]);
   const alt = String(form.get('alt') ?? '').slice(0, 200) || null;
   const [photo] = await db
     .insert(businessPhotos)

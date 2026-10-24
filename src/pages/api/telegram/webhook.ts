@@ -3,11 +3,12 @@ import { webhookCallback } from 'grammy';
 import { createBot } from '../../../bot/bot';
 import { safeEqual } from '../../../lib/crypto';
 import { db, env } from '../../../server/site';
+import { appSecret } from '../../../server/secrets';
 
 /** Вебхук бота: принимаются только запросы с верным X-Telegram-Bot-Api-Secret-Token. */
 export const POST: APIRoute = async ({ request }) => {
   const secret = request.headers.get('x-telegram-bot-api-secret-token') ?? '';
-  if (!env.TELEGRAM_WEBHOOK_SECRET || !safeEqual(secret, env.TELEGRAM_WEBHOOK_SECRET)) {
+  if (!env.TELEGRAM_BOT_TOKEN || !safeEqual(secret, await appSecret(env))) {
     return new Response('Forbidden', { status: 403 });
   }
   const bot = createBot(env, db());

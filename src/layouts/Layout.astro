@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { site } from '../server/site';
+import manropeCyrillic from '@fontsource-variable/manrope/files/manrope-cyrillic-wght-normal.woff2?url';
 
 interface Props {
   title: string;
@@ -48,6 +49,7 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {ogImage && <meta property="og:image" content={ogImage} />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href={manropeCyrillic} as="font" type="font/woff2" crossorigin />
     {ldJson.map((j) => <script type="application/ld+json" set:html={j} />)}
     <!-- Внутри Telegram: пометить документ и подключить SDK мини-приложения (в браузере не грузится). -->
     <script is:inline>

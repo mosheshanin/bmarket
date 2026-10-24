@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+/* Шрифт Manrope (вариативный, кириллица + латиница), раздаётся вместе с приложением. */
+@import '@fontsource-variable/manrope/wght.css';
 
 /*
  * Нейтральная тема, подстраивается под Telegram (themeParams → --tg-theme-*),
@@ -64,7 +66,7 @@
   --color-warn: var(--warn-bg);
   --radius-card: var(--radius);
   --shadow-card: var(--shadow);
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-sans: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
 }
 
 @layer base {

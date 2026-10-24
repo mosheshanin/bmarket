@@ -1,5 +1,5 @@
 # Скопируйте в .dev.vars для локального запуска (файл в .gitignore).
-# В Cloudflare секреты задаются через `wrangler secret put <ИМЯ>`.
+# В Cloudflare секреты задаются в панели Worker → Settings → Variables and Secrets или `wrangler secret put`.
 TELEGRAM_BOT_TOKEN=123456:TEST-TOKEN-FOR-LOCAL-DEV
 TELEGRAM_WEBHOOK_SECRET=local-webhook-secret
 TURNSTILE_SECRET_KEY=

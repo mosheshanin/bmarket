@@ -39,4 +39,4 @@ INSERT INTO categories (name, slug, sort_order) VALUES
 
 -- Стартовый курс Банка Израиля; дальше обновляется ежедневной задачей.
 INSERT INTO exchange_rates (date, usd_ils, eur_ils, source, fetched_at) VALUES
-  ('2026-10-23', 3.112, 3.4844, 'seed', 1761213600000);
+  ('2026-10-23', 3.112, 3.4844, 'seed', 1792756800000);
