@@ -4,16 +4,14 @@ import type { CityWithCount } from '../server/public';
 interface Props {
   cities: CityWithCount[];
   activeSlug?: string;
-  total: number;
+  /** Не используется (плашка «Все города» убрана), оставлено для совместимости вызовов. */
+  total?: number;
 }
-const { cities, activeSlug, total } = Astro.props;
+const { cities, activeSlug } = Astro.props;
 ---
 
 <nav aria-label="Города" class="-mx-4 mb-4">
   <ul class="no-scrollbar flex gap-2 overflow-x-auto px-4 py-1" data-city-ribbon>
-    <li>
-      <a href="/" class="chip" aria-current={!activeSlug ? 'page' : undefined}>Все города · {total}</a>
-    </li>
     {
       cities.map((c) => (
         <li>

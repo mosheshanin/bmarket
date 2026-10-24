@@ -5,7 +5,7 @@ import MarkdownEditor from '../admin/MarkdownEditor';
 import PhotoManager from '../admin/PhotoManager';
 import type { BusinessDetail, Photo } from '../admin/types';
 import { getWebApp, isTg, storageGet, storageSet } from '../scripts/tg';
-import { EXTRAS, extraPrice, orderTotal } from '../lib/extras';
+import { EXTRAS, EXTRAS_WHY, extraPrice, orderTotal } from '../lib/extras';
 import { INCLUDED_LABELS, LEGAL_FORM_LABELS, LICENSE_LABELS, formatPayback, paybackMonths } from '../lib/format';
 
 /**
@@ -588,7 +588,15 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
             <p className="rounded-card bg-success/10 p-3 text-sm">Всё заполнено — можно отправлять.</p>
           )}
           <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold">Дополнительно — повышают доверие покупателей</p>
+            <div className="tinted tone-green p-3.5">
+              <p className="font-semibold">Продайте быстрее и дороже</p>
+              <ul className="mt-2 flex flex-col gap-1.5 text-sm">
+                {EXTRAS_WHY.map((t) => (
+                  <li key={t} className="flex gap-2"><span className="tone-text font-bold" aria-hidden="true">✓</span><span>{t}</span></li>
+                ))}
+              </ul>
+            </div>
+            <p className="mt-1 text-sm font-semibold">Дополнительные услуги</p>
             {EXTRAS.map((x) => {
               const on = (form.extrasOrdered ?? []).includes(x.key);
               return (
@@ -600,7 +608,8 @@ function EditForm({ id, me, onChanged }: { id: number; me: Me; onChanged: () => 
                       <span className="font-semibold">{x.title}</span>
                       <span className="font-bold">{ils(extraPrice(detail, x.key))}</span>
                     </span>
-                    <span className="mt-0.5 block text-sm text-hint">{x.sell}</span>
+                    <span className="mt-0.5 block text-sm">{x.why}</span>
+                    <span className="mt-1 block text-xs text-hint">{x.sell}</span>
                   </span>
                 </label>
               );
