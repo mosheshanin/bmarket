@@ -189,6 +189,10 @@ function PromoBlock() {
             <li key={c.name}><img src={c.icon} alt="" width="18" height="18" />{c.name}</li>
           ))}
         </ul>
+        <div className="promo-club">
+          <span className="promo-club-tile" aria-hidden="true">HBC</span>
+          <p>Объявление увидят все участники клуба <b>{PROMO.club}</b></p>
+        </div>
       </div>
     </section>
   );

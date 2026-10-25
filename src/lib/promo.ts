@@ -10,4 +10,6 @@ export const PROMO = {
     { name: 'Яндекс', icon: '/brands/yandex.svg' },
   ],
   monthlyVisitors: 6000,
+  /** Клуб предпринимателей, участникам которого показываются объявления. */
+  club: 'HaifaBusinessClub',
 } as const;

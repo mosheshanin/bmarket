@@ -513,4 +513,15 @@ a {
     box-shadow: 0 4px 12px rgba(12, 16, 36, 0.18);
   }
   .promo-channels img { display: block; width: 18px; height: 18px; flex-shrink: 0; }
+  .promo-club {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .promo-club p { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; color: rgba(255, 255, 255, 0.88); text-wrap: pretty; }
+  .promo-club b { color: #fff; font-weight: 900; }
+  .promo-club-tile {
+    display: flex; flex-shrink: 0; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.32);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); font-size: 11px; font-weight: 900; letter-spacing: 0.04em;
+  }
 }
