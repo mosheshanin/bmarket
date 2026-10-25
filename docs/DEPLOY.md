@@ -8,10 +8,11 @@
 GitHub mosheshanin/bmarket (main) ──push──▶ Cloudflare Workers Builds ──▶ Worker «bmarket»
                                                                          ├─ D1 catalog-prod (данные)
                                                                          ├─ KV bmarket-photos (фото)
-                                                                         ├─ static assets (JS/CSS/шрифты, демо-фото)
+                                                                         ├─ static assets (JS/CSS/шрифты, значки /brands)
                                                                          ├─ cron * * * * *  — самонастройка бота, рассылки
                                                                          └─ cron 0 14 * * * — курс Банка Израиля, обслуживание
 Telegram ──webhook──▶ /api/telegram/webhook      Банк Израиля ◀── ежедневный запрос курса
+Браузер ──▶ images.unsplash.com (стоковые фото лотов, ключи unsplash:<id>:<ширина>)
 ```
 
 ## Workers Builds (автодеплой)
@@ -32,11 +33,13 @@ Cloudflare → Workers & Pages → `bmarket` → Settings → Build:
 |---|---|
 | `SITE_URL` | `https://bmarket.moshemadwords.workers.dev` — канонические адреса, кнопки бота, вебхук |
 | `PUBLIC_IMAGES_URL` | пусто — фото раздаёт Worker по `/img/…` |
-| `ADMIN_TELEGRAM_IDS` | Telegram ID администраторов через запятую |
+| `ADMIN_TELEGRAM_IDS` | Telegram ID администраторов через запятую (сейчас `352078684,585408206`) |
 | `MANAGERS_CHAT_ID` | ID группы менеджеров |
 | `TELEGRAM_BOT_USERNAME`, `TELEGRAM_APP_SHORT_NAME` | `bismarketbot`, `app` — для ссылок `t.me/<бот>/<app>?startapp=…` |
 | `TURNSTILE_SITE_KEY`, `CF_ANALYTICS_TOKEN` | пусто, заполнить после домена |
 | `PROJECT_NAME` | название бренда |
+| `ONLINE_PAYMENTS` | `"0"` — онлайн-оплата PayPal выключена (`docs/PAYMENTS.md`) |
+| `PAYPAL_ENV`, `PAYPAL_WEBHOOK_ID` | `sandbox`, пусто — для PayPal, когда понадобится |
 
 Секреты (панель Worker → Settings → Variables and Secrets, тип Secret):
 - `TELEGRAM_BOT_TOKEN` — обязательный. Секрет вебхука выводится из него автоматически.
@@ -49,12 +52,21 @@ Cloudflare → Workers & Pages → `bmarket` → Settings → Build:
 - Production: выполнить SQL нового файла в Cloudflare → D1 → `catalog-prod` → Console (или коннектором),
   затем `INSERT INTO d1_migrations (name) VALUES ('<файл>.sql');`.
 - Time Travel (7 дней): Cloudflare → D1 → catalog-prod → Time Travel.
-- Демо-объявления: `node --experimental-strip-types scripts/demo-lots.mjs` → `seed/demo-lots.sql` → выполнить в Console.
+- Коннектор Cloudflare принимает SQL-пакеты до ≈11 КБ — большие файлы выполнять частями.
+- Импорт объявлений: `node --experimental-strip-types scripts/import-israel-2026-10.mjs` → `seed/israel-listings-2026-10.sql`
+  (города, лоты, стоковые фото, публикация и одна рассылка). Повторный запуск безопасен. Перед production —
+  проверить локально: заменить номера лотов на временные, выполнить `wrangler d1 execute DB --local --file …`, посмотреть, удалить.
+- Демо-объявления (сейчас удалены): `scripts/demo-lots.mjs` → `seed/demo-lots.sql`.
 
 ## Бот
 
-Настраивается сам (см. `src/server/bot-setup.ts`). Чтобы принудительно перенастроить — удалить строку
-`DELETE FROM settings WHERE key = 'bot_setup';` в D1: через минуту cron настроит заново.
+Настраивается сам (см. `src/server/bot-setup.ts`): вебхук, команды, кнопка меню «Каталог» — после каждого деплоя;
+описание и короткое описание — только если они пустые (текст из BotFather не перезаписывается).
+Чтобы принудительно перенастроить — `DELETE FROM settings WHERE key = 'bot_setup';` в D1: через минуту cron настроит заново.
+
+В BotFather владелец задаёт вручную: описание (Edit Description), «О боте» (Edit About), картинку описания
+(GIF/MP4 320×180 или картинка 640×360), аватар, главное мини-приложение (Bot Settings → Configure Mini App —
+кнопка «Открыть» в списке чатов и ссылки `t.me/bismarketbot?startapp=…`).
 Запасной путь с компьютера: `TELEGRAM_BOT_TOKEN=… SITE_URL=… npm run bot:setup` (+ `TELEGRAM_WEBHOOK_SECRET`, если задан).
 
 ## Домен (когда появится)
@@ -65,7 +77,7 @@ Cloudflare → Workers & Pages → `bmarket` → Settings → Build:
 4. Включить Turnstile (Managed) и Web Analytics для домена, заполнить ключи.
 5. Google Search Console → домен → `https://<домен>/sitemap.xml`.
 
-Кеш страниц (Cache API) работает только на собственном домене; на `*.workers.dev` страницы отдаются без кеша.
+Кеш страниц — Cache API, 10 минут, ключ включает версию Worker. Прямые правки в D1 (коннектором) видны после следующего деплоя или через 10 минут.
 
 ## Резервные копии
 
@@ -82,7 +94,7 @@ KV: 100 000 чтений и **1 000 записей в день** (одно фо�
 ## Чек-лист ручной проверки
 
 - [ ] Мини-приложение открывается в Telegram на iOS, Android и Desktop; заставка и тёмная тема корректны.
-- [ ] `https://t.me/bismarketbot/app?startapp=lot-1001` открывает нужную карточку (после `/newapp`).
+- [ ] `https://t.me/bismarketbot?startapp=lot-1014` открывает нужную карточку (после включения главного мини-приложения).
 - [ ] Администратор создаёт лот с 10 фото и публикует — лот сразу в каталоге.
 - [ ] Заявка приходит в группу ≤ 10 с; «Взять в работу» меняет статус в админке.
 - [ ] Подписчик получает уведомление о новом лоте; повторная публикация рассылку не вызывает.

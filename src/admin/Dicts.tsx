@@ -85,7 +85,7 @@ export default function Dicts() {
   return (
     <div className="flex flex-col gap-3">
       <h1 className="text-xl font-extrabold">Справочники</h1>
-      <p className="text-sm text-hint">Город или отрасль с объявлениями удалить нельзя — только переименовать. Галочка у города — доступен в каталоге, формах и опросе; выключенные города ждут запуска («Скоро! +весь Израиль»).</p>
+      <p className="text-sm text-hint">Город или отрасль с объявлениями удалить нельзя — только переименовать. Галочка у города — доступен в каталоге, формах и опросе; выключенный город скрыт везде, его страница отвечает 404.</p>
       <DictList kind="city" rows={meta.cities} />
       <DictList kind="category" rows={meta.categories} />
     </div>

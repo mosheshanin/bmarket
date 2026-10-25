@@ -454,9 +454,9 @@ const badge = await req(`/api/admin/businesses/${sxid}`, { method: 'PUT', auth: 
 check('админ ставит бейдж', badge.status === 200 && badge.json.business.valuationVerifiedAt > 0);
 await req(`/api/admin/businesses/${sxid}/hide`, { method: 'POST', auth: ADMIN });
 
-// ---------- Только Хайфа ----------
+// ---------- Выключенные города ----------
 const homeH = await req('/?h=' + Date.now());
-check('лента городов: «Скоро! +весь Израиль»', homeH.text.includes('Скоро!') && homeH.text.includes('+весь Израиль'));
+check('лента городов без бейджа «Скоро»', !homeH.text.includes('+весь Израиль') && homeH.text.includes('Хайфа · '));
 check('выключенные города не в ленте', !/Тель-Авив-Яффо · \d/.test(homeH.text));
 check('страница выключенного города — 404', (await req('/city/tel-aviv')).status === 404);
 check('продавцу доступна только Хайфа', (await req('/api/seller/me', { auth: SELLER })).json?.cities?.map((c) => c.name).join() === 'Хайфа');

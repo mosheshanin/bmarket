@@ -27,14 +27,15 @@ src/server/              серверная логика (public, leads, broadca
                          seller + paypal — объявления продавцов и оплата, settings, admin/*)
 src/bot/bot.ts           команды и кнопки бота
 src/admin/               React-админка (открывается только внутри Telegram)
-src/seller/              «Мои объявления» продавца (/sell): черновик, оплата PayPal, запросы на изменение
+src/seller/              «Мои объявления» продавца (/sell): черновик, заявка на размещение (PayPal выключен), промо-блок, запросы на изменение
 src/onboarding/          опрос при первом запуске и «Подборка для вас» (грузится только в Telegram на главной)
 src/components/          Astro/React-компоненты публичной части (Splash.astro — заставка при открытии)
-src/lib/                 чистые функции: форматы, slug, markdown, initData, crypto
+src/lib/                 чистые функции: форматы, slug, markdown, initData, crypto; extras (платные услуги), promo
 src/db/schema.ts         схема БД; миграции — migrations/ (drizzle-kit)
-seed/                    test-lots.sql + photos — локальные тесты; demo-lots.sql — 10 демо-лотов для production
-                         (фото — Unsplash, ключи `unsplash:<id>:<ширина>`, см. scripts/demo-lots.mjs)
-scripts/                 генератор демо-SQL, проверка размера, setup-bot (запасной вариант)
+seed/                    test-lots.sql + photos — локальные тесты; haifa-*/israel-* — импорт реальных объявлений
+                         в production (фото — Unsplash, ключи `unsplash:<id>:<ширина>`, на сайте «Фото для иллюстрации»)
+scripts/                 генераторы импорта (import-*-2026-10.mjs), демо-SQL (демо-лоты удалены), проверка размера, setup-bot
+public/brands/           значки Facebook/Google/Яндекса для промо-блока продавца (источники — docs/BRAND-ASSETS.md)
 tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозной на Worker), screens.mjs (скриншоты)
 ```
 
