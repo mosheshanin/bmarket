@@ -171,24 +171,24 @@ function OpenInTelegram({ botLink }: { botLink: string | null }) {
 
 /** «Ваше объявление заметят»: где рекламируется каталог и сколько у него посетителей. */
 function PromoBlock() {
-  const visitors = groupDigits(PROMO.monthlyVisitors);
+  const names = PROMO.channels.map((c) => c.name);
   return (
     <section className="promo-block" aria-labelledby="promo-title">
       <div className="promo-aurora" aria-hidden="true"><i /><i /><i /></div>
-      <div className="relative">
-        <p id="promo-title" className="promo-title">Ваше объявление заметят</p>
+      <div className="promo-body">
+        <h2 id="promo-title" className="promo-title">Ваше объявление заметят</h2>
         <p className="promo-text">
-          Мы запустили рекламу каталога в {PROMO.channels.slice(0, -1).join(', ')} и {PROMO.channels[PROMO.channels.length - 1]} — покупатели приходят к нам сами.
+          Мы запустили рекламу каталога в {names.slice(0, -1).join(', ')} и&nbsp;{names[names.length - 1]}. Покупатели приходят к&nbsp;нам сами.
         </p>
-        <div className="promo-row">
-          <div className="promo-stat">
-            <span className="promo-num">{visitors}</span>
-            <span className="promo-cap">посетителей каталога в&nbsp;месяц</span>
-          </div>
-          <ul className="promo-channels" aria-label="Где идёт реклама">
-            {PROMO.channels.map((c) => <li key={c}>{c}</li>)}
-          </ul>
+        <div className="promo-stat">
+          <span className="promo-num">{groupDigits(PROMO.monthlyVisitors)}</span>
+          <span className="promo-cap">посетителей каталога в&nbsp;месяц</span>
         </div>
+        <ul className="promo-channels" aria-label="Где идёт реклама">
+          {PROMO.channels.map((c) => (
+            <li key={c.name}><img src={c.icon} alt="" width="18" height="18" />{c.name}</li>
+          ))}
+        </ul>
       </div>
     </section>
   );

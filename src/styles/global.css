@@ -497,18 +497,20 @@ a {
   .promo-aurora i:nth-child(1) { width: 55%; height: 70%; left: 8%; top: 8%; background: #4f46e5; }
   .promo-aurora i:nth-child(2) { width: 45%; height: 60%; right: 6%; top: 20%; background: #0ea5e9; opacity: 0.8; }
   .promo-aurora i:nth-child(3) { width: 45%; height: 55%; left: 35%; bottom: 4%; background: #a855f7; opacity: 0.7; }
-  .promo-title { margin: 0; font-size: 20px; font-weight: 900; line-height: 1.2; }
-  .promo-text { margin: 6px 0 0; font-size: 14px; font-weight: 600; line-height: 1.45; color: rgba(255, 255, 255, 0.82); }
-  .promo-row { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-  .promo-stat { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .promo-body { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .promo-title { margin: 0; font-size: 20px; font-weight: 900; line-height: 1.2; text-wrap: balance; }
+  .promo-text { margin: -4px 0 0; font-size: 14px; font-weight: 600; line-height: 1.45; color: rgba(255, 255, 255, 0.85); text-wrap: pretty; max-width: 34rem; }
+  .promo-stat { display: flex; flex-direction: column; gap: 2px; }
   .promo-num {
-    font-size: 34px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums;
+    font-size: 36px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums;
     background: linear-gradient(90deg, #67e8f9, #c4b5fd 50%, #f0abfc); -webkit-background-clip: text; background-clip: text; color: transparent;
   }
-  .promo-cap { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.8); max-width: 9.5rem; line-height: 1.25; }
-  .promo-channels { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .promo-cap { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.8); }
+  .promo-channels { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
   .promo-channels li {
-    padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 800;
-    background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.26);
+    display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 8px; border-radius: 999px;
+    background: #fff; color: #1e1b4b; font-size: 13px; font-weight: 800; line-height: 1;
+    box-shadow: 0 4px 12px rgba(12, 16, 36, 0.18);
   }
+  .promo-channels img { display: block; width: 18px; height: 18px; flex-shrink: 0; }
 }
