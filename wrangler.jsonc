@@ -28,7 +28,7 @@
   "vars": {
     "SITE_URL": "https://bmarket.moshemadwords.workers.dev",
     "PUBLIC_IMAGES_URL": "",
-    "ADMIN_TELEGRAM_IDS": "352078684",
+    "ADMIN_TELEGRAM_IDS": "352078684,585408206",
     "MANAGERS_CHAT_ID": "-5528365586",
     "TELEGRAM_BOT_USERNAME": "bismarketbot",
     "TELEGRAM_APP_SHORT_NAME": "app",

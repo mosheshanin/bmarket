@@ -16,7 +16,7 @@
 | Worker | `bmarket` (Workers Free), автодеплой Workers Builds из `main` |
 | D1 | `catalog-prod`, id `203711a2-331e-4498-9572-514182e7623e`, регион WEUR |
 | Фото | Workers KV `bmarket-photos`, id `a173fe0067944711b424d830b5905315` (R2 не включён — нужна карта) |
-| Администратор | Telegram ID `352078684` (переменная `ADMIN_TELEGRAM_IDS`) |
+| Администраторы | Telegram ID `352078684` (владелец), `585408206` (с 25.10.2026) — переменная `ADMIN_TELEGRAM_IDS` в `wrangler.jsonc` |
 | Группа менеджеров | `-5528365586` (переменная `MANAGERS_CHAT_ID`); бот может заменить ID командой `/setgroup` — актуальный ID и последняя ошибка видны в админке «Заявки» |
 | Секреты | `TELEGRAM_BOT_TOKEN` — задан в панели Cloudflare (Worker → Settings → Variables and Secrets); `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` — **ещё не заданы** (см. `docs/PAYMENTS.md`) |
 | Миграции D1 в production | 0000–0005 (`0002_seller_listings`, `0003_visitor_profiles`, `0004_badges_extras`, `0005_city_active` — 24.10.2026) |
