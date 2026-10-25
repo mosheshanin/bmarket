@@ -70,6 +70,8 @@ function Onboarding({ initialProfile, openSurvey, preview, openListing }: { init
     const active = buyer && onlyMine && matching.length > 0;
     const set = new Set(matching.map((m) => m.el));
     for (const i of items) i.el.classList.toggle('hidden', active && !set.has(i.el));
+    // Сетка карточек пересчитывает «Показать ещё» по оставшимся карточкам.
+    window.dispatchEvent(new Event('bm:grid-filter'));
   }, [buyer, onlyMine, matching, items]);
 
   useEffect(() => {

@@ -7,39 +7,70 @@ interface Props {
   rate: DisplayRate | null;
 }
 const { items, rate } = Astro.props;
-// Больше 50 лотов — подгрузка по 20 при прокрутке (раздел 5.1).
-const PAGE = 20;
-const paginate = items.length > 50;
+/**
+ * Сразу видно 5 карточек, кнопка «Показать ещё» открывает следующие 5 без перезагрузки.
+ * Все карточки есть в HTML (для поисковиков), лишние скрыты атрибутом hidden.
+ * Фильтр «Для вас» (онбординг) прячет карточки классом .hidden и шлёт событие bm:grid-filter —
+ * тогда счёт начинается заново по оставшимся карточкам.
+ */
+const PAGE = 5;
 ---
 
-<ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-listing-grid data-page-size={paginate ? PAGE : undefined}>
+<div data-grid-wrap>
+  <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" data-listing-grid data-page-size={PAGE}>
+    {
+      items.map((item, i) => (
+        <li
+          data-idx={i}
+          hidden={i >= PAGE ? true : undefined}
+          data-category={item.categoryId ?? undefined}
+          data-city={item.cityId ?? undefined}
+          data-price={item.priceIls ?? undefined}
+          data-payback={item.paybackMonths ?? undefined}
+        >
+          <ListingCard item={item} rate={rate} eager={i < 2} />
+        </li>
+      ))
+    }
+  </ul>
   {
-    items.map((item, i) => (
-      <li
-        data-idx={i}
-        hidden={paginate && i >= PAGE ? true : undefined}
-        data-category={item.categoryId ?? undefined}
-        data-city={item.cityId ?? undefined}
-        data-price={item.priceIls ?? undefined}
-        data-payback={item.paybackMonths ?? undefined}
-      >
-        <ListingCard item={item} rate={rate} eager={i < 2} />
-      </li>
-    ))
+    items.length > PAGE && (
+      <div class="mt-5 flex justify-center">
+        <button type="button" class="btn btn-secondary show-more" data-show-more>
+          Показать ещё <span data-show-more-count>{Math.min(PAGE, items.length - PAGE)}</span>
+          <span class="show-more-left" data-show-more-left>из {items.length - PAGE}</span>
+        </button>
+      </div>
+    )
   }
-</ul>
-{paginate && <div data-grid-sentinel class="h-10" />}
+</div>
 <script>
-  const grid = document.querySelector<HTMLElement>('[data-listing-grid][data-page-size]');
-  const sentinel = document.querySelector('[data-grid-sentinel]');
-  if (grid && sentinel) {
-    const size = Number(grid.dataset.pageSize);
-    const io = new IntersectionObserver((entries) => {
-      if (!entries.some((e) => e.isIntersecting)) return;
-      const hidden = [...grid.querySelectorAll<HTMLElement>('li[hidden]')].slice(0, size);
-      hidden.forEach((li) => (li.hidden = false));
-      if (!grid.querySelector('li[hidden]')) io.disconnect();
-    }, { rootMargin: '600px' });
-    io.observe(sentinel);
+  for (const wrap of document.querySelectorAll<HTMLElement>('[data-grid-wrap]')) {
+    const grid = wrap.querySelector<HTMLElement>('[data-listing-grid]')!;
+    const btn = wrap.querySelector<HTMLButtonElement>('[data-show-more]');
+    if (!btn) continue;
+    const size = Number(grid.dataset.pageSize) || 5;
+    const items = [...grid.querySelectorAll<HTMLLIElement>(':scope > li')];
+    let shown = size;
+    const apply = () => {
+      // Учитываем только карточки, которые не убрал фильтр «Для вас».
+      const eligible = items.filter((li) => !li.classList.contains('hidden'));
+      eligible.forEach((li, i) => (li.hidden = i >= shown));
+      const left = Math.max(0, eligible.length - shown);
+      btn.parentElement!.hidden = left === 0;
+      btn.querySelector('[data-show-more-count]')!.textContent = String(Math.min(size, left));
+      btn.querySelector('[data-show-more-left]')!.textContent = `из ${left}`;
+    };
+    btn.addEventListener('click', () => {
+      const firstNew = items.filter((li) => !li.classList.contains('hidden'))[shown];
+      shown += size;
+      apply();
+      // Фокус — на первую новую карточку, чтобы с клавиатуры и экранной лупой было видно, что добавилось.
+      firstNew?.querySelector<HTMLElement>('a')?.focus({ preventScroll: true });
+    });
+    window.addEventListener('bm:grid-filter', () => {
+      shown = size;
+      apply();
+    });
   }
 </script>

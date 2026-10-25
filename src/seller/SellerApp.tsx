@@ -6,7 +6,8 @@ import PhotoManager from '../admin/PhotoManager';
 import type { BusinessDetail, Photo } from '../admin/types';
 import { getWebApp, isTg, storageGet, storageSet } from '../scripts/tg';
 import { EXTRAS, EXTRAS_WHY, extraPrice, orderTotal } from '../lib/extras';
-import { INCLUDED_LABELS, LEGAL_FORM_LABELS, LICENSE_LABELS, formatPayback, paybackMonths } from '../lib/format';
+import { INCLUDED_LABELS, LEGAL_FORM_LABELS, LICENSE_LABELS, formatPayback, groupDigits, paybackMonths } from '../lib/format';
+import { PROMO } from '../lib/promo';
 
 /**
  * «Мои объявления» — продавец сам заполняет объявление (черновик сохраняется автоматически),
@@ -168,6 +169,31 @@ function OpenInTelegram({ botLink }: { botLink: string | null }) {
   );
 }
 
+/** «Ваше объявление заметят»: где рекламируется каталог и сколько у него посетителей. */
+function PromoBlock() {
+  const visitors = groupDigits(PROMO.monthlyVisitors);
+  return (
+    <section className="promo-block" aria-labelledby="promo-title">
+      <div className="promo-aurora" aria-hidden="true"><i /><i /><i /></div>
+      <div className="relative">
+        <p id="promo-title" className="promo-title">Ваше объявление заметят</p>
+        <p className="promo-text">
+          Мы запустили рекламу каталога в {PROMO.channels.slice(0, -1).join(', ')} и {PROMO.channels[PROMO.channels.length - 1]} — покупатели приходят к нам сами.
+        </p>
+        <div className="promo-row">
+          <div className="promo-stat">
+            <span className="promo-num">{visitors}</span>
+            <span className="promo-cap">посетителей каталога в&nbsp;месяц</span>
+          </div>
+          <ul className="promo-channels" aria-label="Где идёт реклама">
+            {PROMO.channels.map((c) => <li key={c}>{c}</li>)}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------- список ----------
 function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
   const toast = useToast();
@@ -215,6 +241,7 @@ function MyListings({ me, onChanged }: { me: Me; onChanged: () => void }) {
   return (
     <div className="flex flex-col gap-3">
       <h1 className="text-2xl font-extrabold">Мои объявления</h1>
+      <PromoBlock />
       <section className="card p-4 text-sm">
         <p className="font-semibold">Как это работает</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5 text-hint">
