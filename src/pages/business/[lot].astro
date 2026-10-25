@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import Gallery from '../../components/Gallery.tsx';
 import GonePage from '../../components/GonePage.astro';
 import { loadCard, youtubeId } from '../../server/card';
-import { getDisplayRate, imageUrl } from '../../server/public';
+import { getDisplayRate, imageUrl, isIllustrativePhoto } from '../../server/public';
 import { db, env, site } from '../../server/site';
 import {
   formatIls, formatUsd, formatEur, formatPayback, formatIsoDate, groupDigits,
@@ -39,6 +39,7 @@ const photos = b.photos.map((p) => ({
   width: p.width,
   height: p.height,
   alt: p.alt || b.publicTitle,
+  illustrative: isIllustrativePhoto(p.r2Key),
 }));
 const ogImage = photos[0] ? new URL(photos[0].src, s.url).href : null;
 const priceStr = b.priceIls ? formatIls(b.priceIls) : null;

@@ -1,5 +1,5 @@
 -- 30 объявлений из открытых источников, 25.10.2026 (сгенерировано scripts/import-haifa-2026-10.mjs).
--- Все — черновики без фото; источник и что уточнить — в скрытых заметках.
+-- Все — черновики; источник и что уточнить — в скрытых заметках. Стоковые фото — seed/haifa-photos-2026-10.sql.
 INSERT INTO businesses (lot_number, slug, public_title, category_id, city_id, area_note, price_ils, price_negotiable, monthly_revenue_ils, monthly_profit_ils, payback_months, employees_count, area_sqm, rent_monthly_ils, business_license, included_in_sale, reason_for_sale, short_description, description, exact_address, internal_notes, created_at, updated_at, created_by, updated_by) SELECT 1014, 'koreyskiy-restoran-v-nizhnem-gorode', 'Корейский ресторан в Нижнем городе', (SELECT id FROM categories WHERE slug = 'cafe-restaurants'), (SELECT id FROM cities WHERE slug = 'haifa'), 'Нижний город', 750000, 0, 101000, 20000, 38, 5, 80, 6000, NULL, '["equipment","furniture"]', 'Владелец переезжает в Европу на учёбу.', 'Ресторан корейской кухни на 30–35 мест с высоким рейтингом гостей и доставкой через 10bis и Wolt.', 'Ресторан **корейской кухни** в Нижнем городе Хайфы, около 80 м².
 
 - 30–35 посадочных мест, 20–40 гостей в день в зале;

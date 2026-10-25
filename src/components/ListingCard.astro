@@ -1,6 +1,6 @@
 ---
 import type { PublicListing, DisplayRate } from '../server/public';
-import { imageUrl, isNew } from '../server/public';
+import { imageUrl, isIllustrativePhoto, isNew } from '../server/public';
 import { env } from '../server/site';
 import { formatIls, formatUsd, formatPayback, groupDigits } from '../lib/format';
 import { businessPath } from '../lib/slug';
@@ -42,6 +42,7 @@ const trust = [item.valuationVerifiedAt && 'valuation', item.auditPassedAt && 'a
       )
     }
     {fresh && <span class="badge absolute left-2.5 top-2.5 bg-accent text-accent-text shadow-sm">Новое</span>}
+    {cover && isIllustrativePhoto(cover.r2Key) && <span class="photo-illustr absolute right-2.5 top-2.5">Фото для иллюстрации</span>}
     {
       trust.length > 0 && (
         <div class="absolute bottom-2.5 left-2.5 right-2.5 flex flex-wrap gap-1.5">

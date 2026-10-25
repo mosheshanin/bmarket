@@ -248,6 +248,11 @@ export function isStoredPhotoKey(key: string): boolean {
   return !key.startsWith('demo/') && !key.startsWith('unsplash:');
 }
 
+/** Стоковые фото (Unsplash) — не фото самого бизнеса: на сайте помечаются «Фото для иллюстрации». */
+export function isIllustrativePhoto(key: string): boolean {
+  return key.startsWith('unsplash:');
+}
+
 export function imageUrl(env: { PUBLIC_IMAGES_URL?: string }, key: string): string {
   if (key.startsWith('demo/')) return `/${key}`;
   const u = /^unsplash:([\w-]+):(\d+)$/.exec(key);

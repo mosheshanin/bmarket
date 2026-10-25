@@ -35,6 +35,9 @@ function Tile({ photo, index, onDelete, onAlt }: { photo: Photo; index: number; 
     >
       <img src={photo.urlSmall} alt={photo.alt ?? ''} className="h-full w-full object-cover" draggable={false} />
       {index === 0 && <span className="badge absolute left-1 top-1 bg-accent text-accent-text">Обложка</span>}
+      {photo.urlSmall.includes('images.unsplash.com') && (
+        <span className="badge absolute left-1 top-8 bg-black/60 text-white" title="Стоковое фото: на сайте помечено «Фото для иллюстрации». Замените фото от продавца.">Сток</span>
+      )}
       <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={onDelete} aria-label="Удалить фото"
         className="absolute right-1 top-1 h-9 w-9 rounded-full bg-black/60 text-lg text-white">×</button>
       {onAlt && (

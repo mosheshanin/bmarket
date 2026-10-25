@@ -6,6 +6,8 @@ export interface GalleryPhoto {
   width: number;
   height: number;
   alt: string;
+  /** Стоковое фото, не фото самого бизнеса. */
+  illustrative?: boolean;
 }
 
 /** Галерея: свайп, счётчик «3 / 12», полноэкранный просмотр по нажатию. */
@@ -78,6 +80,7 @@ export default function Gallery({ photos, title }: { photos: GalleryPhoto[]; tit
           </button>
         ))}
       </div>
+      {photos[index]?.illustrative && <span className="photo-illustr pointer-events-none absolute left-3 top-3">Фото для иллюстрации</span>}
       {photos.length > 1 && (
         <>
           <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-sm font-semibold text-white">
@@ -93,7 +96,7 @@ export default function Gallery({ photos, title }: { photos: GalleryPhoto[]; tit
       {full && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black" role="dialog" aria-modal="true" aria-label="Просмотр фото">
           <div className="flex items-center justify-between p-3 text-white">
-            <span className="font-semibold">{index + 1} / {photos.length}</span>
+            <span className="font-semibold">{index + 1} / {photos.length}{photos[index]?.illustrative ? ' · фото для иллюстрации' : ''}</span>
             <button type="button" onClick={() => setFull(false)} className="h-11 w-11 rounded-full bg-white/15 text-2xl" aria-label="Закрыть">×</button>
           </div>
           <div ref={fullStrip} onScroll={(e) => onScroll(e.currentTarget)} className="no-scrollbar flex flex-1 snap-x snap-mandatory overflow-x-auto">

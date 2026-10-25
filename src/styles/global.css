@@ -474,4 +474,11 @@ a {
   @keyframes admin-fade { from { opacity: 0; } }
   @keyframes admin-up { from { transform: translateY(40px); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .admin-sheet, .admin-sheet-backdrop { animation: none; } .admin-tab-pill { transition: none; } }
+
+  /* Пометка на стоковых фото (Unsplash): «Фото для иллюстрации». */
+  .photo-illustr {
+    display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px;
+    background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 11px; font-weight: 700; line-height: 1.3;
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  }
 }
