@@ -51,9 +51,14 @@ await call('setMyCommands', {
   ],
 });
 await call('setChatMenuButton', { menu_button: { type: 'web_app', text: 'Каталог', web_app: { url: site + '/' } } });
-await call('setMyShortDescription', { short_description: `${name}: готовый бизнес на продажу в Израиле. Каталог, заявки, уведомления о новых предложениях.` });
-await call('setMyDescription', {
-  description: `${name} — каталог готовых бизнесов на продажу в Израиле.\n\n• Кафе, магазины, салоны, производство и услуги\n• Цена, оборот, прибыль и окупаемость\n• Заявка в один клик — менеджер свяжется с вами\n\nНажмите «Старт», чтобы открыть каталог.`,
-});
+// Описания — только если пустые: текст из BotFather не перезаписываем.
+if (!(await call('getMyShortDescription', {})).result?.short_description) {
+  await call('setMyShortDescription', { short_description: `${name}: покупка и продажа бизнеса в Израиле. Каталог, заявки, уведомления о новых предложениях.` });
+}
+if (!(await call('getMyDescription', {})).result?.description) {
+  await call('setMyDescription', {
+    description: `${name} — покупка и продажа бизнеса в Израиле.\n\n• Кафе, магазины, салоны и многое другое\n• Показываем цену, оборот, прибыль и окупаемость\n• Заявка в один клик — менеджер свяжется с вами\n\nНажмите «Старт», чтобы открыть каталог.`,
+  });
+}
 const info = await call('getWebhookInfo', {});
 console.log(info.result);
