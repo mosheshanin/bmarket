@@ -229,6 +229,13 @@ export default function ListingForm({ id: initialId }: { id: number | null }) {
             {b && <span className={`badge mr-2 ${STATUS_TONE[status]}`}>{STATUS_LABEL[status]}</span>}
             {saving ? 'Сохранение…' : dirty ? 'Есть несохранённые изменения' : lastSaved ? `Сохранено ${dt(lastSaved)}` : ''}
           </p>
+          {/* Редкие действия — здесь, чтобы нижняя панель оставалась просторной. */}
+          {status === 'published' && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {detail && <a className="btn btn-secondary !min-h-[38px] !px-3 text-sm" href={detail.path}>Открыть на сайте</a>}
+              <button className="btn btn-secondary !min-h-[38px] !px-3 text-sm text-danger" onClick={hide}>Снять с публикации</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -412,13 +419,11 @@ export default function ListingForm({ id: initialId }: { id: number | null }) {
       )}
 
       <div className="h-16" aria-hidden="true" />
-      {/* Панель действий над вкладками */}
-      <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-card/95 backdrop-blur">
+      {/* Панель действий — прямо над нижним меню (его высота — --admin-nav-h). */}
+      <div className="admin-actions">
         <div className="mx-auto flex max-w-[1200px] gap-2 p-2.5">
-          <button className="btn btn-primary flex-1" onClick={() => save()} disabled={saving || (!dirty && !!id)}>{saving ? 'Сохраняем…' : 'Сохранить'}</button>
-          <button className="btn btn-secondary" onClick={openPreview} disabled={saving}>Предпросмотр</button>
-          {status === 'published' && <button className="btn btn-secondary text-danger" onClick={hide}>Снять</button>}
-          {status === 'published' && detail && <a className="btn btn-secondary" href={detail.path}>Открыть</a>}
+          <button className="btn btn-primary min-w-0 flex-1" onClick={() => save()} disabled={saving || (!dirty && !!id)}>{saving ? 'Сохраняем…' : 'Сохранить'}</button>
+          <button className="btn btn-secondary min-w-0 flex-1" onClick={openPreview} disabled={saving}>Предпросмотр</button>
         </div>
       </div>
     </div>

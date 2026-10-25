@@ -418,10 +418,19 @@ a {
   .step-num-bad { background: var(--danger); color: #fff; }
 
   /* Нижнее меню админ-панели: крупные вкладки с иконками, «пилюля» у активной, лист «Ещё». */
-  .admin-screen { padding-bottom: calc(96px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px))); }
+  /* Высота нижнего меню: 6 + 64 + 6 px + рамка + безопасная зона снизу. Панели над меню опираются на неё. */
+  :root { --admin-nav-h: calc(77px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px))); }
+  .admin-screen { padding-bottom: calc(var(--admin-nav-h) + 20px); }
+  .admin-actions {
+    position: fixed; inset-inline: 0; bottom: var(--admin-nav-h); z-index: 30;
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--card) 95%, transparent);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  }
   .admin-nav {
     position: fixed; inset-inline: 0; bottom: 0; z-index: 40;
     padding: 6px 8px calc(6px + max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px)));
+    min-height: var(--admin-nav-h); box-sizing: border-box;
     background: color-mix(in srgb, var(--card) 92%, transparent);
     -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
     border-top: 1px solid var(--border);
