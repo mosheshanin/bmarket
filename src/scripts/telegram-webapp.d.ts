@@ -38,6 +38,7 @@ interface TgWebApp {
   HapticFeedback?: {
     impactOccurred(s: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft'): void;
     notificationOccurred(t: 'error' | 'success' | 'warning'): void;
+    selectionChanged?(): void;
   };
   requestWriteAccess(cb?: (allowed: boolean) => void): void;
   requestContact(cb?: (shared: boolean, res?: { responseUnsafe?: { contact?: { phone_number?: string } } }) => void): void;

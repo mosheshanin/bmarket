@@ -10,6 +10,7 @@ import LeadView from './LeadView';
 import Dicts from './Dicts';
 import Subscribers from './Subscribers';
 import Stats from './Stats';
+import AdminNav from './Nav';
 
 interface MetaCtx { meta: Meta; reloadMeta: () => Promise<void> }
 const Ctx = createContext<MetaCtx>(null!);
@@ -35,13 +36,7 @@ function useRoute() {
   return hash.replace(/^#\/?/, '').split('/').filter(Boolean);
 }
 
-const TABS: [string, string][] = [
-  ['listings', 'Объявления'],
-  ['leads', 'Заявки'],
-  ['dicts', 'Справочники'],
-  ['subscribers', 'Подписчики'],
-  ['stats', 'Статистика'],
-];
+const TABS = ['listings', 'leads', 'stats', 'dicts', 'subscribers'];
 
 export default function AdminApp() {
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -111,31 +106,14 @@ export default function AdminApp() {
   else if (tab === 'listings' && sub) screen = <ListingForm key={sub} id={sub === 'new' ? null : Number(sub)} />;
   else screen = <Listings />;
 
-  const activeTab = TABS.some(([t]) => t === tab) ? tab : 'listings';
+  const activeTab = TABS.includes(tab) ? tab : 'listings';
   const badge = meta.leadsSummary.unread || 0;
 
   return (
     <Ctx.Provider value={{ meta, reloadMeta }}>
       <ToastProvider>
-        <div className="pb-24">{screen}</div>
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} aria-label="Разделы админ-панели">
-          <ul className="mx-auto grid max-w-[1200px] grid-cols-5">
-            {TABS.map(([t, label]) => (
-              <li key={t}>
-                <a
-                  href={`#/${t}`}
-                  aria-current={activeTab === t ? 'page' : undefined}
-                  className={`relative flex min-h-[56px] flex-col items-center justify-center px-1 text-center text-[11px] font-semibold leading-tight no-underline sm:text-sm ${activeTab === t ? 'text-accent' : 'text-hint'}`}
-                >
-                  {label}
-                  {t === 'leads' && badge > 0 && (
-                    <span className="absolute right-[18%] top-1.5 min-w-5 rounded-full bg-danger px-1 text-[11px] text-white">{badge}</span>
-                  )}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <div className="admin-screen">{screen}</div>
+        <AdminNav active={activeTab} leadsBadge={badge} />
       </ToastProvider>
     </Ctx.Provider>
   );
