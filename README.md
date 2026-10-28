@@ -56,6 +56,6 @@ npm test && npm run test:e2e
 ## Проверки
 - `npm test` — 37 юнит-тестов: подпись initData, скрытые поля, форматы, санитайзер Markdown, курсы валют, адреса фото,
   подбор под ответы опроса, понятные ошибки Telegram, PayPal.
-- `npm run test:e2e` — 180 сквозных проверок на локальном Worker (с поддельным PayPal на :8799).
+- `npm run test:e2e` — 182 сквозных проверок на локальном Worker (с поддельным PayPal на :8799).
 - `NODE_PATH=$(npm root -g) node tests/e2e/screens.mjs` — скриншоты ключевых экранов.
 - CI (`.github/workflows/ci.yml`) прогоняет всё это на каждый push.

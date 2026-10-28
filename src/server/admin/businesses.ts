@@ -365,8 +365,9 @@ export async function listBusinesses(env: Env, db: DB, status?: string) {
     conds.push(isNotNull(businesses.sellerTgId));
   } else {
     if (status && ['draft', 'published', 'hidden'].includes(status)) conds.push(eq(businesses.status, status as 'draft'));
-    // Черновики, которые продавцы ещё заполняют или не оплатили, — только во вкладке «От продавцов».
-    conds.push(sql`not (${businesses.status} = 'draft' and coalesce(${businesses.sellerStage}, '') in ('editing', 'awaiting_payment'))`);
+    // Черновики, которые продавцы ещё заполняют, — только во вкладке «От продавцов».
+    // Отправленные заявки на размещение (ждут оплаты) видны везде: по ним нужно действие менеджера.
+    conds.push(sql`not (${businesses.status} = 'draft' and coalesce(${businesses.sellerStage}, '') = 'editing')`);
   }
   const rows = await db
     .select({

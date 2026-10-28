@@ -80,6 +80,19 @@ export function createBot(env: Env, db: DB): Bot {
         return;
       }
     }
+    // Ссылка «Открыть в админке» из группы менеджеров: администратору — кнопка в админку, остальным — приветствие.
+    const adm = /^(biz|lead)-(\d+)$/.exec(payload);
+    if (adm && isAdminId(env, ctx.from?.id)) {
+      const id = Number(adm[2]);
+      const path = adm[1] === 'biz' ? `/admin#/listings/${id}` : `/admin#/leads/${id}`;
+      let head = adm[1] === 'lead' ? `Заявка №${id}` : 'Объявление';
+      if (adm[1] === 'biz') {
+        const [b] = await db.select({ lotNumber: businesses.lotNumber, title: businesses.publicTitle }).from(businesses).where(eq(businesses.id, id));
+        if (b) head = `Объявление №${b.lotNumber}${b.title ? ` — ${escapeHtml(b.title)}` : ''}`;
+      }
+      await ctx.reply(head, { parse_mode: 'HTML', reply_markup: webAppButton(env, new InlineKeyboard(), 'Открыть в админке', path) });
+      return;
+    }
     const sell = /^sell(?:-(\d+))?$/.exec(payload);
     if (sell) {
       await sellReply(ctx, sell[1] ? `/sell?b=${sell[1]}` : '/sell');

@@ -34,6 +34,15 @@ export function miniAppLink(env: Env, startParam?: string): string | null {
   return startParam ? `${base}?startapp=${encodeURIComponent(startParam)}` : base;
 }
 
+/**
+ * Ссылка «Открыть в админке» для сообщений в группе менеджеров: через чат с ботом (`?start=biz-62`).
+ * Работает без настройки мини-приложения в BotFather; бот отвечает администратору кнопкой, открывающей админку.
+ * (Кнопки web_app в группах Telegram запрещены, а ссылка `t.me/<бот>/<app>` требует /newapp.)
+ */
+export function adminLink(env: Env, kind: 'biz' | 'lead', id: number): string {
+  return botLink(env, `${kind}-${id}`) ?? `${siteUrl(env)}/admin#/${kind === 'biz' ? 'listings' : 'leads'}/${id}`;
+}
+
 export function botLink(env: Env, start?: string): string | null {
   if (!env.TELEGRAM_BOT_USERNAME) return null;
   return `https://t.me/${env.TELEGRAM_BOT_USERNAME}${start ? `?start=${encodeURIComponent(start)}` : ''}`;

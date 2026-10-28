@@ -16,7 +16,7 @@ import {
 import { captureOrder, createOrder, getOrder, orderOutcome, paypalConfigured, paypalMode, type PayPalOrder } from './paypal';
 import { notifySeller } from './seller-notify';
 import { getSettings, setSetting } from './settings';
-import { miniAppLink, notifyManagers, siteUrl } from './telegram';
+import { adminLink, notifyManagers, siteUrl } from './telegram';
 
 /**
  * Объявления, которые продавцы подают сами (страница /sell в мини-приложении).
@@ -407,7 +407,7 @@ async function afterPayment(env: Env, db: DB, businessId: number, pay: Payment |
 }
 
 function adminLinkHtml(env: Env, businessId: number): string {
-  const link = miniAppLink(env, `biz-${businessId}`) ?? `${siteUrl(env)}/admin#/listings/${businessId}`;
+  const link = adminLink(env, 'biz', businessId);
   return `\n<a href="${link}">Открыть в админке</a>`;
 }
 

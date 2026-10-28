@@ -67,7 +67,7 @@ export default function Listings() {
         value={filter}
         onChange={setFilter}
         options={[['all', 'Все'], ['published', 'Опубликованные'], ['draft', 'Черновики'], ['hidden', 'Скрытые'],
-          ['seller', 'От продавцов', (meta.sellerQueue?.inReview ?? 0) + (meta.sellerQueue?.openEditRequests ?? 0)]]}
+          ['seller', 'От продавцов', (meta.sellerQueue?.awaitingPayment ?? 0) + (meta.sellerQueue?.inReview ?? 0) + (meta.sellerQueue?.openEditRequests ?? 0)]]}
       />
       {filter === 'seller' && <SellerOverview />}
       {error && <ErrorBox error={error} onRetry={load} />}

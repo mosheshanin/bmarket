@@ -250,6 +250,8 @@ const upd1 = { update_id: 1, message: { message_id: 1, date: 1, chat: { id: 9990
 check('вебхук без секрета → 403', (await req('/api/telegram/webhook', { method: 'POST', body: upd1 })).status === 403);
 const wh = await req('/api/telegram/webhook', { method: 'POST', body: upd1, headers: { 'x-telegram-bot-api-secret-token': WEBHOOK_SECRET } });
 check('вебхук с секретом → 200', wh.status === 200, `got ${wh.status}`);
+const startBiz = { update_id: 4, message: { message_id: 4, date: 1, chat: { id: ADMIN_ID, type: 'private' }, from: { id: ADMIN_ID, is_bot: false, first_name: 'Админ' }, text: "/start biz-1", entities: [{ type: 'bot_command', offset: 0, length: 6 }] } };
+check('/start biz-ID от администратора обрабатывается', (await req('/api/telegram/webhook', { method: 'POST', body: startBiz, headers: { 'x-telegram-bot-api-secret-token': WEBHOOK_SECRET } })).status === 200);
 
 
 // ---------- Группа менеджеров: диагностика ----------
@@ -327,6 +329,7 @@ check('чужой не загружает фото', (await req(`/api/seller/bus
 const ssub = await req(`/api/seller/businesses/${sid}/submit`, { method: 'POST', auth: SELLER });
 check('отправлено → ждёт оплаты', ssub.status === 200 && ssub.json.business.sellerStage === 'awaiting_payment', ssub.text.slice(0, 200));
 check('после отправки править нельзя', (await req(`/api/seller/businesses/${sid}`, { method: 'PUT', auth: SELLER, body: { publicTitle: 'Новое' } })).status === 409);
+check('админ видит заявку на размещение во «Всех»', (await req('/api/admin/businesses', { auth: ADMIN })).json?.items?.some((r) => r.id === sid && r.sellerStage === 'awaiting_payment'));
 const spay = await req(`/api/seller/businesses/${sid}/pay`, { method: 'POST', auth: SELLER });
 check('PayPal: ссылка на оплату', spay.status === 200 && spay.json.approveUrl.includes('checkoutnow?token=ORDTEST'), spay.text);
 const order1 = spay.json?.orderId;

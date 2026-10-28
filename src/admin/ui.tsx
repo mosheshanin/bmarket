@@ -74,7 +74,8 @@ export function NumberInput({ value, onChange, id, placeholder, suffix }: { valu
 
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: [T, string, number?][]; onChange: (v: T) => void }) {
   return (
-    <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 py-1">
+    // Переносятся на вторую строку, а не уходят за край экрана: все вкладки и их счётчики всегда видны.
+    <div className="flex flex-wrap gap-1.5 py-1">
       {options.map(([v, label, badge]) => (
         <button key={v} type="button" onClick={() => onChange(v)} className="chip !min-h-[40px] !text-sm" aria-current={value === v ? 'page' : undefined}>
           {label}

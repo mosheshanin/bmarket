@@ -4,7 +4,7 @@ import type { DB } from '../db/client';
 import { businesses, leads, type Lead } from '../db/schema';
 import { CONTACT_LABELS, LEAD_STATUS_LABELS, escapeHtml, formatDateTime, formatIls, prettyPhone } from '../lib/format';
 import { GrammyError } from 'grammy';
-import { MANAGERS_CHAT_KEY, MANAGERS_ERROR_KEY, getManagersChat, managersChatId, miniAppLink, sendToManagers, siteUrl, sleep, tgApi } from './telegram';
+import { MANAGERS_CHAT_KEY, MANAGERS_ERROR_KEY, adminLink, getManagersChat, managersChatId, sendToManagers, siteUrl, sleep, tgApi } from './telegram';
 import { getSettings } from './settings';
 import { profileSummary } from './profiles';
 
@@ -64,7 +64,7 @@ export function renderLeadMessage(lead: Lead, lot: LeadLot, buyerRequest?: strin
 export function leadKeyboard(env: Env, lead: Lead): InlineKeyboardMarkup {
   const rows: InlineKeyboardMarkup['inline_keyboard'] = [];
   if (lead.status === 'new') rows.push([{ text: 'Взять в работу', callback_data: `take:${lead.id}` }]);
-  const link = miniAppLink(env, `lead-${lead.id}`) ?? `${siteUrl(env)}/admin#/leads/${lead.id}`;
+  const link = adminLink(env, 'lead', lead.id);
   rows.push([{ text: 'Открыть в админке', url: link }]);
   return { inline_keyboard: rows };
 }
