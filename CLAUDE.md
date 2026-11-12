@@ -54,8 +54,8 @@ NODE_PATH=$(npm root -g) node tests/e2e/screens.mjs   # скриншоты (Play
 ```
 
 ## Деплой
-`git push origin main` → Vercel собирает и выкладывает production; другие ветки → preview. Пока переключение
-не выполнено, `main` = Cloudflare-версия, а код Vercel живёт в ветке `vercel` (`docs/DEPLOY.md`, раздел «Переключение»).
+`git push origin main` → Vercel собирает и выкладывает production (https://market.haifa.business, ≈1 мин);
+другие ветки → preview (`*.vercel.app`, без `SITE_URL` и токена бота). С 12.11.2026 Cloudflare Worker — только резерв.
 Перед push: `npm test`, `npx astro check`, сборка, e2e. Миграции в production (Supabase) — вручную, коннектором Supabase.
 Из облачной среды ассистента нет доступа к api.telegram.org, api.cloudflare.com, *.supabase.co (кроме коннектора) —
 деплой только через `git push`. Коннектор Vercel не видит проект bmarket — панель Vercel через встроенный браузер.

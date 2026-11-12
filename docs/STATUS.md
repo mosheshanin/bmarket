@@ -7,46 +7,33 @@
 Каталог израильских бизнесов на продажу работает в production: сайт + Telegram Mini App + бот.
 Всё из ТЗ (`docs/SPEC.md`, этапы 1–9) реализовано; сверх ТЗ — объявления от продавцов, опрос при первом запуске,
 бейджи проверок, платные услуги, заставка. Отступления — `docs/DECISIONS.md`.
+**12.11.2026 переехал с Cloudflare на Vercel + Supabase** (DECISIONS №45, всё про инфраструктуру — `docs/DEPLOY.md`).
 
 | Что | Значение |
 |---|---|
-| Сайт / мини-приложение | https://bmarket.moshemadwords.workers.dev |
-| Бот | [@bismarketbot](https://t.me/bismarketbot) |
-| Репозиторий | `mosheshanin/bmarket` (приватный), ветка `main` = production |
-| Cloudflare аккаунт | `25497a10c7db07870fa29504e0f464a4` (moshemadwords@gmail.com) |
-| Worker | `bmarket` (Workers Free), автодеплой Workers Builds из `main` |
-| D1 | `catalog-prod`, id `203711a2-331e-4498-9572-514182e7623e`, регион WEUR |
-| Фото | Workers KV `bmarket-photos`, id `a173fe0067944711b424d830b5905315` (R2 не включён — нужна карта); стоковые фото — с CDN Unsplash |
-| Администраторы | Telegram ID `352078684` (владелец), `585408206` (с 25.10.2026) — `ADMIN_TELEGRAM_IDS` в `wrangler.jsonc` |
-| Группа менеджеров | `-5528365586` (`MANAGERS_CHAT_ID`); бот может заменить ID командой `/setgroup` — актуальный ID и последняя ошибка видны в админке «Заявки» |
-| Секреты | `TELEGRAM_BOT_TOKEN` — задан в панели Cloudflare; `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` — не заданы (онлайн-оплата выключена, `docs/PAYMENTS.md`) |
-| Миграции D1 в production | 0000–0005 (последняя — `0005_city_active`, 24.10.2026) |
+| Сайт / мини-приложение | https://market.haifa.business |
+| Бот | [@bismarketbot](https://t.me/bismarketbot), id `8843188217`; вебхук → market.haifa.business (самонастройка 12.11.2026) |
+| Репозиторий | `mosheshanin/bmarket`, ветка `main` = production (Vercel), остальные ветки — preview |
+| Vercel | команда Yoggy `team_NjHdwhg5TkZ0vNhZDxcsjhTx`, проект `bmarket` `prj_3hXJSld0Aa9OgT0QEaTy6pFRuszC`, Hobby, регион fra1 |
+| Supabase | организация HBC, проект `bmarket`, ref `knasmcepypeysxojhdai`, eu-central-1, Postgres 17, Free |
+| Фото | Supabase Storage, закрытый бакет `photos` (раздача `/img/…`); стоковые — CDN Unsplash |
+| Cron | Supabase pg_cron: `bmarket-minute` (* * * * *) и `bmarket-daily` (0 14 * * *) → `/api/cron/*`; секрет — `settings.cron_secret` |
+| Администраторы | Telegram ID `352078684` (владелец), `585408206` — `ADMIN_TELEGRAM_IDS` в Vercel |
+| Группа менеджеров | `-5528365586` (`MANAGERS_CHAT_ID`; бот может заменить командой `/setgroup`) |
+| Секреты | Vercel: `DATABASE_URL`, `SUPABASE_SECRET_KEY`, `TELEGRAM_BOT_TOKEN` (только Production). GitHub, окружение `SUPABASE_DB_URL`: `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEY`, `CLOUDFLARE_API_TOKEN` |
+| Миграции Supabase | `init`, `rls_lockdown`, `photos_bucket_and_cron_extensions`, `pg_net_to_extensions_schema`, `cron_jobs_market_haifa_business` |
+| Резерв (до ≈26.11.2026) | Cloudflare Worker `bmarket.moshemadwords.workers.dev`, D1 `catalog-prod`, KV `bmarket-photos` — без cron и автосборки, данные на 12.11.2026 |
 
+## Переезд на Vercel + Supabase — выполнен 12.11.2026
 
-## Переезд на Vercel + Supabase (идёт, с 12.11.2026)
-
-Цель — `https://market.haifa.business` (Vercel, команда Yoggy, проект `bmarket`). Код — ветка **`vercel`**, всё описано
-в `docs/DEPLOY.md`. До переключения production остаётся на Cloudflare (`main`).
-
-| Что | Значение |
-|---|---|
-| Vercel | команда Yoggy `team_NjHdwhg5TkZ0vNhZDxcsjhTx`, проект `prj_3hXJSld0Aa9OgT0QEaTy6pFRuszC`, регион fra1 |
-| Supabase | организация HBC, проект `bmarket`, ref `knasmcepypeysxojhdai`, eu-central-1, Postgres 17 |
-| Фото | Supabase Storage, закрытый бакет `photos` |
-| Cron | pg_cron + pg_net (задачи создаются при переключении), секрет — `settings.cron_secret` |
-
-- [x] Проект Supabase, схема (14 таблиц), RLS, бакет, расширения pg_cron/pg_net.
-- [x] Код: адаптер Vercel, Postgres, Storage, cron-маршруты, CDN-кеш; 37 юнит + 182 e2e проходят на Postgres; CI на Postgres 17.
-- [x] Обычные переменные окружения в Vercel (Production + Preview).
-- [x] Секреты: `DATABASE_URL`, `SUPABASE_SECRET_KEY` в Vercel (Production + Preview); `CLOUDFLARE_API_TOKEN`,
-      `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEY` — в **окружении GitHub `SUPABASE_DB_URL`** (не repository secrets).
-- [x] 12.11.2026 пробный перенос: все таблицы совпали с D1 (65 лотов, 45 опубликованы, 131 фото-запись, 89 событий,
+- [x] Финальный перенос (20:46): все таблицы совпали с D1 (65 лотов, 45 опубликованы, 131 фото-запись, 89 событий,
       81 запись журнала, 13 анкет, 3 подписчика, 1 заявка, 24 города, 14 сфер, 11 курсов), фото KV 18 из 18.
-- [x] Preview `bmarket-git-vercel-yoggy1.vercel.app`: главная (45 лотов), 11 городов, карточки, форма заявки (запись в базу),
-      sitemap, robots, фото из Storage, `/api/survey/facets`, `/api/health`; страницы отдаются из CDN.
-- [x] Исправлено: postgres.js без конвейера запросов (`max_pipeline: 1`) — Supavisor в режиме transaction на нём зависал.
-- [ ] Админка и «Мои объявления» — проверить в Telegram после переключения (вне Telegram не открываются).
-- [ ] Переключение (DEPLOY.md → «Переключение»), затем обновить этот файл целиком.
+- [x] `main` = код Vercel, production-деплой, pg_cron работает (ответы 200), бот перенастроен на новый адрес.
+- [x] Сайт: главная (45 лотов), города, карточки, sitemap, robots (`Sitemap: https://market.haifa.business/sitemap.xml`), фото.
+- [ ] Владелец: проверить в Telegram — `/start`, «Каталог», заявка до группы менеджеров, админка, «Мои объявления».
+- [ ] Владелец: @BotFather → Bot Settings → Configure Mini App → URL `https://market.haifa.business`; `/setdomain` (если нужен Login Widget).
+- [ ] Через 1–2 недели: удалить Worker, D1 и KV в Cloudflare; токен `CLOUDFLARE_API_TOKEN` и секрет в GitHub — удалить.
+- [ ] Turnstile и аналитика для нового домена; Google Search Console → `https://market.haifa.business/sitemap.xml`.
 
 ## Каталог сейчас (25.10.2026)
 
@@ -70,22 +57,23 @@
 
 ## Как устроен деплой
 
-- `git push` в `main` → Cloudflare Workers Builds: `npm ci` → `npm run build` → `npx wrangler deploy` (≈1 минута).
-  Токен сборки — «milav build token». Preview-сборки выключены. Статус сборки виден в GitHub (check «Workers Builds: bmarket»);
-  если деплой упал из-за временной ошибки Cloudflare (503), следующий push выложит всё.
-- Переменные (не секреты) — в `wrangler.jsonc` → `vars`; при деплое они перезаписывают значения в панели.
-- После каждого деплоя cron (раз в минуту) настраивает бота: вебхук с секретом, команды, кнопку меню «Каталог».
-  Описание и короткое описание ставятся **только если пустые** — текст из BotFather не перезаписывается.
-  Отметка — строка `settings.bot_setup` в D1 (`<id версии>|<SITE_URL>|<id бота>`).
-- Миграции D1 в production применяются вручную (Cloudflare → D1 → catalog-prod → Console или коннектор Cloudflare),
-  затем имя файла добавляется в `d1_migrations`.
-- Кеш публичных страниц — 10 минут, ключ включает версию Worker: прямые правки в D1 становятся видны сразу после
-  следующего деплоя или через 10 минут.
+- `git push` в `main` → Vercel: `npm install` → `npm run build` (адаптер `@astrojs/vercel`) → production (≈1 минута).
+  Остальные ветки — preview-деплои (защищены Vercel Authentication). Статус — в GitHub (check Vercel) и панели Vercel.
+- Переменные — Vercel → Project → Settings → Environment Variables (список — `docs/DEPLOY.md`); после изменения — Redeploy.
+- После каждого деплоя первый вызов `/api/cron/minute` (pg_cron, раз в минуту) настраивает бота: вебхук, команды,
+  кнопку «Каталог». Описание ставится **только если пустое**. Отметка — `settings.bot_setup` (`<ID деплоя>|<SITE_URL>|<id бота>`).
+- Миграции Supabase в production — вручную (коннектор Supabase `apply_migration` или SQL Editor).
+- Кеш публичных страниц — CDN Vercel, 10 минут, теги `path:<путь>`; новый деплой начинает с пустого кеша.
+- Проверка работоспособности: `https://market.haifa.business/api/health` (база, хранилище, ID деплоя).
 
 ## Ограничения среды ИИ-ассистента (важно для новой сессии)
 
-- Из облачной среды Claude **нет сетевого доступа** к `api.telegram.org`, `api.cloudflare.com`, `*.workers.dev`, Unsplash:
-  `wrangler deploy`/`wrangler secret` оттуда не работают. Деплой — только через `git push`.
+- Из облачной среды Claude **нет сетевого доступа** к `api.telegram.org`, `api.cloudflare.com`, `*.supabase.co`, Unsplash.
+  Деплой — только через `git push`. База — через коннектор Supabase (SQL, миграции, логи).
+- Коннектор Vercel **не видит** проект bmarket (команда Yoggy): панель и API Vercel — через встроенный браузер
+  (`/api/v6/deployments`, `/api/v10/projects/<id>/env` из вкладки vercel.com).
+- Логи GitHub Actions во встроенном браузере не открываются (не выполнен вход): workflow пишут итоги в Annotations
+  (`::notice::`/`::error::`) или в базу (`settings.migration_report`).
 - Коннектор Cloudflare: D1 (SQL-запросы), KV/R2 (создать), список Workers. Не умеет загружать код, задавать секреты, писать в KV.
   Надёжный размер одного SQL-пакета — до ≈11 КБ (больше — ошибки); несколько выражений в одном запросе работают.
 - Встроенный браузер на компьютере владельца (если сессия связана с компьютером) открывает сайт, панель Cloudflare
@@ -135,7 +123,7 @@
 - [x] Доставка заявок в группу: причина ошибки в админке, «Проверить», «Отправить недоставленные», `/setgroup`, `/chatid`.
 
 **Инфраструктура**
-- [x] CI в GitHub Actions зелёный: Node.js 24, actions v5, `.dev.vars` копируется до сборки.
+- [x] CI в GitHub Actions зелёный: Node.js 24, Postgres 17 (service), сборка Vercel, e2e на локальной сборке.
 - [x] Тесты: 37 юнит, 182 сквозных проверок (`npm test`, `npm run test:e2e`), `astro check` без ошибок.
 
 ## Что осталось (по приоритету)
@@ -152,11 +140,11 @@
 6. **Перевыпустить токен бота** (`/revoke` в @BotFather) — он был в чате; обновить секрет `TELEGRAM_BOT_TOKEN`.
 7. **Опрос при первом запуске** — посмотреть (админка → «Статистика» → «Пройти опрос самому») и при желании включить.
 8. Промо-блок продавца: держать цифры (6 000 посетителей, реклама в трёх сетях) в соответствии с действительностью.
-9. Домен → Custom Domain в Cloudflare, затем `SITE_URL`; Turnstile; Cloudflare Web Analytics; Google Search Console.
-10. Резервные копии: секреты репозитория `CLOUDFLARE_API_TOKEN` (D1 Edit) и `CLOUDFLARE_ACCOUNT_ID`; проверить workflow.
+9. ~~Домен~~ — `market.haifa.business` (12.11.2026). Осталось: Turnstile, аналитика, Google Search Console.
+10. Резервные копии: workflow «Резервная копия базы» (pg_dump Supabase, по воскресеньям) — проверить первый запуск.
 11. Юрист: текст `/privacy` (данные продавцов, ответы опроса), заранее отмеченное согласие, размещение объявлений
     из открытых источников.
-12. Лимит KV Free — 1000 записей в день (≈500 фото): при росте — включить R2 и привязку `PHOTOS` (код менять не нужно).
+12. Лимиты Supabase Free (база 500 МБ, Storage 1 ГБ, 5 ГБ трафика) и Vercel Hobby — следить по письмам и панелям.
 
 ## Шаблон запроса для новой сессии
 
@@ -164,6 +152,6 @@
 Репозиторий mosheshanin/bmarket. Прочитай CLAUDE.md, docs/STATUS.md, docs/SPEC.md и docs/DECISIONS.md.
 Задача: <что сделать>.
 Сначала предложи план (какие файлы изменишь, что нужно от меня), после «ок» — реализуй,
-прогони npm test, npx astro check, сборку и e2e локально, затем закоммить и запушь в main.
+прогони npm test, npx astro check, сборку и e2e локально (npm run db:local && npm run db:seed), затем закоммить и запушь в main.
 В конце обнови docs/STATUS.md.
 ```

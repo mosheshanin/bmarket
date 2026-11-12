@@ -1,9 +1,8 @@
 # Инфраструктура и эксплуатация
 
 Как развёрнут проект и как повторить или изменить настройку. Конкретные ID — в `docs/STATUS.md`.
-С ноября 2026 сайт переезжает с Cloudflare Workers на **Vercel + Supabase** (ветка `vercel`, адрес
-`https://market.haifa.business`). Пока переключение не выполнено, production — на Cloudflare (описание —
-в истории этого файла до коммита переноса).
+С 12.11.2026 production — **Vercel + Supabase**, адрес `https://market.haifa.business`. Прежняя установка
+(Cloudflare Worker `bmarket`, D1, KV) оставлена резервом без cron и автосборки; её описание — в истории этого файла.
 
 ## Схема
 
@@ -74,7 +73,7 @@ Telegram ──webhook──▶ /api/telegram/webhook      Банк Израил
 
 Секрет вызова хранится в самой базе — `settings.cron_secret` (создан `gen_random_bytes(32)`), в Vercel его
 переносить не нужно: `/api/cron/*` сверяют заголовок `Authorization: Bearer …` с этой строкой.
-Задачи создаются **при переключении** (до него production-адрес ещё не на новом коде):
+Задачи созданы 12.11.2026 (миграция `cron_jobs_market_haifa_business`):
 
 ```sql
 SELECT cron.schedule('bmarket-minute', '* * * * *', $$
@@ -122,7 +121,7 @@ GitHub Actions «Перенос данных Cloudflare → Supabase» (`.github
 `SUPABASE_DB_URL` (Session pooler, 5432), `SUPABASE_SECRET_KEY` — все три в **окружении GitHub `SUPABASE_DB_URL`**
 (Settings → Environments), workflow указывает его в `environment:`. Ключи `cron_secret` и `bot_setup` не переносятся.
 
-## Переключение (план)
+## Переключение (выполнено 12.11.2026)
 
 1. Короткая заморозка правок в админке.
 2. Финальный перенос данных (workflow выше), сверить `migration_report` с D1.
