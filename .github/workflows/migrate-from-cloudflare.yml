@@ -42,11 +42,15 @@ jobs:
           url = os.environ['SUPABASE_DB_URL'].strip()
           p = u.urlsplit(url)
           pw = p.password or ''
-          print(f"схема={p.scheme} пользователь={p.username} хост={p.hostname} порт={p.port} база={p.path.lstrip('/')}")
-          print(f"пароль: длина={len(pw)}, скобки={'[' in pw or ']' in pw}, спецсимволы={any(c in pw for c in '@#/?%: ')}, пробелы по краям строки={url != os.environ['SUPABASE_DB_URL']}")
+          # ::notice:: — видно в Annotations на странице запуска.
+          print(f"::notice::SUPABASE_DB_URL: схема={p.scheme} пользователь={p.username} хост={p.hostname} порт={p.port} база={p.path.lstrip('/')}; "
+                f"пароль: длина={len(pw)}, скобки={'[' in pw or ']' in pw}, спецсимволы={any(c in pw for c in '@#/?%: ')}, "
+                f"пробелы по краям={url != os.environ['SUPABASE_DB_URL']}")
           PY
-          docker run --rm -e SUPABASE_DB_URL postgres:17 sh -c 'psql "$SUPABASE_DB_URL" -tAc "select 1" 2>&1' | sed -E 's#postgres(ql)?://[^ ]+#<url>#g'
-          docker run --rm -e SUPABASE_DB_URL postgres:17 sh -c 'psql "$SUPABASE_DB_URL" -tAc "select 1" >/dev/null 2>&1'
+          if ! out=$(docker run --rm -e SUPABASE_DB_URL postgres:17 sh -c 'psql "$SUPABASE_DB_URL" -tAc "select 1" 2>&1'); then
+            echo "::error::psql: $(echo "$out" | sed -E 's#postgres(ql)?://[^ ]+#<url>#g' | tr '\n' ' ' | cut -c1-400)"
+            exit 1
+          fi
       - run: npm install --no-save wrangler@4
       - name: Выгрузка D1
         run: npx wrangler d1 export catalog-prod --remote --output d1.sql
