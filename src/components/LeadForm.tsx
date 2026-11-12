@@ -151,7 +151,7 @@ export default function LeadForm({ businessId, lotNumber, title, priceStr, cardP
     return (
       <div className="card p-6 text-center" role="status">
         <p className="text-4xl" aria-hidden="true">✅</p>
-        <h1 className="mt-2 text-xl font-bold">Спасибо!</h1>
+        <h1 className="serif mt-2 text-3xl">Спасибо!</h1>
         <p className="mt-1">Менеджер свяжется с вами в течение рабочего дня.</p>
         <a href="/" className="btn btn-primary mt-5 w-full sm:w-auto">Вернуться в каталог</a>
         {tg && subscribed === false && (
@@ -180,7 +180,7 @@ export default function LeadForm({ businessId, lotNumber, title, priceStr, cardP
     >
       <div>
         <p className="text-sm text-hint">Заявка по лоту №{lotNumber}</p>
-        <h1 className="text-xl font-bold leading-snug">{title}</h1>
+        <h1 className="serif text-[1.75rem] leading-[1.08]">{title}</h1>
         {priceStr && <p className="mt-0.5 font-semibold">{priceStr}</p>}
       </div>
 

@@ -1,79 +1,41 @@
 ---
 /**
- * Заставка при каждом открытии мини-приложения (≈21,5 с, «Пропустить» в любой момент).
- * Уход — «раскрытие»: в центре появляется круглый вырез и растёт, пока не откроет всё приложение.
- * Стиль — современный «аврора»: живой градиент из размытых цветных пятен, стеклянные плашки,
- * округлый шрифт Nunito (как во всём приложении), мягкие подъёмы текста.
- * Сцены: HaifaBusinessClub представляет → бренд → фото из каталога → цифры и гарантии.
+ * Заставка при открытии мини-приложения — ≈3 с (с 12.11.2026, DECISIONS №46; раньше — «аврора», ≈21,5 с).
+ * Стиль «Закрытый клуб»: чернильный фон, латунная подпись, антиква. Одна сцена:
+ * «HaifaBusinessClub представляет» → BMarket → число досье и цена «от» → латунная линия.
+ * Уход — круглый вырез из центра (0,7 с), «Пропустить» — сразу (0,45 с).
  * Показывается только внутри Telegram и только на первой странице открытия (решение — в <head>, класс .splash-on),
  * не показывается в админ-панели и при «уменьшении движения».
  */
-import { catalogSummary, imageUrl, listPublished } from '../server/public';
-import { db, env, site } from '../server/site';
-import { groupDigits, plural } from '../lib/format';
+import { catalogSummary } from '../server/public';
+import { db, site } from '../server/site';
+import { groupDigits } from '../lib/format';
+import { fromPrice } from '../lib/promo';
 
 const s = site();
 let count = 0;
 let minPrice: number | null = null;
-let photo: string | null = null;
 try {
-  const d = db();
-  const [sum, top] = await Promise.all([catalogSummary(d), listPublished(d, { limit: 1 })]);
+  const sum = await catalogSummary(db());
   count = sum.count;
   minPrice = sum.minPrice;
-  if (top[0]?.cover) photo = imageUrl(env, top[0].cover.r2Key);
 } catch {
   /* заставка не должна ломать страницу */
 }
-// «от ₪ 70 000» — цифра владельца для заставки; если в каталоге появится лот дешевле, покажем его цену.
-const SPLASH_FROM_PRICE = 70_000;
-const fromPrice = minPrice ? Math.min(minPrice, SPLASH_FROM_PRICE) : SPLASH_FROM_PRICE;
-const offers = count ? plural(count, ['предложение', 'предложения', 'предложений']) : 'новые предложения';
-const check = 'M20 6 9 17l-5-5';
+const from = fromPrice(minPrice);
 ---
 
 <div id="bm-splash" class="bm-splash">
   <div class="sp-ring" aria-hidden="true"></div>
-  <div class="sp-aurora" aria-hidden="true">
-    <i class="a1"></i><i class="a2"></i><i class="a3"></i><i class="a4"></i>
-  </div>
-
-  <!-- 1. HaifaBusinessClub представляет -->
-  <section class="sp-sc sp-s0" aria-hidden="true">
-    <div class="sp-tile sp-in" style="--d:0.45s">HBC</div>
-    <p class="sp-club sp-in" style="--d:1.2s">HaifaBusinessClub</p>
-    <p class="sp-sub sp-in" style="--d:2.4s">представляет</p>
+  <section class="sp-sc" aria-hidden="true">
+    <p class="sp-club sp-in" style="--d:0.05s">HaifaBusinessClub представляет</p>
+    <p class="sp-brand sp-in" style="--d:0.25s">{s.name}</p>
+    <i class="sp-rule" style="--d:0.7s"></i>
+    <p class="sp-lead sp-in" style="--d:0.85s">
+      {count ? <><b>{count}</b> досье · </> : null}от ₪&nbsp;{groupDigits(from)}
+    </p>
+    <p class="sp-note sp-in" style="--d:1.15s">Цифры — сразу. Название и адрес — после заявки.</p>
   </section>
-
-  <!-- 2. Бренд -->
-  <section class="sp-sc sp-s1" aria-hidden="true">
-    <p class="sp-brand sp-in" style="--d:6.15s">{s.name}</p>
-    <p class="sp-lead sp-in" style="--d:7.2s">Покупка и продажа бизнеса <span class="sp-grad">в&nbsp;Израиле</span></p>
-  </section>
-
-  <!-- 3. Фото из каталога -->
-  <section class="sp-sc sp-s2" aria-hidden="true">
-    <div class="sp-card sp-in" style="--d:10.8s">
-      {photo ? <img src={photo} alt="" decoding="async" /> : <div class="sp-card-ph"></div>}
-    </div>
-    <p class="sp-head sp-in" style="--d:11.85s">Кафе, магазины, салоны и&nbsp;многое другое</p>
-    <p class="sp-lead sp-in" style="--d:12.75s">Показываем цену, оборот, прибыль и&nbsp;окупаемость</p>
-  </section>
-
-  <!-- 4. Цифры и гарантии -->
-  <section class="sp-sc sp-s3" aria-hidden="true">
-    <p class="sp-num sp-in" style="--d:15.75s"><span class="sp-grad">{count || '—'}</span></p>
-    <p class="sp-lead sp-in" style="--d:16.5s">{offers} · от ₪ {groupDigits(fromPrice)}</p>
-    <ul class="sp-pills">
-      {['Оценка экспертов', 'Финансовый аудит', 'Полная конфиденциальность'].map((t, i) => (
-        <li class="sp-in" style={`--d:${(17.4 + i * 0.5).toFixed(2)}s`}>
-          <span class="sp-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d={check} /></svg></span>
-          {t}
-        </li>
-      ))}
-    </ul>
-  </section>
-
   <button type="button" class="sp-skip" id="bm-splash-skip">Пропустить</button>
 </div>
 
@@ -107,9 +69,9 @@ const check = 'M20 6 9 17l-5-5';
       setTimeout(done, ms + 50);
     }
     window.__bmSplashDone = false;
-    document.getElementById('bm-splash-skip').addEventListener('click', function () { reveal(800); });
-    // Раскрытие начинается в 20,1 с и длится 1,4 с.
-    setTimeout(function () { reveal(1400); }, 20100);
+    document.getElementById('bm-splash-skip').addEventListener('click', function () { reveal(450); });
+    // Раскрытие начинается в 2,3 с и длится 0,7 с — всего ≈3 с.
+    setTimeout(function () { reveal(700); }, 2300);
   })();
 </script>
 
@@ -117,105 +79,41 @@ const check = 'M20 6 9 17l-5-5';
   .bm-splash { display: none; }
   .splash-on body { overflow: hidden; }
   .splash-on .bm-splash {
-    --sp-bg: #0c1024;
-    --sp-ink: #ffffff;
-    --sp-mute: rgba(255, 255, 255, 0.72);
     --sp-ease: cubic-bezier(0.16, 1, 0.3, 1);
     display: block;
     position: fixed;
     inset: 0;
     z-index: 100;
     overflow: hidden;
-    background: linear-gradient(165deg, #312e81 0%, #1e1b4b 45%, #0f3d4c 100%);
-    color: var(--sp-ink);
-    font-family: 'Nunito Variable', 'Nunito', var(--font-sans);
+    background: radial-gradient(120% 80% at 50% 35%, #221d17 0%, #13110e 70%);
+    color: #f3ecdf;
+    font-family: var(--font-sans);
   }
-
-  /* Живой градиент: крупные размытые пятна медленно плывут. */
-  .sp-aurora { position: absolute; inset: -20%; filter: blur(70px); }
-  .sp-aurora i { position: absolute; display: block; border-radius: 50%; opacity: 0.9; }
-  .sp-aurora .a1 { width: 70vmax; height: 70vmax; left: -10%; top: -15%; background: #4f46e5; animation: sp-float1 16s ease-in-out infinite alternate; }
-  .sp-aurora .a2 { width: 60vmax; height: 60vmax; right: -15%; top: 10%; background: #0ea5e9; animation: sp-float2 18s ease-in-out infinite alternate; }
-  .sp-aurora .a3 { width: 55vmax; height: 55vmax; left: 5%; bottom: -20%; background: #a855f7; animation: sp-float3 20s ease-in-out infinite alternate; }
-  .sp-aurora .a4 { width: 35vmax; height: 35vmax; right: 0; bottom: 5%; background: #14b8a6; opacity: 0.7; animation: sp-float1 22s ease-in-out infinite alternate-reverse; }
-
-  /* Сцены: плавный наплыв с лёгким подъёмом. */
   .sp-sc {
     position: absolute;
     inset: 0;
     display: flex;
     flex-direction: column;
+    align-items: center;
     justify-content: center;
     padding: 0 28px;
-    opacity: 0;
+    text-align: center;
   }
-  .sp-s0 { align-items: center; text-align: center; animation: sp-in-sc 1.8s var(--sp-ease) 0s both, sp-out-sc 1.35s ease 5.25s forwards; }
-  .sp-s1 { animation: sp-in-sc 1.8s var(--sp-ease) 5.55s both, sp-out-sc 1.35s ease 10.05s forwards; }
-  .sp-s2 { animation: sp-in-sc 1.8s var(--sp-ease) 10.35s both, sp-out-sc 1.35s ease 14.85s forwards; }
-  .sp-s3 { animation: sp-in-sc 1.8s var(--sp-ease) 15.15s both; }
-
-  .sp-in { opacity: 0; animation: sp-rise 2.1s var(--sp-ease) var(--d, 0s) both; }
-
-  .sp-grad {
-    background: linear-gradient(90deg, #67e8f9, #c4b5fd 50%, #f0abfc);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  .sp-in { opacity: 0; animation: sp-rise 0.9s var(--sp-ease) var(--d, 0s) both; }
+  .sp-club { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #d6b370; }
+  .sp-brand { margin: 14px 0 0; font-family: var(--serif); font-size: clamp(64px, 21vw, 104px); font-weight: 700; line-height: 0.9; letter-spacing: -0.01em; }
+  .sp-rule {
+    display: block;
+    width: 120px;
+    height: 1px;
+    margin: 22px 0 0;
+    background: #d6b370;
+    transform-origin: center;
+    animation: sp-draw 0.7s var(--sp-ease) var(--d, 0s) both;
   }
-
-  .sp-tile {
-    display: flex;
-    height: 76px;
-    width: 76px;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 26px;
-    border-radius: 24px;
-    background: rgba(255, 255, 255, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.28);
-    box-shadow: 0 10px 40px rgba(12, 16, 36, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    font-size: 20px;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-  }
-  .sp-club { margin: 0; font-size: clamp(30px, 9.4vw, 46px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
-  .sp-sub { margin: 14px 0 0; font-size: 20px; font-weight: 600; color: var(--sp-mute); }
-
-  .sp-brand { margin: 0; font-size: clamp(58px, 19vw, 96px); font-weight: 900; letter-spacing: -0.035em; line-height: 0.95; }
-  .sp-lead { margin: 16px 0 0; font-size: 21px; font-weight: 600; line-height: 1.35; color: var(--sp-mute); }
-  .sp-lead .sp-grad { font-weight: 800; }
-  .sp-head { margin: 26px 0 0; font-size: clamp(30px, 9vw, 42px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.08; }
-
-  .sp-card {
-    position: relative;
-    aspect-ratio: 4 / 3;
-    width: 100%;
-    overflow: hidden;
-    border-radius: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 24px 60px rgba(12, 16, 36, 0.45);
-  }
-  .sp-card img, .sp-card-ph { display: block; height: 100%; width: 100%; object-fit: cover; animation: sp-zoom 6s ease-out 10.5s both; }
-  .sp-card-ph { background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05)); }
-
-  .sp-num { margin: 0; font-size: clamp(110px, 36vw, 170px); font-weight: 900; letter-spacing: -0.05em; line-height: 0.85; font-variant-numeric: tabular-nums; }
-  .sp-pills { list-style: none; margin: 30px 0 0; padding: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
-  .sp-pills li {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 16px 10px 10px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.13);
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    font-size: 16px;
-    font-weight: 700;
-  }
-  .sp-check { display: inline-flex; height: 26px; width: 26px; align-items: center; justify-content: center; border-radius: 50%; background: #fff; color: #4f46e5; }
+  .sp-lead { margin: 18px 0 0; font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1.2; }
+  .sp-lead b { color: #d6b370; }
+  .sp-note { margin: 10px 0 0; font-size: 14px; font-weight: 500; color: rgba(243, 236, 223, 0.7); }
 
   .sp-skip {
     position: absolute;
@@ -225,13 +123,11 @@ const check = 'M20 6 9 17l-5-5';
     transform: translateX(-50%);
     min-height: 46px;
     padding: 0 24px;
-    border: 1px solid rgba(255, 255, 255, 0.28);
+    border: 1px solid rgba(214, 179, 112, 0.45);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.14);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
-    color: #fff;
-    font: 700 15px 'Nunito Variable', 'Nunito', var(--font-sans);
+    background: transparent;
+    color: #f3ecdf;
+    font: 700 15px var(--font-sans);
     cursor: pointer;
   }
 
@@ -240,10 +136,10 @@ const check = 'M20 6 9 17l-5-5';
   .splash-on .bm-splash.sp-reveal {
     -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--sp-hole), #000 calc(var(--sp-hole) + 1.5px));
     mask-image: radial-gradient(circle at 50% 50%, transparent var(--sp-hole), #000 calc(var(--sp-hole) + 1.5px));
-    animation: sp-hole var(--sp-reveal-t, 1.4s) cubic-bezier(0.7, 0, 0.25, 1) forwards;
+    animation: sp-hole var(--sp-reveal-t, 0.7s) cubic-bezier(0.7, 0, 0.25, 1) forwards;
     pointer-events: none;
   }
-  /* Светящаяся кромка выреза. */
+  /* Латунная кромка выреза. */
   .sp-ring { display: none; }
   .sp-reveal .sp-ring {
     display: block;
@@ -255,20 +151,14 @@ const check = 'M20 6 9 17l-5-5';
     height: calc(var(--sp-hole) * 2);
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.6), 0 0 28px 8px rgba(167, 139, 250, 0.5);
+    box-shadow: 0 0 0 1.5px rgba(214, 179, 112, 0.8);
     pointer-events: none;
   }
-  .sp-reveal .sp-skip { opacity: 0; transition: opacity 0.3s; }
-  .splash-on .bm-splash.sp-reveal.sp-fade { -webkit-mask-image: none; mask-image: none; animation: sp-exit var(--sp-reveal-t, 1.4s) ease-in-out forwards; }
+  .sp-reveal .sp-skip { opacity: 0; transition: opacity 0.2s; }
+  .splash-on .bm-splash.sp-reveal.sp-fade { -webkit-mask-image: none; mask-image: none; animation: sp-exit var(--sp-reveal-t, 0.7s) ease-in-out forwards; }
   .sp-fade .sp-ring { display: none; }
   @keyframes sp-hole { from { --sp-hole: 0px; } to { --sp-hole: 72vmax; } }
-
-  @keyframes sp-in-sc { from { opacity: 0; transform: translateY(24px) scale(0.98); } to { opacity: 1; transform: none; } }
-  @keyframes sp-out-sc { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-16px) scale(0.98); } }
-  @keyframes sp-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-  @keyframes sp-zoom { from { transform: scale(1.12); } to { transform: scale(1); } }
-  @keyframes sp-float1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(18%, 12%) scale(1.15); } }
-  @keyframes sp-float2 { from { transform: translate(0, 0) scale(1.1); } to { transform: translate(-20%, 18%) scale(0.95); } }
-  @keyframes sp-float3 { from { transform: translate(0, 0) scale(1); } to { transform: translate(15%, -20%) scale(1.2); } }
-  @keyframes sp-exit { to { opacity: 0; transform: scale(1.05); visibility: hidden; } }
+  @keyframes sp-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes sp-draw { from { transform: scaleX(0); } }
+  @keyframes sp-exit { to { opacity: 0; transform: scale(1.04); visibility: hidden; } }
 </style>

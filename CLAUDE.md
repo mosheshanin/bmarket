@@ -15,7 +15,8 @@
 
 ## Стек
 Astro 7 (SSR) + `@astrojs/vercel` → Vercel Functions (Node.js, регион fra1, Hobby). React-острова (админка, форма заявки, галерея).
-Tailwind 4 + цвета темы Telegram, шрифт Nunito (`@fontsource-variable/nunito`, округлый).
+Tailwind 4, своя палитра «Закрытый клуб» (светлая/тёмная, в Telegram — по colorScheme), шрифты Manrope + Cormorant Garamond (`@fontsource`), DECISIONS №46.
+Движение — `src/scripts/motion.ts` (без библиотек), заставка ≈3 с — `src/components/Splash.astro`.
 Supabase: Postgres 17 + Drizzle ORM (`postgres.js` через пулер 6543), фото — Supabase Storage (бакет `photos`, `src/server/storage.ts`).
 Задачи по расписанию — Supabase pg_cron → `/api/cron/minute` и `/api/cron/daily` (`src/server/jobs.ts`).
 grammY для бота. Zod для входных данных. Переезд с Cloudflare Workers/D1/KV — ноябрь 2026, `docs/DEPLOY.md`.

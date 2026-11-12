@@ -10,6 +10,7 @@ interface TgBottomButton {
   showProgress(leaveActive?: boolean): TgBottomButton;
   hideProgress(): TgBottomButton;
   onClick(cb: () => void): TgBottomButton;
+  setParams?(p: { text?: string; color?: string; text_color?: string }): TgBottomButton;
   offClick(cb: () => void): TgBottomButton;
 }
 

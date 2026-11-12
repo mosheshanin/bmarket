@@ -11,9 +11,7 @@ import {
 } from '../../lib/format';
 import { renderMarkdown } from '../../lib/markdown';
 import { businessPath } from '../../lib/slug';
-import Icon from '../../components/ToneIcon.astro';
-import TrustBadge from '../../components/TrustBadge.astro';
-import { ICON } from '../../lib/icons';
+import PaybackRing from '../../components/PaybackRing.astro';
 import { extraByKey } from '../../lib/extras';
 
 const d = db();
@@ -45,12 +43,15 @@ const ogImage = photos[0] ? new URL(photos[0].src, s.url).href : null;
 const priceStr = b.priceIls ? formatIls(b.priceIls) : null;
 const title = `${b.publicTitle}${priceStr ? ` — ${priceStr}` : ''} | ${s.name}`;
 
+// Ведомость цифр досье. Подписи — как в ТЗ (их проверяют сквозные тесты).
 const kpis = [
-  b.monthlyRevenueIls && { label: 'Оборот в месяц', value: formatIls(b.monthlyRevenueIls), tone: 'tone-blue', icon: ICON.revenue },
-  b.monthlyProfitIls && { label: 'Чистая прибыль в месяц', value: formatIls(b.monthlyProfitIls), tone: 'tone-green', icon: ICON.profit },
-  b.paybackMonths && { label: 'Окупаемость', value: formatPayback(b.paybackMonths), tone: 'tone-violet', icon: ICON.payback },
-  b.rentMonthlyIls && { label: 'Аренда в месяц', value: formatIls(b.rentMonthlyIls), tone: 'tone-amber', icon: ICON.rent },
-].filter(Boolean) as { label: string; value: string; tone: string; icon: string }[];
+  b.monthlyRevenueIls && { label: 'Оборот в месяц', value: formatIls(b.monthlyRevenueIls) },
+  b.monthlyProfitIls && { label: 'Чистая прибыль в месяц', value: formatIls(b.monthlyProfitIls) },
+  b.paybackMonths && { label: 'Окупаемость', value: formatPayback(b.paybackMonths), months: b.paybackMonths },
+  b.rentMonthlyIls && { label: 'Аренда в месяц', value: formatIls(b.rentMonthlyIls) },
+].filter(Boolean) as { label: string; value: string; months?: number }[];
+/** Текст кнопки заявки — как у системной кнопки Telegram (src/scripts/app.ts, CTA_TEXT). */
+const CTA = 'Узнать название и адрес';
 
 const specs = [
   b.yearFounded && ['Год открытия', String(b.yearFounded)],
@@ -124,92 +125,106 @@ const jsonLd = res.kind === 'ok' && !preview ? [
         <span> · Лот №{b.lotNumber}</span>
       </nav>
 
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
+      <!-- Досье (концепция «Закрытый клуб», DECISIONS №46). -->
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-7">
         <div class="lg:col-start-1">
-          <Gallery client:visible photos={photos} title={b.publicTitle} />
+          <Gallery client:visible photos={photos} title={b.publicTitle} vtName={`lot-${b.lotNumber}`} />
         </div>
 
         <header class="lg:col-start-1">
-          <p class="text-sm font-semibold text-hint">Лот №{b.lotNumber}</p>
-          <h1 class="mt-0.5 text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl">{b.publicTitle}</h1>
-          <p class="mt-1 text-hint">
+          <p class="caps text-brass">Досье №&nbsp;{b.lotNumber}{b.cityName && <> · {[b.cityName, b.areaNote].filter(Boolean).join(', ')}</>}</p>
+          <h1 class="serif mt-2 text-[2.1rem] leading-[1.04] sm:text-[2.6rem]">{b.publicTitle}</h1>
+          <p class="mt-2 text-hint">
             {[b.cityName, b.areaNote, b.categoryName].filter(Boolean).join(' · ')}
           </p>
         </header>
 
         <aside class="lg:col-start-2 lg:row-span-3 lg:row-start-1">
-          <div class="tinted tone-blue p-4 lg:sticky lg:top-20">
-            <p class="tone-text text-sm font-semibold">Цена продажи</p>
+          <div class="sheet lg:sticky lg:top-20">
+            <p class="caps text-hint">Цена продажи</p>
             {priceStr ? (
-              <p class="text-3xl font-extrabold tracking-tight">{priceStr}</p>
+              <p class="serif mt-1 text-[2.6rem] leading-none" data-count={b.priceIls}>{priceStr}</p>
             ) : (
-              <p class="text-xl font-bold">Цена по запросу</p>
+              <p class="serif mt-1 text-2xl">Цена по запросу</p>
             )}
             {b.priceIls && rate && (
-              <details class="mt-1 text-sm text-hint">
+              <details class="mt-2 text-sm text-hint">
                 <summary class="cursor-pointer list-none">
                   {formatUsd(b.priceIls, rate.usdIls)} · {formatEur(b.priceIls, rate.eurIls)} <span aria-hidden="true">ⓘ</span>
                 </summary>
                 <p class="mt-1">Пересчёт по курсу Банка Израиля на {formatIsoDate(rate.date)}. Окончательная цена — в шекелях.</p>
               </details>
             )}
-            {b.priceNegotiable && <p class="mt-2"><span class="badge bg-success/15 text-success">Торг возможен</span></p>}
+            {b.priceNegotiable && <p class="mt-2.5"><span class="trust-badge">Торг возможен</span></p>}
             {
               trust.length > 0 && (
-                <ul class="mt-3 flex flex-col gap-2.5 border-t border-line pt-3">
+                <ul class="mt-4 flex flex-col gap-4 border-t border-line pt-4">
                   {trust.map((k) => (
-                    <li>
-                      <TrustBadge kind={k} large />
-                      <p class="mt-1 text-sm text-hint">{extraByKey(k)!.explain}</p>
+                    <li class="flex items-center gap-4">
+                      <span class="stamp" data-inview>{k === 'valuation' ? <>Оценка<br />подтверждена</> : <>Пройден<br />аудит</>}</span>
+                      <span class="min-w-0">
+                        <span class="block font-bold">{extraByKey(k)!.badge}</span>
+                        <span class="mt-0.5 block text-sm text-hint">{extraByKey(k)!.explain}</span>
+                      </span>
                     </li>
                   ))}
                 </ul>
               )
             }
-            <a href={requestPath} class="web-only btn btn-primary mt-4 hidden w-full lg:flex" data-cta>Узнать подробнее</a>
-            <button type="button" class="btn btn-secondary mt-2 w-full" data-share data-share-title={b.publicTitle} data-share-lot={b.lotNumber}>Поделиться</button>
+            <a href={requestPath} class="web-only btn btn-primary press mt-5 hidden w-full lg:flex" data-cta>{CTA}</a>
+            <button type="button" class="btn btn-secondary press mt-2 w-full" data-share data-share-title={b.publicTitle} data-share-lot={b.lotNumber} data-haptic>Поделиться</button>
           </div>
         </aside>
 
         <div class="flex flex-col gap-4 lg:col-start-1">
+          <button type="button" class="sheet press flex w-full flex-col gap-2.5 text-left" data-scramble-group aria-describedby="secret-note">
+            <span class="caps text-brass">Под грифом</span>
+            <span class="flex items-center gap-3 text-sm"><span class="w-20 shrink-0 text-hint">Название</span><span class="redact" style="width: 9.5rem" aria-hidden="true"></span></span>
+            <span class="flex items-center gap-3 text-sm"><span class="w-20 shrink-0 text-hint">Адрес</span><span>ул. <span class="redact" style="width: 5rem" aria-hidden="true"></span>{b.cityName && <>, {b.cityName}</>}</span></span>
+            <span class="flex items-center gap-3 text-sm"><span class="w-20 shrink-0 text-hint">Продавец</span><span class="redact" style="width: 7.5rem" aria-hidden="true"></span></span>
+            <span id="secret-note" class="mt-1 text-sm text-hint">Название и точный адрес сообщаются после заявки.</span>
+            <span class="text-sm font-semibold text-brass" data-scramble-hint hidden>Нажмите «{CTA}» — менеджер клуба свяжется с вами и расскажет всё о бизнесе.</span>
+          </button>
+
           {kpis.length > 0 && (
-            <section aria-label="Ключевые показатели" class="grid grid-cols-2 gap-3">
-              {kpis.map((k) => (
-                <div class={`tinted ${k.tone} p-3.5`}>
-                  <div class="flex items-center gap-2">
-                    <Icon d={k.icon} small />
-                    <p class="tone-text text-xs font-semibold sm:text-sm">{k.label}</p>
+            <section aria-label="Ключевые показатели" class="sheet">
+              <h2 class="sheet-title">Цифры</h2>
+              <dl class="ledger">
+                {kpis.map((k) => (
+                  <div class="ledger-row">
+                    <dt>{k.label}</dt>
+                    <i aria-hidden="true"></i>
+                    <dd class="flex items-center gap-2">{k.months && <PaybackRing months={k.months} size={30} />}{k.value}</dd>
                   </div>
-                  <p class="mt-1.5 text-lg font-bold">{k.value}</p>
-                </div>
-              ))}
+                ))}
+              </dl>
             </section>
           )}
 
-          <section class="card p-4">
-            <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><span class="tone-slate"><Icon d={ICON.desc} /></span>Описание</h2>
+          <section class="sheet">
+            <h2 class="sheet-title">Описание</h2>
             <div class="prose-md" set:html={descriptionHtml} />
           </section>
 
           {included.length > 0 && (
-            <section class="tinted tone-green p-4">
-              <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><Icon d={ICON.included} />Что входит в продажу</h2>
-              <ul class="grid gap-1.5 sm:grid-cols-2">
+            <section class="sheet">
+              <h2 class="sheet-title">Что входит в продажу</h2>
+              <ul class="grid gap-2 sm:grid-cols-2">
                 {included.map((i) => (
-                  <li class="flex items-start gap-2"><span class="tone-text font-bold" aria-hidden="true">✓</span>{i}</li>
+                  <li class="flex items-start gap-2.5"><span class="font-bold text-brass" aria-hidden="true">✓</span>{i}</li>
                 ))}
               </ul>
             </section>
           )}
 
           {specs.length > 0 && (
-            <section class="tinted tone-teal p-4">
-              <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><Icon d={ICON.specs} />Характеристики</h2>
+            <section class="sheet">
+              <h2 class="sheet-title">Характеристики</h2>
               <dl class="divide-y divide-line">
                 {specs.map(([k, v]) => (
-                  <div class="flex justify-between gap-4 py-2">
+                  <div class="flex justify-between gap-4 py-2.5">
                     <dt class="text-hint">{k}</dt>
-                    <dd class="text-right font-medium">{v}</dd>
+                    <dd class="text-right font-semibold">{v}</dd>
                   </div>
                 ))}
               </dl>
@@ -217,31 +232,26 @@ const jsonLd = res.kind === 'ok' && !preview ? [
           )}
 
           {b.reasonForSale && (
-            <section class="tinted tone-amber p-4">
-              <h2 class="mb-2 flex items-center gap-2.5 text-lg font-bold"><Icon d={ICON.reason} />Причина продажи</h2>
+            <section class="sheet">
+              <h2 class="sheet-title">Причина продажи</h2>
               <p class="whitespace-pre-line">{b.reasonForSale}</p>
             </section>
           )}
 
           {yt && (
-            <section class="card overflow-hidden">
-              <h2 class="flex items-center gap-2.5 p-4 pb-2 text-lg font-bold"><span class="tone-violet"><Icon d={ICON.video} /></span>Видео</h2>
-              <button type="button" class="relative block aspect-video w-full bg-black" data-yt={yt} aria-label="Смотреть видео">
+            <section class="sheet overflow-hidden !p-0">
+              <h2 class="sheet-title p-4 pb-0">Видео</h2>
+              <button type="button" class="relative mt-3 block aspect-video w-full bg-black" data-yt={yt} aria-label="Смотреть видео">
                 <img src={`https://i.ytimg.com/vi/${yt}/hqdefault.jpg`} alt="" loading="lazy" class="h-full w-full object-cover opacity-90" width="480" height="360" />
                 <span class="absolute inset-0 m-auto flex h-16 w-16 items-center justify-center rounded-full bg-black/70 text-3xl text-white">▶</span>
               </button>
             </section>
           )}
-
-          <p class="tinted tone-slate flex items-center gap-2.5 p-3 text-sm">
-            <Icon d={ICON.lock} small />
-            Название и точный адрес сообщаются после заявки.
-          </p>
         </div>
       </div>
 
       <div class="web-only fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 p-3 backdrop-blur lg:hidden" style="padding-bottom: max(0.75rem, env(safe-area-inset-bottom));">
-        <a href={requestPath} class="btn btn-primary w-full" data-cta>Узнать подробнее</a>
+        <a href={requestPath} class="btn btn-primary press w-full" data-cta>{CTA}</a>
       </div>
     </Layout>
   )

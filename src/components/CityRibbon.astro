@@ -8,14 +8,16 @@ interface Props {
   total?: number;
 }
 const { cities, activeSlug } = Astro.props;
+// Сначала города, где больше всего предложений; при равенстве — порядок из «Справочников».
+const sorted = cities.map((c, i) => ({ c, i })).sort((a, b) => b.c.count - a.c.count || a.i - b.i).map((x) => x.c);
 ---
 
-<nav aria-label="Города" class="-mx-4 mb-4">
-  <ul class="no-scrollbar flex gap-2 overflow-x-auto px-4 py-1" data-city-ribbon>
+<nav aria-label="Города" class="-mx-4 mb-5 border-b border-line">
+  <ul class="no-scrollbar flex gap-5 overflow-x-auto px-4" data-city-ribbon>
     {
-      cities.map((c) => (
+      sorted.map((c) => (
         <li>
-          <a href={`/city/${c.slug}`} class="chip" aria-current={activeSlug === c.slug ? 'page' : undefined}>
+          <a href={`/city/${c.slug}`} class="city-tab" aria-current={activeSlug === c.slug ? 'page' : undefined} data-haptic="select">
             {c.name} · {c.count}
           </a>
         </li>

@@ -1,0 +1,15 @@
+---
+// Кольцо окупаемости: заполнено на долю от 60 месяцев (5 лет и дольше — полное кольцо).
+// Прорисовывается, когда попадает на экран (класс .in ставит src/scripts/motion.ts).
+interface Props {
+  months: number;
+  size?: number;
+}
+const { months, size = 40 } = Astro.props;
+const p = Math.max(4, Math.round((Math.min(months, 60) / 60) * 100));
+---
+
+<svg class="payback-ring shrink-0" width={size} height={size} viewBox="0 0 40 40" aria-hidden="true" data-inview>
+  <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-opacity="0.14" stroke-width="4"></circle>
+  <circle class="ring-arc" style={`--p:${p}`} cx="20" cy="20" r="16" fill="none" stroke="var(--brass)" stroke-width="4" stroke-linecap="round" pathLength="100" transform="rotate(-90 20 20)"></circle>
+</svg>

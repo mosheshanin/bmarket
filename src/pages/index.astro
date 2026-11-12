@@ -6,6 +6,8 @@ import SubscribeBlock from '../components/SubscribeBlock.astro';
 import SellBlock from '../components/SellBlock.astro';
 import { citiesWithListings, getDisplayRate, listPublished, imageUrl } from '../server/public';
 import { db, env, site } from '../server/site';
+import { fromPrice } from '../lib/promo';
+import { groupDigits, plural } from '../lib/format';
 
 const d = db();
 const [items, cityList, rate] = await Promise.all([listPublished(d), citiesWithListings(d), getDisplayRate(d)]);
@@ -22,11 +24,26 @@ const org = {
   ...(s.botLink ? { sameAs: [s.botLink] } : {}),
 };
 const firstCover = items.find((i) => i.cover)?.cover;
+const prices = items.map((i) => i.priceIls).filter((p): p is number => !!p);
+const from = fromPrice(prices.length ? Math.min(...prices) : null);
 ---
 
 <Layout title={title} description={description} canonicalPath="/" jsonLd={[org]} ogImage={firstCover ? new URL(imageUrl(env, firstCover.r2Key), s.url).href : null} data={{ page: 'home' }}>
-  <h1 class="mb-1 text-2xl font-extrabold tracking-tight sm:text-3xl">Готовый бизнес на продажу в Израиле</h1>
-  <p class="mb-4 text-hint">Проверенные предложения с ценами и показателями. Название и адрес — после заявки.</p>
+  <!-- Шапка каталога в стиле «Закрытый клуб» (DECISIONS №46). -->
+  <header class="mb-5 pt-1">
+    <p class="caps text-brass">HaifaBusinessClub · каталог</p>
+    <h1 class="serif mt-2 text-[2.35rem] leading-[1.02] sm:text-5xl">Готовый бизнес на продажу в&nbsp;Израиле</h1>
+    <p class="mt-2.5 max-w-xl text-[0.95rem] leading-relaxed text-hint">Цифры — сразу. Название и адрес — только после заявки, через менеджера клуба.</p>
+    {
+      items.length > 0 && (
+        <div class="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-1 border-y border-line py-3">
+          <div class="flex items-baseline gap-1.5"><span class="serif text-3xl" data-count={items.length}>{items.length}</span><span class="text-sm text-hint">досье</span></div>
+          <div class="flex items-baseline gap-1.5"><span class="serif text-3xl" data-count={cityList.length}>{cityList.length}</span><span class="text-sm text-hint">{plural(cityList.length, ['город', 'города', 'городов'])}</span></div>
+          <div class="flex items-baseline gap-1.5"><span class="text-sm text-hint">от</span><span class="serif text-3xl">₪&nbsp;{groupDigits(from)}</span></div>
+        </div>
+      )
+    }
+  </header>
   <!-- Опрос и «Подборка для вас» (только в Telegram, src/onboarding). -->
   <div id="for-you" class="tg-only"></div>
 

@@ -11,7 +11,11 @@ export interface GalleryPhoto {
 }
 
 /** Галерея: свайп, счётчик «3 / 12», полноэкранный просмотр по нажатию. */
-export default function Gallery({ photos, title }: { photos: GalleryPhoto[]; title: string }) {
+/**
+ * vtName — имя для перехода View Transitions: первое фото получает то же имя, что миниатюра в ленте,
+ * и «перелетает» из ленты в галерею (DECISIONS №46).
+ */
+export default function Gallery({ photos, title, vtName }: { photos: GalleryPhoto[]; title: string; vtName?: string }) {
   const [index, setIndex] = useState(0);
   const [full, setFull] = useState(false);
   const strip = useRef<HTMLDivElement>(null);
@@ -62,6 +66,7 @@ export default function Gallery({ photos, title }: { photos: GalleryPhoto[]; tit
             key={i}
             type="button"
             className="relative h-full w-full shrink-0 snap-center"
+            style={i === 0 && vtName ? { viewTransitionName: vtName } : undefined}
             onClick={() => { setIndex(i); setFull(true); }}
             aria-label={`Открыть фото ${i + 1} из ${photos.length} на весь экран`}
           >

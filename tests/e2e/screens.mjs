@@ -71,6 +71,7 @@ bad += await shot('04-card-320', CARD, { width: 320, height: 640 });
 bad += await shot('05-card-desktop', CARD, { width: 1280, height: 900 });
 bad += await shot('06-request-web', CARD + '/request', { width: 390 });
 bad += await shot('07-gone-410', '/business/1004-minimarket-v-ashdode', { width: 390 });
+bad += await shot('00-tg-splash', '/', { tg: guest, splash: true, full: false, before: async (p) => { await p.waitForTimeout(300); } });
 bad += await shot('08-tg-home', '/', { tg: guest });
 bad += await shot('09-tg-card-dark', CARD, { tg: guest, dark: true, full: false });
 bad += await shot('10-tg-request', CARD + '/request', { tg: guest });

@@ -7,12 +7,16 @@ import {
   captureUtm, fetchSubscription, getWebApp, isTg, requestSubscribe, requestUnsubscribe,
   storageGet, storageSet, tgHeaders, track, afterSplash,
 } from './tg';
+import { initMotion } from './motion';
 
 const body = document.body;
+/** Текст кнопки заявки на карточке — как у кнопки на сайте (src/pages/business/[lot].astro). */
+const CTA_TEXT = 'Узнать название и адрес';
 const page = body.dataset.page ?? '';
 const businessId = body.dataset.businessId ? Number(body.dataset.businessId) : undefined;
 
 captureUtm();
+initMotion();
 
 // --- статистика ---
 if (!storageGet('bm_open', 'session')) {
@@ -79,24 +83,54 @@ async function initTelegram() {
   if (!wa) return;
   wa.ready();
   wa.expand();
-  // Во время заставки шапка Telegram — в цвет заставки, потом — в цвет темы.
+  // Палитра «Закрытый клуб» — светлая или тёмная, как в Telegram; шапка, фон и нижняя панель Telegram —
+  // в цвет страницы, чтобы не было «шва» (DECISIONS №46).
+  const root = document.documentElement;
+  const applyScheme = () => {
+    const dark = wa.colorScheme === 'dark';
+    root.classList.toggle('theme-dark', dark);
+    root.classList.toggle('theme-light', !dark);
+    storageSet('bm_scheme', dark ? 'dark' : 'light', 'session');
+  };
+  applyScheme();
   const themeColors = () => {
     try {
-      wa.setHeaderColor('secondary_bg_color');
-      wa.setBackgroundColor('secondary_bg_color');
+      const css = getComputedStyle(root);
+      const bg = css.getPropertyValue('--bg').trim() || (wa.colorScheme === 'dark' ? '#13110e' : '#efe9de');
+      const card = css.getPropertyValue('--card').trim() || bg;
+      wa.setHeaderColor(bg);
+      wa.setBackgroundColor(bg);
+      if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.(card);
     } catch {
       /* старые клиенты */
     }
   };
+  // Нижняя кнопка Telegram — латунная, как кнопки сайта (на всех страницах, где она показывается).
+  const buttonColors = () => {
+    try {
+      const css = getComputedStyle(root);
+      const color = css.getPropertyValue('--accent').trim();
+      const text = css.getPropertyValue('--accent-text').trim();
+      if (color && text) wa.MainButton.setParams?.({ color, text_color: text });
+    } catch {
+      /* старые клиенты */
+    }
+  };
+  buttonColors();
+  wa.onEvent('themeChanged', () => {
+    applyScheme();
+    buttonColors();
+    if (!root.classList.contains('splash-on')) themeColors();
+  });
   if (document.documentElement.classList.contains('splash-on')) {
     // Заставка — во весь экран: на телефонах полноэкранный режим Telegram (Bot API 8.0+),
-    // иначе шапка и нижняя панель Telegram окрашиваются в цвета градиента заставки.
+    // иначе шапка и нижняя панель Telegram окрашиваются в чернильный цвет заставки.
     const mobile = wa.platform === 'ios' || wa.platform === 'android';
     let fullscreen = false;
     try {
-      wa.setHeaderColor('#312E81');
-      wa.setBackgroundColor('#1E1B4B');
-      if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('#0F3D4C');
+      wa.setHeaderColor('#13110E');
+      wa.setBackgroundColor('#13110E');
+      if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('#13110E');
       if (mobile && wa.isVersionAtLeast('8.0') && wa.requestFullscreen && !wa.isFullscreen) {
         wa.requestFullscreen();
         fullscreen = true;
@@ -111,7 +145,6 @@ async function initTelegram() {
       restored = true;
       try {
         if (fullscreen && wa.isFullscreen) wa.exitFullscreen?.();
-        if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('bottom_bar_bg_color');
       } catch {
         /* старые клиенты */
       }
@@ -149,10 +182,10 @@ async function initTelegram() {
     wa.BackButton.hide();
   }
 
-  // Карточка: «Узнать подробнее» — системная нижняя кнопка.
+  // Карточка: «Узнать название и адрес» — системная нижняя кнопка.
   if (page === 'card' && body.dataset.requestPath) {
     const go = () => (location.href = body.dataset.requestPath!);
-    wa.MainButton.setText('Узнать подробнее').enable();
+    wa.MainButton.setText(CTA_TEXT).enable();
     wa.MainButton.onClick(go);
     afterSplash().then(() => wa.MainButton.show());
     window.addEventListener('pagehide', () => wa.MainButton.offClick(go));

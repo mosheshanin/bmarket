@@ -1,55 +1,93 @@
 @import 'tailwindcss';
-/* Шрифт Nunito (вариативный, округлый, кириллица + латиница), раздаётся вместе с приложением. */
-@import '@fontsource-variable/nunito/wght.css';
-
 /*
- * Нейтральная тема, подстраивается под Telegram (themeParams → --tg-theme-*),
- * в браузере — под системную светлую/тёмную тему. Акцентный цвет — одна переменная --accent-base.
+ * Шрифты концепции «Закрытый клуб» (DECISIONS №46): Manrope — текст и интерфейс (вариативный, кириллица),
+ * Cormorant Garamond — заголовки и цифры (антиква, кириллица, начертания 600 и 700). Раздаются вместе с приложением.
  */
-:root {
-  --accent-base: #1f6feb;
+@import '@fontsource-variable/manrope/wght.css';
+@import '@fontsource/cormorant-garamond/600.css';
+@import '@fontsource/cormorant-garamond/700.css';
 
-  --fb-bg: #f3f4f6;
-  --fb-card: #ffffff;
-  --fb-text: #111827;
-  --fb-hint: #5b6472;
-  --fb-border: rgb(17 24 39 / 0.08);
-  --fb-danger: #c62828;
-  --fb-success: #1b7f3b;
-  --fb-warn-bg: #fff4d6;
-
-  color-scheme: light;
+/* Переход между страницами (лента → карточка): фото «перелетает». Браузеры без поддержки просто открывают страницу. */
+@view-transition {
+  navigation: auto;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.tg) {
-    --fb-bg: #0f1115;
-    --fb-card: #181b21;
-    --fb-text: #eef0f3;
-    --fb-hint: #9aa3af;
-    --fb-border: rgb(255 255 255 / 0.08);
-    --fb-danger: #ff6b6b;
-    --fb-success: #4cc27a;
-    --fb-warn-bg: #3a3016;
-    --accent-base: #4c8dff;
-    color-scheme: dark;
+::view-transition-group(*) {
+  animation-duration: 0.38s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
   }
 }
 
+/*
+ * Своя палитра «бумага, чернила, латунь» в двух вариантах. В браузере — по системной теме,
+ * в Telegram — по colorScheme клиента: класс theme-dark / theme-light ставится в <head> до отрисовки
+ * (см. Layout.astro) и обновляется при смене темы (src/scripts/app.ts). Шапка, фон и нижняя панель Telegram
+ * красятся в эти же цвета (setHeaderColor / setBackgroundColor / setBottomBarColor).
+ */
 :root {
-  --bg: var(--tg-theme-secondary-bg-color, var(--fb-bg));
-  --card: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, var(--fb-card)));
-  --text: var(--tg-theme-text-color, var(--fb-text));
-  --hint: var(--tg-theme-hint-color, var(--fb-hint));
-  --link: var(--tg-theme-link-color, var(--accent-base));
-  --accent: var(--tg-theme-button-color, var(--accent-base));
-  --accent-text: var(--tg-theme-button-text-color, #ffffff);
-  --danger: var(--tg-theme-destructive-text-color, var(--fb-danger));
-  --border: var(--fb-border);
-  --success: var(--fb-success);
-  --warn-bg: var(--fb-warn-bg);
-  --radius: 12px;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 14px rgb(0 0 0 / 0.06);
+  --bg: #efe9de;
+  --card: #fbf8f2;
+  --card-2: #f4eee3;
+  --text: #1e1a14;
+  --hint: #655c4e;
+  --link: #86601d;
+  --accent: #86601d;
+  --accent-text: #ffffff;
+  --brass: #86601d;
+  --redact: #1e1a14;
+  --danger: #b3261e;
+  --border: rgb(50 35 10 / 0.13);
+  --success: #2f7a3e;
+  --warn-bg: #f6e7c1;
+  --ink-block: #1e1a16;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light) {
+    --bg: #13110e;
+    --card: #1e1a16;
+    --card-2: #26211b;
+    --text: #f3ecdf;
+    --hint: #aba192;
+    --link: #d6b370;
+    --accent: #d6b370;
+    --accent-text: #1a1307;
+    --brass: #d6b370;
+    --redact: #060504;
+    --danger: #ff8a80;
+    --border: rgb(240 226 200 / 0.12);
+    --success: #7fc98a;
+    --warn-bg: #3a3016;
+    --ink-block: #26211b;
+    color-scheme: dark;
+  }
+}
+:root.theme-dark {
+  --bg: #13110e;
+  --card: #1e1a16;
+  --card-2: #26211b;
+  --text: #f3ecdf;
+  --hint: #aba192;
+  --link: #d6b370;
+  --accent: #d6b370;
+  --accent-text: #1a1307;
+  --brass: #d6b370;
+  --redact: #060504;
+  --danger: #ff8a80;
+  --border: rgb(240 226 200 / 0.12);
+  --success: #7fc98a;
+  --warn-bg: #3a3016;
+  --ink-block: #26211b;
+  color-scheme: dark;
+}
+
+:root {
+  --radius: 14px;
+  --shadow: 0 1px 0 var(--border), 0 6px 18px rgb(30 20 5 / 0.06);
+  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
 }
 
 @theme inline {
@@ -60,13 +98,15 @@
   --color-link: var(--link);
   --color-accent: var(--accent);
   --color-accent-text: var(--accent-text);
+  --color-brass: var(--brass);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-line: var(--border);
   --color-warn: var(--warn-bg);
   --radius-card: var(--radius);
   --shadow-card: var(--shadow);
-  --font-sans: 'Nunito Variable', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-sans: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-serif: var(--serif);
 }
 
 @layer base {
@@ -80,6 +120,8 @@ body {
   min-height: 100dvh;
   background: var(--bg);
   font-family: var(--font-sans);
+  /* Цифры антиквы — «прямые» (лайнинг), как в ценах. */
+  font-variant-numeric: lining-nums;
   line-height: 1.5;
 }
 a {
@@ -275,7 +317,7 @@ a {
     animation: survey-in 0.22s ease-out;
   }
   .survey-count {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: lining-nums tabular-nums;
     transition: transform 0.2s;
   }
 }
@@ -334,7 +376,6 @@ a {
     transition: transform 0.2s, box-shadow 0.2s;
   }
   .listing-card:hover {
-    transform: translateY(-2px);
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.06), 0 12px 28px rgb(0 0 0 / 0.1);
   }
   .trust-badge {
@@ -343,12 +384,14 @@ a {
     gap: 0.3rem;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    font-size: 0.72rem;
-    font-weight: 700;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
     line-height: 1.3;
-    color: color-mix(in srgb, var(--tone) 85%, #000);
-    background: color-mix(in srgb, var(--tone) 12%, #fff);
-    box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+    text-transform: uppercase;
+    color: var(--brass);
+    background: color-mix(in srgb, var(--brass) 9%, var(--card));
+    border: 1px solid color-mix(in srgb, var(--brass) 45%, transparent);
   }
   .trust-badge-lg {
     font-size: 0.85rem;
@@ -466,30 +509,30 @@ a {
   .show-more { min-width: 220px; gap: 0.35rem; }
   .show-more-left { color: var(--hint); font-weight: 600; }
 
-  /* Промо-блок «Ваше объявление заметят» (страница «Мои объявления») — градиент заставки. */
+  /* Промо-блок «Ваше объявление заметят» (страница «Мои объявления») — «чернила и латунь» (DECISIONS №46). */
   .promo-block {
-    position: relative; overflow: hidden; isolation: isolate; padding: 18px; border-radius: 22px; color: #fff;
-    background: linear-gradient(150deg, #312e81 0%, #1e1b4b 55%, #0f3d4c 100%);
-    box-shadow: 0 12px 32px rgba(30, 27, 75, 0.28);
+    position: relative; overflow: hidden; isolation: isolate; padding: 18px; border-radius: 18px; color: #f3ecdf;
+    background: #1e1a16;
+    box-shadow: 0 12px 30px rgba(20, 12, 0, 0.22);
   }
-  .promo-aurora { position: absolute; inset: -40%; z-index: -1; filter: blur(36px); pointer-events: none; }
+  .promo-aurora { display: none; }
   .promo-aurora i { position: absolute; display: block; border-radius: 50%; }
   .promo-aurora i:nth-child(1) { width: 55%; height: 70%; left: 8%; top: 8%; background: #4f46e5; }
   .promo-aurora i:nth-child(2) { width: 45%; height: 60%; right: 6%; top: 20%; background: #0ea5e9; opacity: 0.8; }
   .promo-aurora i:nth-child(3) { width: 45%; height: 55%; left: 35%; bottom: 4%; background: #a855f7; opacity: 0.7; }
   .promo-body { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-  .promo-title { margin: 0; font-size: 20px; font-weight: 900; line-height: 1.2; text-wrap: balance; }
+  .promo-title { margin: 0; font-family: var(--serif); font-size: 28px; font-weight: 700; line-height: 1.08; text-wrap: balance; }
   .promo-text { margin: -4px 0 0; font-size: 14px; font-weight: 600; line-height: 1.45; color: rgba(255, 255, 255, 0.85); text-wrap: pretty; max-width: 34rem; }
   .promo-stat { display: flex; flex-direction: column; gap: 2px; }
   .promo-num {
-    font-size: 36px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums;
-    background: linear-gradient(90deg, #67e8f9, #c4b5fd 50%, #f0abfc); -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-size: 36px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: lining-nums tabular-nums;
+    font-family: var(--serif); font-size: 44px; color: #d6b370;
   }
   .promo-cap { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.8); }
   .promo-channels { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
   .promo-channels li {
     display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 8px; border-radius: 999px;
-    background: #fff; color: #1e1b4b; font-size: 13px; font-weight: 800; line-height: 1;
+    background: #f3ecdf; color: #1e1a16; font-size: 13px; font-weight: 800; line-height: 1;
     box-shadow: 0 4px 12px rgba(12, 16, 36, 0.18);
   }
   .promo-channels img { display: block; width: 18px; height: 18px; flex-shrink: 0; }
@@ -498,10 +541,178 @@ a {
     border-top: 1px solid rgba(255, 255, 255, 0.2);
   }
   .promo-club p { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; color: rgba(255, 255, 255, 0.88); text-wrap: pretty; }
-  .promo-club b { color: #fff; font-weight: 900; }
+  .promo-club b { color: #d6b370; font-weight: 800; }
   .promo-club-tile {
     display: flex; flex-shrink: 0; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 12px;
-    background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.32);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3); font-size: 11px; font-weight: 900; letter-spacing: 0.04em;
+    background: transparent; border: 1px solid rgba(214, 179, 112, 0.6); color: #d6b370;
+    font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
   }
+}
+
+/* ---------- Концепция «Закрытый клуб»: досье, плашки цензуры, ведомость, печати (DECISIONS №46) ---------- */
+@layer components {
+  .serif {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-variant-numeric: lining-nums tabular-nums;
+    letter-spacing: -0.005em;
+  }
+  .caps {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+  .text-brass { color: var(--brass); }
+
+  /* Нажатие: лёгкое «вдавливание» (вибрация — в src/scripts/motion.ts). */
+  .press { transition: transform 0.16s ease; -webkit-tap-highlight-color: transparent; }
+  .press:active { transform: scale(0.98); }
+
+  /* Плашка цензуры на месте скрытого названия, адреса, продавца. Внутри никогда нет настоящих данных. */
+  .redact {
+    position: relative;
+    display: inline-block;
+    height: 1em;
+    vertical-align: -0.15em;
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--redact);
+  }
+  .redact::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / 0.16) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: bm-sheen 3.6s ease-in-out infinite;
+  }
+  /* Перебор букв при нажатии (scramble): плашка становится строкой случайных символов и снова закрашивается. */
+  .redact[data-scramble] {
+    background: transparent;
+    color: var(--brass);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.92em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .redact[data-scramble]::after { display: none; }
+  @keyframes bm-sheen { 60%, 100% { transform: translateX(100%); } }
+
+  /* Карточка-досье в ленте: ярлык папки с номером лота и «бумажный» лист. */
+  .dossier { position: relative; display: block; padding-top: 25px; color: var(--text); text-decoration: none; }
+  .dossier-tab {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    height: 26px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    border-radius: 10px 10px 0 0;
+    background: var(--card);
+    color: var(--brass);
+  }
+  .dossier-body {
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 0 16px 16px 16px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s;
+  }
+  .dossier:hover .dossier-body { box-shadow: 0 1px 0 var(--border), 0 14px 30px rgb(30 20 5 / 0.12); }
+  .dossier-thumb {
+    position: relative;
+    width: 104px;
+    height: 128px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 6px;
+    background: var(--card-2);
+    box-shadow: 0 6px 16px rgb(20 12 0 / 0.22);
+    transform: rotate(-2deg);
+  }
+  li:nth-child(even) .dossier-thumb { transform: rotate(1.5deg); }
+  .dossier-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .dossier-thumb .photo-illustr {
+    position: absolute;
+    inset: auto 4px 4px;
+    justify-content: center;
+    padding: 2px 4px;
+    border-radius: 6px;
+    font-size: 9px;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .fig-label { display: block; font-size: 11px; color: var(--hint); line-height: 1.3; }
+
+  /* Кольцо окупаемости: заполнено на долю от 60 месяцев, прорисовывается, когда попадает на экран. */
+  .ring-arc { stroke-dasharray: var(--p) 100; }
+  .motion-ok .ring-arc { animation: bm-ring 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) both paused; }
+  .motion-ok .in .ring-arc, .motion-ok .payback-ring.in .ring-arc { animation-play-state: running; }
+  @keyframes bm-ring { from { stroke-dasharray: 0 100; } }
+
+  /* Ведомость цифр с точками-отточиями. */
+  .ledger { display: flex; flex-direction: column; gap: 10px; }
+  .ledger-row { display: flex; align-items: baseline; gap: 8px; }
+  .ledger-row dt { color: var(--hint); font-size: 0.92rem; }
+  .ledger-row i { flex: 1; min-width: 12px; border-bottom: 1px dotted currentColor; opacity: 0.35; transform: translateY(-4px); }
+  .ledger-row dd { margin: 0; font-family: var(--serif); font-weight: 700; font-size: 1.35rem; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; text-align: right; }
+
+  /* Печать проверки: «Оценка подтверждена» / «Пройден аудит». */
+  .stamp {
+    display: inline-flex;
+    width: 104px;
+    height: 104px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 2px solid var(--brass);
+    outline: 1px solid var(--brass);
+    outline-offset: -7px;
+    color: var(--brass);
+    text-align: center;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    line-height: 1.35;
+    text-transform: uppercase;
+    transform: rotate(-8deg);
+  }
+  .motion-ok .stamp:not(.in) { opacity: 0; }
+  .motion-ok .stamp.in { animation: bm-stamp 0.5s cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+  @keyframes bm-stamp { from { transform: rotate(-8deg) scale(1.6); opacity: 0; } }
+
+  /* Лист досье: раздел страницы лота. */
+  .sheet { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+  .sheet-title { margin: 0 0 10px; font-family: var(--serif); font-weight: 700; font-size: 1.45rem; line-height: 1.15; }
+
+  /* Ленты городов — вкладки с подчёркиванием. */
+  .city-tab {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 0 2px;
+    border-bottom: 2px solid transparent;
+    color: var(--hint);
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .city-tab[aria-current='page'] { color: var(--text); border-bottom-color: var(--brass); }
+
+  /* Тёмный блок «Продаёте бизнес?» — чернила и латунь. */
+  .ink-block { position: relative; overflow: hidden; padding: 20px; border-radius: 18px; background: #1e1a16; color: #f3ecdf; box-shadow: 0 12px 30px rgb(20 12 0 / 0.22); }
+  .ink-block .caps { color: #d6b370; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .redact::after { animation: none; }
 }

@@ -2,11 +2,14 @@
 import '../styles/global.css';
 import { site } from '../server/site';
 import Splash from '../components/Splash.astro';
-// Шрифт приложения — округлый Nunito; кириллица подгружается заранее, латиница — когда встретится на странице.
-import nunitoCyrillic from '@fontsource-variable/nunito/files/nunito-cyrillic-wght-normal.woff2?url';
-import nunitoLatin from '@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2?url';
+// Шрифты концепции «Закрытый клуб»: Manrope (текст) и Cormorant Garamond 700 (заголовки, цифры).
+// Кириллица подгружается заранее, латиница — когда встретится на странице.
+import manropeCyrillic from '@fontsource-variable/manrope/files/manrope-cyrillic-wght-normal.woff2?url';
+import manropeLatin from '@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url';
+import serifCyrillic from '@fontsource/cormorant-garamond/files/cormorant-garamond-cyrillic-700-normal.woff2?url';
+import serifLatin from '@fontsource/cormorant-garamond/files/cormorant-garamond-latin-700-normal.woff2?url';
 // Для заставки (латинские BMarket, HaifaBusinessClub) латиница тоже нужна сразу.
-const splashFonts = [nunitoLatin];
+const splashFonts = [serifLatin, manropeLatin];
 
 interface Props {
   title: string;
@@ -43,8 +46,8 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {canonical && <link rel="canonical" href={canonical} />}
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#efe9de" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#13110e" media="(prefers-color-scheme: dark)" />
     <meta property="og:site_name" content={s.name} />
     <meta property="og:locale" content="ru_RU" />
     <meta property="og:type" content={ogType} />
@@ -54,16 +57,37 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {ogImage && <meta property="og:image" content={ogImage} />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href={nunitoCyrillic} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={manropeCyrillic} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={serifCyrillic} as="font" type="font/woff2" crossorigin />
     {ldJson.map((j) => <script type="application/ld+json" set:html={j} />)}
     <!-- Внутри Telegram: пометить документ и подключить SDK мини-приложения (в браузере не грузится). -->
     <script is:inline define:vars={{ splashFonts }}>
       (function () {
         try {
+          var root = document.documentElement;
+          // Анимации — только если не включено «уменьшение движения».
+          if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) root.classList.add('motion-ok');
           var tg = /tgWebApp/.test(location.hash + location.search) || sessionStorage.getItem('bm_tg') === '1';
           if (!tg) return;
           sessionStorage.setItem('bm_tg', '1');
-          document.documentElement.classList.add('tg');
+          root.classList.add('tg');
+          // Светлая или тёмная палитра — как в Telegram, до отрисовки (без мигания). Тема клиента приходит в адресе
+          // только при открытии; на следующих страницах — из sessionStorage. Потом её уточняет src/scripts/app.ts.
+          var scheme = sessionStorage.getItem('bm_scheme');
+          var tp = /tgWebAppThemeParams=([^&]+)/.exec(location.hash);
+          if (tp) {
+            try {
+              var hex = (JSON.parse(decodeURIComponent(tp[1])).bg_color || '').replace('#', '');
+              if (hex.length === 6) {
+                var lum = 0.2126 * parseInt(hex.slice(0, 2), 16) + 0.7152 * parseInt(hex.slice(2, 4), 16) + 0.0722 * parseInt(hex.slice(4, 6), 16);
+                scheme = lum < 128 ? 'dark' : 'light';
+              }
+            } catch (e) {}
+          }
+          if (scheme === 'dark' || scheme === 'light') {
+            root.classList.add('theme-' + scheme);
+            sessionStorage.setItem('bm_scheme', scheme);
+          }
           // Заставка — один раз на открытие мини-приложения (сессия Telegram WebView),
           // не в админке, не при «уменьшении движения». Если сейчас будет переход по прямой
           // ссылке (?startapp=lot-…), заставку покажет страница, на которую ведёт ссылка.
@@ -100,10 +124,11 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {!bare && <Splash />}
     {
       !bare && (
-        <header class="web-only sticky top-0 z-30 border-b border-line bg-card/95 backdrop-blur">
+        <header class="web-only sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur">
           <div class="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4">
-            <a href="/" class="text-lg font-extrabold tracking-tight text-text no-underline">
-              {s.name}
+            <a href="/" class="flex items-baseline gap-2.5 text-text no-underline">
+              <span class="serif text-[1.6rem] leading-none">{s.name}</span>
+              <span class="caps hidden text-brass sm:inline">HaifaBusinessClub</span>
             </a>
             {s.miniAppLink && (
               <a href={s.miniAppLink} class="btn btn-secondary !min-h-[40px] text-sm" rel="noopener">
