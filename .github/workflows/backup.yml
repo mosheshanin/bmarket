@@ -12,6 +12,8 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-24.04
+    # Секреты заведены в окружении GitHub «SUPABASE_DB_URL» (Settings → Environments).
+    environment: SUPABASE_DB_URL
     steps:
       - name: Выгрузка базы
         env:

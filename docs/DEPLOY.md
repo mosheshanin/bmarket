@@ -119,7 +119,8 @@ GitHub Actions «Перенос данных Cloudflare → Supabase» (`.github
 Запуск: Actions → Run workflow (когда файл есть в `main`) или push в ветку `vercel` с `[migrate]` в сообщении.
 Итог — `SELECT value FROM settings WHERE key = 'migration_report';` (строки по таблицам и число фото).
 Нужны секреты репозитория `CLOUDFLARE_API_TOKEN` (Account → D1: Edit, Workers KV Storage: Read; ID аккаунта — в самом workflow),
-`SUPABASE_DB_URL` (Session pooler, 5432), `SUPABASE_SECRET_KEY`. Ключи `cron_secret` и `bot_setup` не переносятся.
+`SUPABASE_DB_URL` (Session pooler, 5432), `SUPABASE_SECRET_KEY` — все три в **окружении GitHub `SUPABASE_DB_URL`**
+(Settings → Environments), workflow указывает его в `environment:`. Ключи `cron_secret` и `bot_setup` не переносятся.
 
 ## Переключение (план)
 
