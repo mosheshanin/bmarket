@@ -38,9 +38,14 @@
 - [x] Проект Supabase, схема (14 таблиц), RLS, бакет, расширения pg_cron/pg_net.
 - [x] Код: адаптер Vercel, Postgres, Storage, cron-маршруты, CDN-кеш; 37 юнит + 182 e2e проходят на Postgres; CI на Postgres 17.
 - [x] Обычные переменные окружения в Vercel (Production + Preview).
-- [ ] Владелец: секреты `DATABASE_URL`, `SUPABASE_SECRET_KEY` в Vercel; `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEY` в GitHub.
-- [ ] Пробный перенос данных (workflow «Перенос данных Cloudflare → Supabase») и сверка.
-- [ ] Проверка preview-деплоя ветки `vercel`.
+- [x] Секреты: `DATABASE_URL`, `SUPABASE_SECRET_KEY` в Vercel (Production + Preview); `CLOUDFLARE_API_TOKEN`,
+      `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEY` — в **окружении GitHub `SUPABASE_DB_URL`** (не repository secrets).
+- [x] 12.11.2026 пробный перенос: все таблицы совпали с D1 (65 лотов, 45 опубликованы, 131 фото-запись, 89 событий,
+      81 запись журнала, 13 анкет, 3 подписчика, 1 заявка, 24 города, 14 сфер, 11 курсов), фото KV 18 из 18.
+- [x] Preview `bmarket-git-vercel-yoggy1.vercel.app`: главная (45 лотов), 11 городов, карточки, форма заявки (запись в базу),
+      sitemap, robots, фото из Storage, `/api/survey/facets`, `/api/health`; страницы отдаются из CDN.
+- [x] Исправлено: postgres.js без конвейера запросов (`max_pipeline: 1`) — Supavisor в режиме transaction на нём зависал.
+- [ ] Админка и «Мои объявления» — проверить в Telegram после переключения (вне Telegram не открываются).
 - [ ] Переключение (DEPLOY.md → «Переключение»), затем обновить этот файл целиком.
 
 ## Каталог сейчас (25.10.2026)
