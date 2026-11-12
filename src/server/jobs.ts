@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { DB } from '../db/client';
 import { settings } from '../db/schema';
 import { ensureBotSetup } from './bot-setup';
@@ -9,16 +9,20 @@ import { reconcilePayments } from './seller';
 import { safeEqual } from '../lib/crypto';
 
 /**
- * Задачи по расписанию (раньше — scheduled() у Cloudflare Worker).
- *   /api/cron/minute — каждую минуту (Supabase pg_cron + pg_net): самонастройка бота после деплоя,
- *                      порция рассылки подписчикам, сверка оплат PayPal;
- *   /api/cron/daily  — ежедневно в 14:00 UTC (Vercel Cron): курсы Банка Израиля и обслуживание базы.
- * Оба адреса принимают только «Authorization: Bearer <CRON_SECRET>» (так же их вызывает Vercel Cron).
+ * Задачи по расписанию (раньше — scheduled() у Cloudflare Worker). Оба адреса вызывает
+ * Supabase pg_cron через pg_net (см. docs/DEPLOY.md):
+ *   /api/cron/minute — каждую минуту: самонастройка бота после деплоя, порция рассылки, сверка оплат PayPal;
+ *   /api/cron/daily  — ежедневно в 14:00 UTC: курсы Банка Израиля и обслуживание базы.
+ * Доступ — «Authorization: Bearer <секрет>». Секрет создаётся в самой базе (settings.cron_secret,
+ * таблица закрыта от API Supabase), поэтому его не нужно переносить в Vercel. CRON_SECRET в окружении —
+ * запасной вариант (локальные тесты, ручной вызов).
  */
-export function cronAuthorized(env: Env, req: Request): boolean {
-  const secret = env.CRON_SECRET || '';
-  if (!secret) return false;
-  return safeEqual(req.headers.get('authorization') ?? '', `Bearer ${secret}`);
+export async function cronAuthorized(env: Env, req: Request, db: DB): Promise<boolean> {
+  const got = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+  if (got.length < 16) return false;
+  if (env.CRON_SECRET && safeEqual(got, env.CRON_SECRET)) return true;
+  const [row] = await db.select({ value: settings.value }).from(settings).where(eq(settings.key, 'cron_secret'));
+  return !!row?.value && row.value.length >= 32 && safeEqual(got, row.value);
 }
 
 /**

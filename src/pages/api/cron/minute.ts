@@ -5,8 +5,8 @@ import { cronAuthorized, runMinute } from '../../../server/jobs';
 
 /** Задача по расписанию — см. src/server/jobs.ts. */
 export const GET: APIRoute = async ({ request }) => {
-  if (!cronAuthorized(env, request)) return json({ error: 'Forbidden' }, { status: 403 });
   try {
+    if (!(await cronAuthorized(env, request, db()))) return json({ error: 'Forbidden' }, { status: 403 });
     return json({ ok: true, ...(await runMinute(env, db())) });
   } catch (e) {
     return errorResponse(e);
