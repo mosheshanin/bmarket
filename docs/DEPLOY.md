@@ -1,95 +1,162 @@
 # Инфраструктура и эксплуатация
 
-Как сейчас развёрнут проект и как повторить или изменить настройку. Конкретные ID — в `docs/STATUS.md`.
+Как развёрнут проект и как повторить или изменить настройку. Конкретные ID — в `docs/STATUS.md`.
+С ноября 2026 сайт переезжает с Cloudflare Workers на **Vercel + Supabase** (ветка `vercel`, адрес
+`https://market.haifa.business`). Пока переключение не выполнено, production — на Cloudflare (описание —
+в истории этого файла до коммита переноса).
 
 ## Схема
 
 ```
-GitHub mosheshanin/bmarket (main) ──push──▶ Cloudflare Workers Builds ──▶ Worker «bmarket»
-                                                                         ├─ D1 catalog-prod (данные)
-                                                                         ├─ KV bmarket-photos (фото)
-                                                                         ├─ static assets (JS/CSS/шрифты, значки /brands)
-                                                                         ├─ cron * * * * *  — самонастройка бота, рассылки
-                                                                         └─ cron 0 14 * * * — курс Банка Израиля, обслуживание
+GitHub mosheshanin/bmarket ──push──▶ Vercel (команда Yoggy, проект bmarket, регион fra1)
+   main   → Production (market.haifa.business)        ├─ static: JS/CSS/шрифты, /brands, /demo
+   другие → Preview (*.vercel.app)                     └─ функция _render (Node.js 22, Fluid): страницы и API
+                                                              │
+Supabase, проект bmarket (Франкфурт, eu-central-1) ◀──────────┘ Postgres через пулер (6543), Storage (бакет photos)
+   └─ pg_cron + pg_net: каждую минуту → /api/cron/minute, 14:00 UTC → /api/cron/daily
 Telegram ──webhook──▶ /api/telegram/webhook      Банк Израиля ◀── ежедневный запрос курса
 Браузер ──▶ images.unsplash.com (стоковые фото лотов, ключи unsplash:<id>:<ширина>)
 ```
 
-## Workers Builds (автодеплой)
+## Vercel
 
-Cloudflare → Workers & Pages → `bmarket` → Settings → Build:
-- репозиторий `mosheshanin/bmarket`, ветка `main`, корень `/`;
-- build command `npm run build`, deploy command `npx wrangler deploy`;
-- Preview builds выключены.
+- Команда **Yoggy** (`team_NjHdwhg5TkZ0vNhZDxcsjhTx`), проект `bmarket` (`prj_3hXJSld0Aa9OgT0QEaTy6pFRuszC`).
+  Коннектор Vercel этот проект не видит — действия в панели выполняются вручную или встроенным браузером.
+- Сборка: Framework Astro, `npm run build`, адаптер `@astrojs/vercel` (`astro.config.mjs`), регион функций —
+  `vercel.json` → `regions: ["fra1"]` (рядом с базой).
+- Домен `market.haifa.business` привязан к проекту; DNS-зона `haifa.business` уже на Vercel (wildcard), записи не нужны.
+- Push в `main` → production-деплой; push в другие ветки → preview (защищён Vercel Authentication).
 
-Доступ Cloudflare к репозиторию: GitHub → Settings → Applications → «Cloudflare Workers and Pages» → Configure
-(выбраны `milav` и `bmarket`).
+### Переменные окружения (Project → Settings → Environment Variables)
 
-## Переменные и секреты
-
-`vars` в `wrangler.jsonc` (перезаписываются при каждом деплое):
+Обычные (Production и Preview):
 
 | Переменная | Значение / назначение |
 |---|---|
-| `SITE_URL` | `https://bmarket.moshemadwords.workers.dev` — канонические адреса, кнопки бота, вебхук |
-| `PUBLIC_IMAGES_URL` | пусто — фото раздаёт Worker по `/img/…` |
-| `ADMIN_TELEGRAM_IDS` | Telegram ID администраторов через запятую (сейчас `352078684,585408206`) |
-| `MANAGERS_CHAT_ID` | ID группы менеджеров |
-| `TELEGRAM_BOT_USERNAME`, `TELEGRAM_APP_SHORT_NAME` | `bismarketbot`, `app` — для ссылок `t.me/<бот>/<app>?startapp=…` |
-| `TURNSTILE_SITE_KEY`, `CF_ANALYTICS_TOKEN` | пусто, заполнить после домена |
-| `PROJECT_NAME` | название бренда |
-| `ONLINE_PAYMENTS` | `"0"` — онлайн-оплата PayPal выключена (`docs/PAYMENTS.md`) |
-| `PAYPAL_ENV`, `PAYPAL_WEBHOOK_ID` | `sandbox`, пусто — для PayPal, когда понадобится |
+| `SITE_URL` | **только Production**: `https://market.haifa.business`. В Preview не задаётся — берётся адрес деплоя, бот не перенастраивается |
+| `SUPABASE_URL` | `https://knasmcepypeysxojhdai.supabase.co` |
+| `PHOTOS_BUCKET` | `photos` |
+| `ADMIN_TELEGRAM_IDS` | Telegram ID администраторов через запятую (`352078684,585408206`) |
+| `MANAGERS_CHAT_ID` | ID группы менеджеров (`-5528365586`; бот может заменить командой `/setgroup`) |
+| `TELEGRAM_BOT_USERNAME`, `TELEGRAM_APP_SHORT_NAME` | `bismarketbot`, `app` |
+| `PROJECT_NAME` | `BMarket` |
+| `ONLINE_PAYMENTS` | `0` — онлайн-оплата PayPal выключена (`docs/PAYMENTS.md`) |
+| `PAYPAL_ENV`, `PAYPAL_WEBHOOK_ID` | `sandbox`, пусто |
+| `PUBLIC_IMAGES_URL`, `TURNSTILE_SITE_KEY`, `CF_ANALYTICS_TOKEN` | пусто (фото раздаёт `/img/…`; Turnstile и аналитика — после переключения) |
 
-Секреты (панель Worker → Settings → Variables and Secrets, тип Secret):
-- `TELEGRAM_BOT_TOKEN` — обязательный. Секрет вебхука выводится из него автоматически.
-- `TURNSTILE_SECRET_KEY` — после подключения Turnstile.
-- `TELEGRAM_WEBHOOK_SECRET` — необязательный, если нужен свой секрет вебхука.
+Секреты (тип Sensitive, вводит владелец):
+- `DATABASE_URL` — Supabase → Connect → **Transaction pooler** (порт 6543), с паролем базы. Production и Preview.
+- `SUPABASE_SECRET_KEY` — Supabase → Project Settings → API Keys → Secret key (`sb_secret_…`). Production и Preview.
+- `TELEGRAM_BOT_TOKEN` — только Production. Секрет вебхука выводится из него автоматически.
+- `TURNSTILE_SECRET_KEY`, `TELEGRAM_WEBHOOK_SECRET` — по необходимости.
 
-## База D1
+После изменения переменных нужен новый деплой (Redeploy), иначе функция видит старые значения.
+
+## Supabase
+
+- Организация **HBC**, проект `bmarket`, ref `knasmcepypeysxojhdai`, регион eu-central-1, Postgres 17.
+  Отдельно от `haifa-catalog` (`kqzrnjjeyppkmqtwnspo`) — данные и права не смешиваются.
+- Таблицы закрыты от API Supabase: RLS включён без политик, права `anon`/`authenticated` отозваны
+  (миграция `0001_rls_lockdown`). Сайт подключается ролью владельца таблиц, на неё RLS не действует.
+  Подсказка Security Advisor «RLS Enabled No Policy» — ожидаемая.
+- Фото — закрытый бакет `photos` (webp/jpeg до 10 МБ), ключи те же, что были в KV: `lots/<лот>/<id>-1600.webp`.
+  Раздаёт `/img/<ключ>`, CDN Vercel кеширует на год.
+
+### Миграции
 
 - Схема: `src/db/schema.ts` → `npm run db:generate` → новый файл в `migrations/`.
-- Production: выполнить SQL нового файла в Cloudflare → D1 → `catalog-prod` → Console (или коннектором),
-  затем `INSERT INTO d1_migrations (name) VALUES ('<файл>.sql');`.
-- Time Travel (7 дней): Cloudflare → D1 → catalog-prod → Time Travel.
-- Коннектор Cloudflare принимает SQL-пакеты до ≈11 КБ — большие файлы выполнять частями.
-- Импорт объявлений: `node --experimental-strip-types scripts/import-israel-2026-10.mjs` → `seed/israel-listings-2026-10.sql`
-  (города, лоты, стоковые фото, публикация и одна рассылка). Повторный запуск безопасен. Перед production —
-  проверить локально: заменить номера лотов на временные, выполнить `wrangler d1 execute DB --local --file …`, посмотреть, удалить.
-- Демо-объявления (сейчас удалены): `scripts/demo-lots.mjs` → `seed/demo-lots.sql`.
+- Production: выполнить SQL нового файла в Supabase → SQL Editor или коннектором Supabase (`apply_migration`).
+  Применённые: `init`, `rls_lockdown`, `photos_bucket_and_cron_extensions`, `pg_net_to_extensions_schema`.
+- Локально: `npm run db:migrate` (журнал `drizzle.__drizzle_migrations`).
+- Старые миграции D1 (SQLite) — `migrations-d1/`, только для истории.
+
+### Задачи по расписанию (pg_cron)
+
+Секрет вызова хранится в самой базе — `settings.cron_secret` (создан `gen_random_bytes(32)`), в Vercel его
+переносить не нужно: `/api/cron/*` сверяют заголовок `Authorization: Bearer …` с этой строкой.
+Задачи создаются **при переключении** (до него production-адрес ещё не на новом коде):
+
+```sql
+SELECT cron.schedule('bmarket-minute', '* * * * *', $$
+  SELECT net.http_get(
+    url := 'https://market.haifa.business/api/cron/minute',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || (SELECT value FROM public.settings WHERE key = 'cron_secret')),
+    timeout_milliseconds := 55000)
+$$);
+SELECT cron.schedule('bmarket-daily', '0 14 * * *', $$
+  SELECT net.http_get(
+    url := 'https://market.haifa.business/api/cron/daily',
+    headers := jsonb_build_object('Authorization', 'Bearer ' || (SELECT value FROM public.settings WHERE key = 'cron_secret')),
+    timeout_milliseconds := 55000)
+$$);
+```
+
+Проверка: `SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;` и
+`SELECT status_code, left(content, 200), created FROM net._http_response ORDER BY created DESC LIMIT 10;`.
+Остановить: `SELECT cron.unschedule('bmarket-minute');`. Повторный запуск минутной задачи, пока идёт предыдущая,
+пропускается (аренда `settings.cron_minute_lease` на 50 секунд).
+
+## Кеш страниц
+
+Публичные страницы (главная, город, карточка, about, privacy, sitemap, robots) помечаются `x-bm-cacheable: 1`,
+`src/middleware.ts` ставит `Vercel-CDN-Cache-Control: public, max-age=600` и тег `path:<путь>`. Браузер не кеширует.
+После изменений в админке `purgePaths` удаляет теги (`dangerouslyDeleteByTag`), каждый деплой начинает с пустого кеша.
+Прямые правки в базе (SQL) видны через 10 минут или после деплоя. Предпросмотр (`?preview=`) мимо кеша.
 
 ## Бот
 
-Настраивается сам (см. `src/server/bot-setup.ts`): вебхук, команды, кнопка меню «Каталог» — после каждого деплоя;
-описание и короткое описание — только если они пустые (текст из BotFather не перезаписывается).
-Чтобы принудительно перенастроить — `DELETE FROM settings WHERE key = 'bot_setup';` в D1: через минуту cron настроит заново.
+Настраивается сам (`src/server/bot-setup.ts`) при первом вызове `/api/cron/minute` после деплоя: вебхук, команды,
+кнопка меню «Каталог»; описание — только если пустое. Метка — `settings.bot_setup` (`<ID деплоя>|<SITE_URL>|<id бота>`).
+Работает только при заданных `TELEGRAM_BOT_TOKEN` и `SITE_URL` (https) — preview вебхук не перехватывает.
+Принудительно: `DELETE FROM settings WHERE key = 'bot_setup';` — через минуту настроит заново.
+В BotFather владелец задаёт вручную: описание, аватар, главное мини-приложение (URL сайта), домен Login Widget (`/setdomain`).
 
-В BotFather владелец задаёт вручную: описание (Edit Description), «О боте» (Edit About), картинку описания
-(GIF/MP4 320×180 или картинка 640×360), аватар, главное мини-приложение (Bot Settings → Configure Mini App —
-кнопка «Открыть» в списке чатов и ссылки `t.me/bismarketbot?startapp=…`).
-Запасной путь с компьютера: `TELEGRAM_BOT_TOKEN=… SITE_URL=… npm run bot:setup` (+ `TELEGRAM_WEBHOOK_SECRET`, если задан).
+## Перенос данных с Cloudflare
 
-## Домен (когда появится)
+GitHub Actions «Перенос данных Cloudflare → Supabase» (`.github/workflows/migrate-from-cloudflare.yml`):
+`wrangler d1 export` → `scripts/migrate-from-d1.py` (типы из схемы Postgres, таблицы очищаются и заполняются
+заново, счётчики id выставляются) → `psql`; фото — все ключи KV `bmarket-photos` → Supabase Storage.
+Запуск: Actions → Run workflow (когда файл есть в `main`) или push в ветку `vercel` с `[migrate]` в сообщении.
+Итог — `SELECT value FROM settings WHERE key = 'migration_report';` (строки по таблицам и число фото).
+Нужны секреты репозитория `CLOUDFLARE_API_TOKEN` (D1 и KV — чтение), `CLOUDFLARE_ACCOUNT_ID`,
+`SUPABASE_DB_URL` (Session pooler, 5432), `SUPABASE_SECRET_KEY`. Ключи `cron_secret` и `bot_setup` не переносятся.
 
-1. Купить домен (`.com` — Cloudflare Registrar; `.co.il` — израильский регистратор, NS → Cloudflare).
-2. Worker `bmarket` → Settings → Domains & Routes → Add → Custom Domain.
-3. В `wrangler.jsonc` поменять `SITE_URL`, push. Бот перенастроится сам; в @BotFather обновить URL мини-приложения.
-4. Включить Turnstile (Managed) и Web Analytics для домена, заполнить ключи.
-5. Google Search Console → домен → `https://<домен>/sitemap.xml`.
+## Переключение (план)
 
-Кеш страниц — Cache API, 10 минут, ключ включает версию Worker. Прямые правки в D1 (коннектором) видны после следующего деплоя или через 10 минут.
+1. Короткая заморозка правок в админке.
+2. Финальный перенос данных (workflow выше), сверить `migration_report` с D1.
+3. Vercel (Production): `SITE_URL=https://market.haifa.business`, `TELEGRAM_BOT_TOKEN` (вводит владелец).
+4. Cloudflare: удалить cron-триггеры Worker `bmarket` (Settings → Triggers) и выключить Workers Builds —
+   иначе рассылки уйдут дважды и Worker вернёт вебхук себе.
+5. Смержить `vercel` в `main`, дождаться деплоя, создать задачи pg_cron (SQL выше).
+6. Проверить: `/start` и «Каталог» в боте, Mini App, заявка до группы менеджеров, админка, фото.
+7. BotFather: URL мини-приложения и `/setdomain` → `market.haifa.business` (владелец).
+
+Откат: включить cron Worker обратно и снять задачи pg_cron (`cron.unschedule`); бот вернёт вебхук на workers.dev
+при следующем запуске cron Cloudflare. Данные, введённые после переключения, переносятся вручную.
 
 ## Резервные копии
 
-- Еженедельно: GitHub Actions «Резервная копия D1» выгружает базу и хранит артефакт 56 дней.
-  Нужны секреты репозитория `CLOUDFLARE_API_TOKEN` (права D1 Edit) и `CLOUDFLARE_ACCOUNT_ID`.
-- Восстановление в тестовую базу: скачать артефакт → `gunzip` → `wrangler d1 execute <база> --remote --file backup.sql`.
+- Еженедельно: GitHub Actions «Резервная копия базы» (`pg_dump` схемы `public`), артефакт хранится 56 дней.
+  Нужен секрет `SUPABASE_DB_URL`. Фото в копию не входят.
+- Supabase Free делает ежедневные копии на 7 дней (Database → Backups).
+- Восстановление в тестовую базу: скачать артефакт → `gunzip` → `psql "<url>" -f backup.sql`.
 
-## Лимиты бесплатного тарифа
+## Локальная разработка
 
-Workers: 100 000 запросов/день, 10 мс CPU. D1: 5 млн чтений и 100 000 записей в день, 500 МБ.
-KV: 100 000 чтений и **1 000 записей в день** (одно фото = 2 записи), 1 ГБ.
-Включите в Cloudflare → Notifications оповещения о приближении к лимитам.
+```
+cp .env.example .env
+npm run db:local          # Postgres в .data/pg (порт 54329)
+npm run db:seed           # миграции + справочники + тестовые лоты + их фото в .data/photos
+npm run preview           # сборка и запуск как на Vercel: http://127.0.0.1:8787
+npm run test:e2e          # 182 сквозные проверки
+```
+
+## Лимиты бесплатных тарифов
+
+Vercel Hobby: 100 ГБ трафика и 1 млн вызовов функций в месяц, cron Vercel — не чаще раза в день (поэтому pg_cron).
+Supabase Free: база 500 МБ, Storage 1 ГБ, 5 ГБ исходящего трафика; **проект засыпает после 7 дней без запросов** —
+pg_cron и посетители не дают ему уснуть, но проверяйте письма Supabase.
 
 ## Чек-лист ручной проверки
 

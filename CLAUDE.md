@@ -14,16 +14,17 @@
 - `/api/seller/*` — подпись initData; продавец видит и меняет только свои объявления (`seller_tg_id`), и только до отправки.
 
 ## Стек
-Astro 7 (SSR) + `@astrojs/cloudflare` 14 → Cloudflare Workers (Free). React-острова (админка, форма заявки, галерея).
-Tailwind 4 + цвета темы Telegram, шрифт Nunito (`@fontsource-variable/nunito`, округлый). D1 + Drizzle ORM.
-Фото — Workers KV (`PHOTOS_KV`), R2 (`PHOTOS`) подключается привязкой без правки кода (`src/server/storage.ts`).
-grammY для бота. Zod для входных данных.
+Astro 7 (SSR) + `@astrojs/vercel` → Vercel Functions (Node.js, регион fra1, Hobby). React-острова (админка, форма заявки, галерея).
+Tailwind 4 + цвета темы Telegram, шрифт Nunito (`@fontsource-variable/nunito`, округлый).
+Supabase: Postgres 17 + Drizzle ORM (`postgres.js` через пулер 6543), фото — Supabase Storage (бакет `photos`, `src/server/storage.ts`).
+Задачи по расписанию — Supabase pg_cron → `/api/cron/minute` и `/api/cron/daily` (`src/server/jobs.ts`).
+grammY для бота. Zod для входных данных. Переезд с Cloudflare Workers/D1/KV — ноябрь 2026, `docs/DEPLOY.md`.
 
 ## Структура
 ```
-src/worker.ts            точка входа Worker: кеш страниц + cron (самонастройка бота, рассылки, курсы, обслуживание)
-src/pages/               страницы и API (api/admin/[...path].ts — роутер админ-API)
-src/server/              серверная логика (public, leads, broadcast, rates, cache, auth, storage, secrets, bot-setup,
+src/middleware.ts        соль хешей + заголовки кеша CDN для публичных страниц
+src/pages/               страницы и API (api/admin/[...path].ts — роутер админ-API, api/cron/* — задачи по расписанию)
+src/server/              серверная логика (env — переменные окружения, jobs — cron, public, leads, broadcast, rates, cache, auth, storage, secrets, bot-setup,
                          seller + paypal — объявления продавцов и оплата, settings, admin/*)
 src/bot/bot.ts           команды и кнопки бота
 src/admin/               React-админка (открывается только внутри Telegram)
@@ -31,37 +32,40 @@ src/seller/              «Мои объявления» продавца (/sell
 src/onboarding/          опрос при первом запуске и «Подборка для вас» (грузится только в Telegram на главной)
 src/components/          Astro/React-компоненты публичной части (Splash.astro — заставка при открытии)
 src/lib/                 чистые функции: форматы, slug, markdown, initData, crypto; extras (платные услуги), promo
-src/db/schema.ts         схема БД; миграции — migrations/ (drizzle-kit)
-seed/                    test-lots.sql + photos — локальные тесты; haifa-*/israel-* — импорт реальных объявлений
+src/db/schema.ts         схема БД (pg-core); миграции Postgres — migrations/ (drizzle-kit), старые D1 — migrations-d1/
+seed/                    dictionaries.sql, test-lots.sql + photos — локальные тесты; haifa-*/israel-* — импорт реальных объявлений (SQLite, исторические)
                          в production (фото — Unsplash, ключи `unsplash:<id>:<ширина>`, на сайте «Фото для иллюстрации»)
-scripts/                 генераторы импорта (import-*-2026-10.mjs), демо-SQL (демо-лоты удалены), проверка размера, setup-bot
+scripts/                 local-pg.sh, db-migrate.mjs, serve-local.mjs (локальный запуск как на Vercel), migrate-from-d1.py (перенос с D1),
+                         генераторы импорта (import-*-2026-10.mjs), демо-SQL, setup-bot
 public/brands/           значки Facebook/Google/Яндекса для промо-блока продавца (источники — docs/BRAND-ASSETS.md)
-tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозной на Worker), screens.mjs (скриншоты)
+tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозной на локальной сборке + Postgres), screens.mjs (скриншоты)
 ```
 
 ## Команды
 ```
-cp .dev.vars.example .dev.vars
-npm run db:migrate:local && npm run db:seed:local && bash scripts/seed-photos.sh --local
-npm run build && npx astro preview --port 8787 --host 127.0.0.1
+cp .env.example .env
+npm run db:local && npm run db:seed      # локальный Postgres (.data/pg, порт 54329) + тестовые лоты и фото
+npm run preview             # сборка и запуск как на Vercel: http://127.0.0.1:8787
 npm test                    # юнит-тесты (37)
-npm run test:e2e            # 182 сквозных проверок на локальном Worker (с поддельным PayPal на :8799)
+npm run test:e2e            # 182 сквозных проверки на локальной сборке (с поддельным PayPal на :8799)
 npx astro check             # типы
-npm run size                # размер Worker < 3 МБ gzip (сейчас ≈0,42 МБ)
 npm run db:generate         # после изменения src/db/schema.ts
 NODE_PATH=$(npm root -g) node tests/e2e/screens.mjs   # скриншоты (Playwright из глобальной установки)
 ```
 
 ## Деплой
-`git push origin main` → Cloudflare Workers Builds сам собирает и выкладывает (≈1 мин). Staging нет.
-Перед push: `npm test`, `npx astro check`, сборка, e2e. Миграции D1 в production — вручную (см. `docs/STATUS.md`).
-Из облачной среды ассистента нет доступа к api.telegram.org / api.cloudflare.com / *.workers.dev — не пытаться `wrangler deploy`.
+`git push origin main` → Vercel собирает и выкладывает production; другие ветки → preview. Пока переключение
+не выполнено, `main` = Cloudflare-версия, а код Vercel живёт в ветке `vercel` (`docs/DEPLOY.md`, раздел «Переключение»).
+Перед push: `npm test`, `npx astro check`, сборка, e2e. Миграции в production (Supabase) — вручную, коннектором Supabase.
+Из облачной среды ассистента нет доступа к api.telegram.org, api.cloudflare.com, *.supabase.co (кроме коннектора) —
+деплой только через `git push`. Коннектор Vercel не видит проект bmarket — панель Vercel через встроенный браузер.
 
 ## Правила
-- Секреты — только `.dev.vars` (в .gitignore) и панель Cloudflare / `wrangler secret put`. Никогда в коде, коммитах и чате.
+- Секреты — только `.env` (в .gitignore), панель Vercel и секреты GitHub. Никогда в коде, коммитах и чате. Вводит владелец.
 - Без `TELEGRAM_BOT_TOKEN` сайт обязан работать (см. `src/server/secrets.ts`).
-- После изменения `wrangler.jsonc` — `npm run types`.
-- CPU 10 мс на запрос: не подключать тяжёлые библиотеки на сервере.
+- Новые переменные окружения — в `interface Env` (`src/env.d.ts`) и `docs/DEPLOY.md`.
+- Таблицы Supabase закрыты от публичного API (RLS без политик): новая таблица — тоже `ENABLE ROW LEVEL SECURITY`.
+- Postgres: `count(*)`/`sum()` приходят числами (парсер в `src/db/client.ts`); при `ORDER BY` по nullable-колонке указывать `nulls first/last`.
 - Тексты интерфейса — по-русски; цены «₪ 450 000», даты «24.10.2026», время Asia/Jerusalem (`src/lib/format.ts`).
-- Публичные страницы кешируются 10 минут (ключ включает версию Worker); после изменений в админке вызывается `purgePaths`.
+- Публичные страницы кешируются в CDN Vercel 10 минут (тег `path:<путь>`); после изменений в админке вызывается `purgePaths`.
 - После работы — обновить `docs/STATUS.md`; отступления от ТЗ — в `docs/DECISIONS.md`.

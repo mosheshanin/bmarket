@@ -1,6 +1,6 @@
 # Состояние проекта и передача в новую сессию
 
-Обновлено: 28.10.2026. Этот файл — первое, что нужно прочитать в новой сессии (вместе с `CLAUDE.md`).
+Обновлено: 12.11.2026. Этот файл — первое, что нужно прочитать в новой сессии (вместе с `CLAUDE.md`).
 
 ## Коротко
 
@@ -21,6 +21,27 @@
 | Группа менеджеров | `-5528365586` (`MANAGERS_CHAT_ID`); бот может заменить ID командой `/setgroup` — актуальный ID и последняя ошибка видны в админке «Заявки» |
 | Секреты | `TELEGRAM_BOT_TOKEN` — задан в панели Cloudflare; `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` — не заданы (онлайн-оплата выключена, `docs/PAYMENTS.md`) |
 | Миграции D1 в production | 0000–0005 (последняя — `0005_city_active`, 24.10.2026) |
+
+
+## Переезд на Vercel + Supabase (идёт, с 12.11.2026)
+
+Цель — `https://market.haifa.business` (Vercel, команда Yoggy, проект `bmarket`). Код — ветка **`vercel`**, всё описано
+в `docs/DEPLOY.md`. До переключения production остаётся на Cloudflare (`main`).
+
+| Что | Значение |
+|---|---|
+| Vercel | команда Yoggy `team_NjHdwhg5TkZ0vNhZDxcsjhTx`, проект `prj_3hXJSld0Aa9OgT0QEaTy6pFRuszC`, регион fra1 |
+| Supabase | организация HBC, проект `bmarket`, ref `knasmcepypeysxojhdai`, eu-central-1, Postgres 17 |
+| Фото | Supabase Storage, закрытый бакет `photos` |
+| Cron | pg_cron + pg_net (задачи создаются при переключении), секрет — `settings.cron_secret` |
+
+- [x] Проект Supabase, схема (14 таблиц), RLS, бакет, расширения pg_cron/pg_net.
+- [x] Код: адаптер Vercel, Postgres, Storage, cron-маршруты, CDN-кеш; 37 юнит + 182 e2e проходят на Postgres; CI на Postgres 17.
+- [x] Обычные переменные окружения в Vercel (Production + Preview).
+- [ ] Владелец: секреты `DATABASE_URL`, `SUPABASE_SECRET_KEY` в Vercel; `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEY` в GitHub.
+- [ ] Пробный перенос данных (workflow «Перенос данных Cloudflare → Supabase») и сверка.
+- [ ] Проверка preview-деплоя ветки `vercel`.
+- [ ] Переключение (DEPLOY.md → «Переключение»), затем обновить этот файл целиком.
 
 ## Каталог сейчас (25.10.2026)
 
