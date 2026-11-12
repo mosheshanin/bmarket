@@ -3,7 +3,7 @@ name: Перенос данных Cloudflare → Supabase
 # Перенос базы D1 и фото из Workers KV в Supabase (Postgres + Storage). Повторяемый: таблицы
 # очищаются и заполняются заново, фото загружаются с перезаписью. Запуск — вручную (Actions → Run workflow)
 # или push в ветку vercel с «[migrate]» в сообщении коммита.
-# Секреты репозитория: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (уже были для backup),
+# Секреты репозитория: CLOUDFLARE_API_TOKEN (Account → D1: Edit, Workers KV Storage: Read),
 # SUPABASE_DB_URL (Session pooler, порт 5432), SUPABASE_SECRET_KEY (Supabase → Settings → API Keys).
 # Итог (число строк по таблицам и фото) пишется в settings.migration_report новой базы.
 on:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ACCOUNT_ID: 25497a10c7db07870fa29504e0f464a4
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       SUPABASE_URL: https://knasmcepypeysxojhdai.supabase.co
@@ -29,7 +29,7 @@ jobs:
           node-version: 24
       - name: Проверка секретов
         run: |
-          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_DB_URL SUPABASE_SECRET_KEY; do
+          for v in CLOUDFLARE_API_TOKEN SUPABASE_DB_URL SUPABASE_SECRET_KEY; do
             if [ -z "${!v}" ]; then echo "::error::Секрет $v не задан"; exit 1; fi
           done
       - run: npm install --no-save wrangler@4

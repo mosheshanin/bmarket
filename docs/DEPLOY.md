@@ -118,7 +118,7 @@ GitHub Actions «Перенос данных Cloudflare → Supabase» (`.github
 заново, счётчики id выставляются) → `psql`; фото — все ключи KV `bmarket-photos` → Supabase Storage.
 Запуск: Actions → Run workflow (когда файл есть в `main`) или push в ветку `vercel` с `[migrate]` в сообщении.
 Итог — `SELECT value FROM settings WHERE key = 'migration_report';` (строки по таблицам и число фото).
-Нужны секреты репозитория `CLOUDFLARE_API_TOKEN` (D1 и KV — чтение), `CLOUDFLARE_ACCOUNT_ID`,
+Нужны секреты репозитория `CLOUDFLARE_API_TOKEN` (Account → D1: Edit, Workers KV Storage: Read; ID аккаунта — в самом workflow),
 `SUPABASE_DB_URL` (Session pooler, 5432), `SUPABASE_SECRET_KEY`. Ключи `cron_secret` и `bot_setup` не переносятся.
 
 ## Переключение (план)
