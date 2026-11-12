@@ -3,9 +3,10 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from './schema';
 
 /**
- * Подключение к Postgres (Supabase) через пулер Supavisor в режиме transaction (порт 6543),
- * поэтому подготовленные запросы выключены. Одно подключение на экземпляр функции Vercel:
- * при Fluid compute экземпляр обслуживает много запросов подряд.
+ * Подключение к Postgres (Supabase) через пулер Supavisor в режиме transaction (порт 6543):
+ * подготовленные запросы выключены, а конвейер (несколько запросов подряд в одном соединении) запрещён —
+ * Supavisor в этом режиме на нём зависает (сервер ждёт клиента в ClientRead). Параллельные запросы
+ * (Promise.all) получают отдельные соединения, до DB_POOL_MAX на экземпляр функции.
  *
  * bigint (count, метки времени в мс, Telegram ID) и numeric (sum) отдаются числами, как было в D1:
  * все значения в проекте меньше 2^53.
@@ -15,7 +16,8 @@ const toNumber = (x: string) => Number(x);
 export function createDb(url: string) {
   const client = postgres(url, {
     prepare: false,
-    max: Number(process.env.DB_POOL_MAX ?? 3),
+    max: Number(process.env.DB_POOL_MAX ?? 8),
+    max_pipeline: 1,
     idle_timeout: 20,
     connect_timeout: 10,
     types: {
