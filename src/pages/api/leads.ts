@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions';
 import type { APIRoute } from 'astro';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
@@ -41,7 +42,7 @@ async function verifyTurnstile(token: string | undefined, ip: string): Promise<b
   return !!data.success;
 }
 
-export const POST: APIRoute = async ({ request, locals }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
     const input = await readJson(request, LeadInput);
     // Ловушка заполнена — молча «принимаем» и выбрасываем.
@@ -95,7 +96,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await recordEvent(d, { type: 'lead_submit', source, visitorKey, businessId: b.id }, now);
     }
     // Заявка уже сохранена; отправка в Telegram — в фоне, с повторами.
-    locals.cfContext.waitUntil(deliverLead(env, d, lead.id));
+    waitUntil(deliverLead(env, d, lead.id));
     return json({ ok: true, id: lead.id }, { status: 201 });
   } catch (e) {
     return errorResponse(e);

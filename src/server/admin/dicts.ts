@@ -99,6 +99,8 @@ export async function deleteDict(db: DB, kind: 'city' | 'category', id: number) 
 
 export async function reorderDict(db: DB, kind: 'city' | 'category', ids: number[]) {
   const table = kind === 'city' ? cities : categories;
-  const stmts = ids.map((id, i) => db.update(table).set({ sortOrder: (i + 1) * 10 }).where(eq(table.id, id)));
-  if (stmts.length) await db.batch(stmts as [typeof stmts[0], ...typeof stmts]);
+  if (!ids.length) return;
+  await db.transaction(async (tx) => {
+    for (const [i, id] of ids.entries()) await tx.update(table).set({ sortOrder: (i + 1) * 10 }).where(eq(table.id, id));
+  });
 }

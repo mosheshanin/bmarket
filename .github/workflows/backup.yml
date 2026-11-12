@@ -1,7 +1,9 @@
-name: Резервная копия D1
+name: Резервная копия базы
 
-# Еженедельная выгрузка рабочей базы (раздел 12.4). R2 в аккаунте не включён, поэтому копия
-# хранится как артефакт GitHub Actions в этом приватном репозитории; срок хранения — 8 недель.
+# Еженедельная выгрузка рабочей базы Supabase (раздел 12.4). Копия хранится как артефакт
+# GitHub Actions в этом приватном репозитории; срок хранения — 8 недель.
+# Нужен секрет репозитория SUPABASE_DB_URL — строка подключения Session pooler (порт 5432)
+# из Supabase → Connect. Фото в Supabase Storage сюда не входят.
 on:
   schedule:
     - cron: '17 2 * * 0' # воскресенье, 02:17 UTC
@@ -10,22 +12,20 @@ on:
 jobs:
   backup:
     runs-on: ubuntu-24.04
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      - run: npm install --no-save wrangler@4
       - name: Выгрузка базы
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          npx wrangler d1 export catalog-prod --remote --output backup.sql
+          if [ -z "$SUPABASE_DB_URL" ]; then echo "Секрет SUPABASE_DB_URL не задан"; exit 1; fi
+          # pg_dump той же версии, что сервер (Postgres 17).
+          docker run --rm -e SUPABASE_DB_URL postgres:17 \
+            sh -c 'pg_dump "$SUPABASE_DB_URL" --schema=public --no-owner --no-privileges' > backup.sql
+          test -s backup.sql
           gzip -9 backup.sql
           echo "STAMP=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v5
         with:
-          name: catalog-prod-${{ env.STAMP }}
+          name: bmarket-db-${{ env.STAMP }}
           path: backup.sql.gz
           retention-days: 56

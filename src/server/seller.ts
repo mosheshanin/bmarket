@@ -118,7 +118,7 @@ async function getEditable(db: DB, user: TgUser, id: number): Promise<Business> 
 async function completedPayment(db: DB, businessId: number): Promise<Payment | null> {
   const [p] = await db.select().from(payments)
     .where(and(eq(payments.businessId, businessId), eq(payments.status, 'completed')))
-    .orderBy(desc(payments.completedAt)).limit(1);
+    .orderBy(sql`${payments.completedAt} desc nulls last`).limit(1);
   return p ?? null;
 }
 
@@ -320,7 +320,7 @@ export async function backToEditing(env: Env, db: DB, user: TgUser, id: number) 
 }
 
 async function setStage(db: DB, id: number, stage: Business['sellerStage']) {
-  await db.update(businesses).set({ sellerStage: stage, updatedAt: sql`max(${Date.now()}, ${businesses.updatedAt} + 1)` }).where(eq(businesses.id, id));
+  await db.update(businesses).set({ sellerStage: stage, updatedAt: sql`greatest(${Date.now()}::bigint, ${businesses.updatedAt} + 1)` }).where(eq(businesses.id, id));
 }
 
 export async function startPayPal(env: Env, db: DB, user: TgUser, id: number) {
@@ -422,7 +422,7 @@ export async function reconcilePayments(env: Env, db: DB, now = Date.now()): Pro
       lt(payments.createdAt, now - 2 * 60_000),
       sql`coalesce(${payments.checkedAt}, 0) < ${now - 5 * 60_000}`,
     ))
-    .orderBy(asc(payments.checkedAt))
+    .orderBy(sql`${payments.checkedAt} asc nulls first`)
     .limit(5);
   let settled = 0;
   for (const r of rows) {

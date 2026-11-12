@@ -100,11 +100,12 @@ export async function surveyFacets(env: Env, db: DB) {
     db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(categories.sortOrder, categories.name),
     db.select({ id: cities.id, name: cities.name }).from(cities).where(eq(cities.isActive, true)).orderBy(cities.sortOrder, cities.name),
     listPublished(db),
-    db.all<{ cat: number; n: number }>(sql`
-      select j.value as cat, count(*) as n from ${visitorProfiles}, json_each(${visitorProfiles.categories}) j
+    db.execute<{ cat: number; n: number }>(sql`
+      select j.value::int as cat, count(*) as n from ${visitorProfiles}
+        cross join lateral jsonb_array_elements_text(${visitorProfiles.categories}) as j(value)
       where ${visitorProfiles.intent} = 'buy' and ${visitorProfiles.completedAt} is not null group by j.value`),
     db.select({ n: sql<number>`count(*)` }).from(visitorProfiles)
-      .where(and(eq(visitorProfiles.intent, 'buy'), isNotNull(visitorProfiles.completedAt), sql`json_array_length(${visitorProfiles.categories}) = 0`)),
+      .where(and(eq(visitorProfiles.intent, 'buy'), isNotNull(visitorProfiles.completedAt), sql`jsonb_array_length(${visitorProfiles.categories}) = 0`)),
     db.select({ n: sql<number>`count(*)` }).from(visitorProfiles).where(and(eq(visitorProfiles.intent, 'buy'), isNotNull(visitorProfiles.completedAt))),
     db.select({ cat: businesses.categoryId, n: sql<number>`count(*)` }).from(events)
       .innerJoin(businesses, eq(businesses.id, events.businessId))
@@ -197,12 +198,14 @@ export async function surveyStats(db: DB) {
       .orderBy(desc(visitorProfiles.consultRequestedAt)).limit(20),
     surveyEnabled(db),
   ]);
-  const topCats = await db.all<{ name: string; buy: number; sell: number }>(sql`
+  const topCats = [...await db.execute<{ name: string; buy: number; sell: number }>(sql`
     select c.name as name,
       sum(case when p.intent = 'buy' then 1 else 0 end) as buy,
       sum(case when p.intent = 'sell' then 1 else 0 end) as sell
-    from ${visitorProfiles} p, json_each(p.categories) j join ${categories} c on c.id = j.value
-    where p.completed_at is not null group by c.id order by count(*) desc limit 8`);
+    from ${visitorProfiles} p
+      cross join lateral jsonb_array_elements_text(p.categories) as j(value)
+      join ${categories} c on c.id = j.value::int
+    where p.completed_at is not null group by c.id, c.name order by count(*) desc limit 8`)];
   const names = await nameMaps(db);
   const count = (i: string) => byIntent.find((r) => r.intent === i)?.n ?? 0;
   return {

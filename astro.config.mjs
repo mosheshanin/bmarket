@@ -1,22 +1,25 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import cloudflare from '@astrojs/cloudflare';
+import vercel from '@astrojs/vercel';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   output: 'server',
-  // Сессии Astro не используются (KV не нужен).
+  // Сессии Astro не используются.
   session: false,
-  adapter: cloudflare({
-    // Фото уже сжаты в браузере администратора и раздаются из R2 как есть.
-    imageService: 'passthrough',
+  // Vercel Functions на Node.js (не edge: grammY и postgres.js), регион — рядом с базой Supabase (Франкфурт).
+  adapter: vercel({
+    // Фото уже сжаты в браузере администратора и раздаются как есть.
+    imageService: false,
+    webAnalytics: { enabled: false },
+    maxDuration: 60,
   }),
   integrations: [react()],
   vite: {
     plugins: [tailwindcss()],
   },
-  // Все страницы и API отдаёт Worker; без лишнего завершающего слеша.
+  // Без лишнего завершающего слеша.
   trailingSlash: 'never',
   build: { format: 'file' },
   devToolbar: { enabled: false },

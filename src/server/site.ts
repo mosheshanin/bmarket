@@ -1,9 +1,9 @@
-import { env } from 'cloudflare:workers';
 import { getDb } from '../db/client';
+import { databaseUrl, env } from './env';
 import { botLink, miniAppLink, siteUrl } from './telegram';
 
 export function db() {
-  return getDb(env.DB);
+  return getDb(databaseUrl(env));
 }
 
 export function site() {

@@ -26,16 +26,16 @@ export async function listLeads(db: DB, f: { status?: string; businessId?: numbe
     .from(leads)
     .innerJoin(businesses, eq(businesses.id, leads.businessId))
     .where(conds.length ? and(...conds) : undefined)
-    .orderBy(sql`case when ${leads.tgDelivered} = 0 then 0 else 1 end`, desc(leads.createdAt))
+    .orderBy(sql`case when ${leads.tgDelivered} = false then 0 else 1 end`, desc(leads.createdAt))
     .limit(Math.min(f.limit ?? 300, 1000));
 }
 
 export async function leadsSummary(db: DB) {
   const [r] = await db
     .select({
-      unread: sql<number>`sum(case when ${leads.isRead} = 0 then 1 else 0 end)`,
+      unread: sql<number>`sum(case when ${leads.isRead} = false then 1 else 0 end)`,
       fresh: sql<number>`sum(case when ${leads.status} = 'new' then 1 else 0 end)`,
-      undelivered: sql<number>`sum(case when ${leads.tgDelivered} = 0 then 1 else 0 end)`,
+      undelivered: sql<number>`sum(case when ${leads.tgDelivered} = false then 1 else 0 end)`,
     })
     .from(leads);
   return { unread: r?.unread ?? 0, new: r?.fresh ?? 0, undelivered: r?.undelivered ?? 0 };

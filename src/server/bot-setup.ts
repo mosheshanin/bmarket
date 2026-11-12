@@ -2,19 +2,21 @@ import { eq } from 'drizzle-orm';
 import type { DB } from '../db/client';
 import { settings } from '../db/schema';
 import { appSecret } from './secrets';
-import { siteUrl, tgApi } from './telegram';
+import { buildVersion } from './env';
+import { tgApi } from './telegram';
 
 /**
- * Самонастройка бота после деплоя (вызывается задачей раз в минуту, работает один раз на версию):
+ * Самонастройка бота после деплоя (первый запрос к /api/cron/minute или к сайту после деплоя; один раз на версию):
  * вебхук с секретом, команды, кнопка меню «Каталог».
  * Описание и короткое описание ставятся только если они пустые — текст, заданный владельцем
  * в BotFather (Edit Description / Edit About), не перезаписывается.
  * Отдельный скрипт с компьютера не нужен.
  */
 export async function ensureBotSetup(env: Env, db: DB): Promise<boolean> {
-  const site = siteUrl(env);
+  // Только с явно заданным SITE_URL: preview-деплой без него не должен перехватывать вебхук.
+  const site = (env.SITE_URL || '').replace(/\/$/, '');
   if (!env.TELEGRAM_BOT_TOKEN || !site.startsWith('https://')) return false;
-  const stamp = `${env.CF_VERSION_METADATA?.id ?? 'dev'}|${site}|${env.TELEGRAM_BOT_TOKEN.split(':')[0]}`;
+  const stamp = `${buildVersion(env)}|${site}|${env.TELEGRAM_BOT_TOKEN.split(':')[0]}`;
   const [s] = await db.select().from(settings).where(eq(settings.key, 'bot_setup'));
   if (s?.value === stamp) return false;
 

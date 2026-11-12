@@ -18,7 +18,8 @@ export function retryAfterSec(e: unknown): number | null {
 }
 
 export function siteUrl(env: Env): string {
-  return (env.SITE_URL || '').replace(/\/$/, '');
+  // Preview-деплой Vercel без SITE_URL — его собственный адрес.
+  return (env.SITE_URL || (env.VERCEL_URL ? `https://${env.VERCEL_URL}` : '')).replace(/\/$/, '');
 }
 
 /** Абсолютный адрес фото — Telegram скачивает его сам. */

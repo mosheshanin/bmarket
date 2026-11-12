@@ -1,18 +1,22 @@
-// Сквозная проверка на запущенном Worker (локально: `npm run preview`, затем `npm run test:e2e`).
-// BASE=https://bmarket-staging.<...>.workers.dev BOT_TOKEN=... ADMIN_ID=... npm run test:e2e — для staging.
+// Сквозная проверка на запущенном сайте (локально: `npm run db:local && npm run db:seed`, `npm run preview`,
+// затем `npm run test:e2e`). BASE=https://<preview>.vercel.app BOT_TOKEN=... ADMIN_ID=... npm run test:e2e — для preview.
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { createHmac } from 'node:crypto';
 import { createServer } from 'node:http';
 
 const BASE = process.env.BASE ?? 'http://127.0.0.1:8787';
-const devVars = existsSync('.dev.vars')
-  ? Object.fromEntries(readFileSync('.dev.vars', 'utf8').split('\n').filter((l) => l.includes('=') && !l.startsWith('#')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]))
+const devVars = existsSync('.env')
+  ? Object.fromEntries(readFileSync('.env', 'utf8').split('\n').filter((l) => l.includes('=') && !l.startsWith('#')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]))
   : {};
 const TOKEN = process.env.BOT_TOKEN ?? devVars.TELEGRAM_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET ?? devVars.TELEGRAM_WEBHOOK_SECRET;
 const ADMIN_ID = Number(process.env.ADMIN_ID ?? (devVars.ADMIN_TELEGRAM_IDS ?? '').split(',')[0]);
 const LOCAL = /127\.0\.0\.1|localhost/.test(BASE);
+// Локальная база — та же, что у сайта (DATABASE_URL из .env).
+const DB_URL = process.env.DATABASE_URL ?? devVars.DATABASE_URL;
+const psql = (sqlText) => execSync(`psql "${DB_URL}" -v ON_ERROR_STOP=1 -q`, { input: sqlText, stdio: ['pipe', 'ignore', 'inherit'] });
+const psqlFile = (f) => psql(readFileSync(f, 'utf8'));
 
 let passed = 0;
 const failures = [];
@@ -56,8 +60,8 @@ const SECRET_RE = /SECRET-|secret_owner|\+97250000000\d/;
 
 if (LOCAL) {
   // Чистое состояние: тестовые лоты заново, без заявок и событий.
-  execSync('npx wrangler d1 execute catalog-prod --local --file seed/test-lots.sql', { stdio: 'ignore' });
-  execSync(`npx wrangler d1 execute catalog-prod --local --command "DELETE FROM leads; DELETE FROM events; DELETE FROM subscribers; DELETE FROM broadcasts; DELETE FROM edit_requests; DELETE FROM payments; DELETE FROM visitor_profiles; DELETE FROM settings WHERE key LIKE 'seller_%' OR key LIKE 'managers_%' OR key LIKE 'survey_%'; UPDATE businesses SET status='deleted' WHERE lot_number > 1005;"`, { stdio: 'ignore' });
+  psqlFile('seed/test-lots.sql');
+  psql(`DELETE FROM leads; DELETE FROM events; DELETE FROM subscribers; DELETE FROM broadcasts; DELETE FROM edit_requests; DELETE FROM payments; DELETE FROM visitor_profiles; DELETE FROM settings WHERE key LIKE 'seller_%' OR key LIKE 'managers_%' OR key LIKE 'survey_%'; UPDATE businesses SET status='deleted' WHERE lot_number > 1005;`);
 }
 
 // ---------- Публичный каталог ----------
@@ -263,7 +267,7 @@ check('проверка группы: понятная ошибка', gt.status 
 check('ошибка запомнена для админки', (await req('/api/admin/telegram/status', { auth: ADMIN })).json?.lastError?.error?.length > 5);
 
 // ---------- Продавец: черновик → оплата PayPal → публикация ----------
-// Поддельный PayPal на 127.0.0.1:8799 (PAYPAL_API_BASE в .dev.vars).
+// Поддельный PayPal на 127.0.0.1:8799 (PAYPAL_API_BASE в .env).
 const orders = new Map();
 let orderSeq = 0;
 const paypal = createServer(async (rq, rs) => {
@@ -473,7 +477,7 @@ check('/setgroup от не-админа игнорируется', (await req('/
 await req('/api/telegram/webhook', { method: 'POST', body: setgroup, headers: { 'x-telegram-bot-api-secret-token': WEBHOOK_SECRET } });
 const gs2 = (await req('/api/admin/telegram/status', { auth: ADMIN })).json;
 check('/setgroup от админа меняет группу', gs2?.chatId === '-100555' && gs2.overridden === true, JSON.stringify(gs2));
-if (LOCAL) execSync(`npx wrangler d1 execute catalog-prod --local --command "DELETE FROM settings WHERE key LIKE 'managers_%'"`, { stdio: 'ignore' });
+if (LOCAL) psql(`DELETE FROM settings WHERE key LIKE 'managers_%'`);
 
 await req(`/api/admin/businesses/${bid}/hide`, { method: 'POST', auth: ADMIN });
 

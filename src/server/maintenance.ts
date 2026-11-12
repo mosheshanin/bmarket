@@ -22,13 +22,13 @@ export async function anonymizeOldLeads(db: DB, now = Date.now()): Promise<numbe
   return r.length;
 }
 
-/** Фото, удалённые больше 30 дней назад, стираются из R2 (раздел 12.4). */
+/** Фото, удалённые больше 30 дней назад, стираются из хранилища (раздел 12.4). */
 export async function purgeDeletedPhotos(env: Env, db: DB, now = Date.now()): Promise<number> {
   const rows = await db
     .select({ id: businessPhotos.id, k1: businessPhotos.r2Key, k2: businessPhotos.r2KeySmall })
     .from(businessPhotos)
     .where(and(isNotNull(businessPhotos.deletedAt), lt(businessPhotos.deletedAt, now - PHOTO_PURGE_MS)))
-    .limit(100); // KV: удаление = запись, лимит 1000 в день
+    .limit(100);
   if (!rows.length) return 0;
   await deletePhotos(env, rows.flatMap((r) => [r.k1, r.k2]).filter(isStoredPhotoKey));
   await db.delete(businessPhotos).where(inArray(businessPhotos.id, rows.map((r) => r.id)));
@@ -51,9 +51,9 @@ export async function removeAbandonedSellerDrafts(db: DB, now = Date.now()): Pro
     .limit(50);
   if (!rows.length) return 0;
   const ids = rows.map((r) => r.id);
-  await db.batch([
-    db.update(businessPhotos).set({ deletedAt: now }).where(and(inArray(businessPhotos.businessId, ids), isNull(businessPhotos.deletedAt))),
-    db.update(businesses).set({ status: 'deleted', updatedAt: now }).where(inArray(businesses.id, ids)),
-  ]);
+  await db.transaction(async (tx) => {
+    await tx.update(businessPhotos).set({ deletedAt: now }).where(and(inArray(businessPhotos.businessId, ids), isNull(businessPhotos.deletedAt)));
+    await tx.update(businesses).set({ status: 'deleted', updatedAt: now }).where(inArray(businesses.id, ids));
+  });
   return ids.length;
 }

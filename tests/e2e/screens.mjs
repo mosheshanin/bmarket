@@ -9,7 +9,7 @@ const { chromium } = createRequire(import.meta.url)('playwright');
 const BASE = process.env.BASE ?? 'http://127.0.0.1:8787';
 const OUT = process.argv[2] ?? 'tests/e2e/screenshots';
 mkdirSync(OUT, { recursive: true });
-const vars = Object.fromEntries(readFileSync('.dev.vars', 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+const vars = Object.fromEntries(readFileSync('.env', 'utf8').split('\n').filter((l) => l.includes('=')).map((l) => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
 
 function initData(user) {
   const f = { auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify(user) };

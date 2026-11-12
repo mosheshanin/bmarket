@@ -237,10 +237,10 @@ export async function deleteDraft(db: DB, admin: AdminContext, id: number) {
   const b = await getBusinessOr404(db, id);
   if (b.status !== 'draft') throw new HttpError(400, 'Удалять можно только черновики — опубликованные и снятые лоты хранят историю заявок');
   const now = Date.now();
-  await db.batch([
-    db.update(businessPhotos).set({ deletedAt: now }).where(and(eq(businessPhotos.businessId, id), isNull(businessPhotos.deletedAt))),
-    db.update(businesses).set({ status: 'deleted', updatedAt: now, updatedBy: admin.id }).where(eq(businesses.id, id)),
-  ]);
+  await db.transaction(async (tx) => {
+    await tx.update(businessPhotos).set({ deletedAt: now }).where(and(eq(businessPhotos.businessId, id), isNull(businessPhotos.deletedAt)));
+    await tx.update(businesses).set({ status: 'deleted', updatedAt: now, updatedBy: admin.id }).where(eq(businesses.id, id));
+  });
   await audit(db, id, admin, 'delete', now);
 }
 
@@ -337,8 +337,11 @@ export async function reorderPhotos(env: Env, db: DB, admin: AdminContext, id: n
     .where(and(eq(businessPhotos.businessId, id), isNull(businessPhotos.deletedAt)));
   const ownSet = new Set(own.map((p) => p.id));
   if (ids.length !== ownSet.size || !ids.every((x) => ownSet.has(x))) throw new HttpError(400, 'Список фото устарел — обновите форму');
-  const stmts = ids.map((pid, i) => db.update(businessPhotos).set({ sortOrder: i }).where(eq(businessPhotos.id, pid)));
-  if (stmts.length) await db.batch(stmts as [typeof stmts[0], ...typeof stmts]);
+  if (ids.length) {
+    await db.transaction(async (tx) => {
+      for (const [i, pid] of ids.entries()) await tx.update(businessPhotos).set({ sortOrder: i }).where(eq(businessPhotos.id, pid));
+    });
+  }
   return touch(env, db, admin, b, origin);
 }
 

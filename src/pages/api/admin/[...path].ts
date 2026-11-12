@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions';
 import type { APIContext, APIRoute } from 'astro';
 import { z } from 'zod';
 import { LEAD_STATUSES } from '../../../db/schema';
@@ -154,7 +155,7 @@ const routes: [string, RegExp, Handler][] = [
     const d = db();
     const r = await patchLead(env, d, admin, num(params[0]), patch);
     // Статус в админке ↔ сообщение в группе менеджеров.
-    if (r.statusChanged) ctx.locals.cfContext.waitUntil(syncLeadMessage(env, d, r.lead.id));
+    if (r.statusChanged) waitUntil(syncLeadMessage(env, d, r.lead.id));
     return json(await leadDetail(d, r.lead.id));
   }],
   ['POST', /^leads\/(\d+)\/resend$/, async ({ params }) => {

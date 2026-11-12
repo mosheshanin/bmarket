@@ -2,12 +2,22 @@ name: CI
 
 on:
   push:
-    branches: [main, staging]
+    branches: [main, vercel]
   pull_request:
 
 jobs:
   check:
     runs-on: ubuntu-24.04
+    services:
+      # Локальная копия базы для сквозных тестов (в production — Supabase Postgres 17).
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: bmarket
+        ports: ['54329:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 2s --health-timeout 5s --health-retries 30
     steps:
       - uses: actions/checkout@v5
       # Astro требует Node.js ≥ 22.23.4 — берём 24 (LTS).
@@ -20,18 +30,13 @@ jobs:
         run: npx astro check
       - name: Юнит-тесты (initData, скрытые поля, форматы)
         run: npm test
-      # До сборки: адаптер Cloudflare переносит .dev.vars в собранный Worker (иначе в e2e нет токена бота).
       - name: Тестовые настройки
-        run: cp .dev.vars.example .dev.vars
-      - name: Сборка
+        run: cp .env.example .env
+      - name: Сборка (адаптер Vercel)
         run: npm run build
-      - name: Размер Worker < 3 МБ
-        run: npm run size
-      - name: E2E на локальном Worker
+      - name: E2E на локальной сборке
         run: |
-          npm run db:migrate:local
-          npm run db:seed:local
-          bash scripts/seed-photos.sh --local
-          npx astro preview --port 8787 --host 127.0.0.1 &
+          npm run db:seed
+          npm run preview:serve &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8787/ >/dev/null && break; sleep 1; done
           npm run test:e2e
