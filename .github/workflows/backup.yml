@@ -19,7 +19,8 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then echo "Секрет SUPABASE_DB_URL не задан"; exit 1; fi
+          if [ -z "$SUPABASE_DB_URL" ]; then echo "::error::Секрет SUPABASE_DB_URL не задан"; exit 1; fi
+          SUPABASE_DB_URL=$(printf '%s' "$SUPABASE_DB_URL" | tr -d '[:space:]'); export SUPABASE_DB_URL
           # pg_dump той же версии, что сервер (Postgres 17).
           docker run --rm -e SUPABASE_DB_URL postgres:17 \
             sh -c 'pg_dump "$SUPABASE_DB_URL" --schema=public --no-owner --no-privileges' > backup.sql

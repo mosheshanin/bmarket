@@ -33,6 +33,10 @@ jobs:
         run: |
           for v in CLOUDFLARE_API_TOKEN SUPABASE_DB_URL SUPABASE_SECRET_KEY; do
             if [ -z "${!v}" ]; then echo "::error::Секрет $v не задан"; exit 1; fi
+            # Пробелы и переносы строк, захваченные при копировании, ломают psql и заголовки — обрезаем.
+            val=$(printf '%s' "${!v}" | tr -d '[:space:]')
+            echo "::add-mask::$val"
+            echo "$v=$val" >> "$GITHUB_ENV"
           done
       - name: Проверка подключения к Supabase
         run: |
