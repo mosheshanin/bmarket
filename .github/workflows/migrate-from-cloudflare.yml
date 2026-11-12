@@ -1,0 +1,63 @@
+name: Перенос данных Cloudflare → Supabase
+
+# Перенос базы D1 и фото из Workers KV в Supabase (Postgres + Storage). Повторяемый: таблицы
+# очищаются и заполняются заново, фото загружаются с перезаписью. Запуск — вручную (Actions → Run workflow)
+# или push в ветку vercel с «[migrate]» в сообщении коммита.
+# Секреты репозитория: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (уже были для backup),
+# SUPABASE_DB_URL (Session pooler, порт 5432), SUPABASE_SECRET_KEY (Supabase → Settings → API Keys).
+# Итог (число строк по таблицам и фото) пишется в settings.migration_report новой базы.
+on:
+  workflow_dispatch:
+  push:
+    branches: [vercel]
+
+jobs:
+  migrate:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[migrate]')
+    runs-on: ubuntu-24.04
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      SUPABASE_URL: https://knasmcepypeysxojhdai.supabase.co
+      KV_NAMESPACE_ID: a173fe0067944711b424d830b5905315
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Проверка секретов
+        run: |
+          for v in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SUPABASE_DB_URL SUPABASE_SECRET_KEY; do
+            if [ -z "${!v}" ]; then echo "::error::Секрет $v не задан"; exit 1; fi
+          done
+      - run: npm install --no-save wrangler@4
+      - name: Выгрузка D1
+        run: npx wrangler d1 export catalog-prod --remote --output d1.sql
+      - name: Загрузка в Postgres
+        run: |
+          python3 scripts/migrate-from-d1.py d1.sql pg.sql
+          docker run --rm -i -e SUPABASE_DB_URL postgres:17 sh -c 'psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q' < pg.sql
+      - name: Фото из Workers KV → Supabase Storage
+        run: |
+          npx wrangler kv key list --namespace-id "$KV_NAMESPACE_ID" --remote > keys.json
+          node -e 'for (const k of JSON.parse(require("fs").readFileSync("keys.json","utf8"))) console.log(k.name)' > keys.txt
+          total=$(wc -l < keys.txt); ok=0; failed=0
+          auth=(-H "apikey: $SUPABASE_SECRET_KEY")
+          # Старый ключ service_role (JWT) нужен и в Authorization; новый sb_secret_… — только в apikey.
+          if [[ "$SUPABASE_SECRET_KEY" == eyJ* ]]; then auth+=(-H "Authorization: Bearer $SUPABASE_SECRET_KEY"); fi
+          while IFS= read -r key; do
+            case "$key" in *.jpg) type=image/jpeg ;; *) type=image/webp ;; esac
+            if npx wrangler kv key get --namespace-id "$KV_NAMESPACE_ID" --remote "$key" > photo.bin 2>/dev/null && [ -s photo.bin ] \
+              && curl -sf -X POST "$SUPABASE_URL/storage/v1/object/photos/$key" \
+                   "${auth[@]}" \
+                   -H "content-type: $type" -H "x-upsert: true" -H "cache-control: 31536000" --data-binary @photo.bin >/dev/null; then
+              ok=$((ok+1))
+            else
+              failed=$((failed+1)); echo "::warning::не перенесено: $key"
+            fi
+          done < keys.txt
+          echo "Фото: $ok из $total, ошибок $failed"
+          docker run --rm -e SUPABASE_DB_URL postgres:17 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -qc \
+            "UPDATE settings SET value = jsonb_set(value::jsonb, '{photos}', '{\"kv_keys\": $total, \"uploaded\": $ok, \"failed\": $failed}'::jsonb)::text WHERE key = 'migration_report'"
