@@ -15,7 +15,8 @@ export function json(data: unknown, init: ResponseInit = {}): Response {
 
 export function errorResponse(e: unknown): Response {
   if (e instanceof HttpError) return json({ error: e.message, ...e.extra }, { status: e.status });
-  console.error('Unhandled error', e);
+  const cause = (e as { cause?: { code?: string; message?: string } })?.cause;
+  console.error('Unhandled error', cause ? `cause: ${cause.code ?? ''} ${cause.message?.slice(0, 200) ?? ''}` : '', e);
   return json({ error: 'Внутренняя ошибка сервера' }, { status: 500 });
 }
 
