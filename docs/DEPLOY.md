@@ -115,7 +115,8 @@ $$);
 GitHub Actions «Перенос данных Cloudflare → Supabase» (`.github/workflows/migrate-from-cloudflare.yml`):
 `wrangler d1 export` → `scripts/migrate-from-d1.py` (типы из схемы Postgres, таблицы очищаются и заполняются
 заново, счётчики id выставляются) → `psql`; фото — все ключи KV `bmarket-photos` → Supabase Storage.
-Запуск: Actions → Run workflow (когда файл есть в `main`) или push в ветку `vercel` с `[migrate]` в сообщении.
+⚠️ После переключения повторный запуск перезапишет живую базу данными D1, поэтому автозапуск убран:
+только Actions → Run workflow с подтверждением «ПЕРЕЗАПИСАТЬ SUPABASE».
 Итог — `SELECT value FROM settings WHERE key = 'migration_report';` (строки по таблицам и число фото).
 Нужны секреты репозитория `CLOUDFLARE_API_TOKEN` (Account → D1: Edit, Workers KV Storage: Read; ID аккаунта — в самом workflow),
 `SUPABASE_DB_URL` (Session pooler, 5432), `SUPABASE_SECRET_KEY` — все три в **окружении GitHub `SUPABASE_DB_URL`**

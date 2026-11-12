@@ -1,19 +1,21 @@
 name: Перенос данных Cloudflare → Supabase
 
-# Перенос базы D1 и фото из Workers KV в Supabase (Postgres + Storage). Повторяемый: таблицы
-# очищаются и заполняются заново, фото загружаются с перезаписью. Запуск — вручную (Actions → Run workflow)
-# или push в ветку vercel с «[migrate]» в сообщении коммита.
-# Секреты репозитория: CLOUDFLARE_API_TOKEN (Account → D1: Edit, Workers KV Storage: Read),
-# SUPABASE_DB_URL (Session pooler, порт 5432), SUPABASE_SECRET_KEY (Supabase → Settings → API Keys).
-# Итог (число строк по таблицам и фото) пишется в settings.migration_report новой базы.
+# ⚠️ ПЕРЕКЛЮЧЕНИЕ ВЫПОЛНЕНО 12.11.2026 — production живёт в Supabase. Повторный запуск ОЧИСТИТ таблицы
+# и зальёт устаревшие данные из D1. Оставлено только для отката/расследования: ручной запуск
+# (Actions → Run workflow) с подтверждением «ПЕРЕЗАПИСАТЬ SUPABASE».
+# Перенос базы D1 и фото из Workers KV в Supabase (Postgres + Storage): таблицы очищаются и заполняются заново.
+# Секреты — в окружении GitHub «SUPABASE_DB_URL»: CLOUDFLARE_API_TOKEN, SUPABASE_DB_URL (Session pooler, 5432),
+# SUPABASE_SECRET_KEY. Итог (число строк по таблицам и фото) пишется в settings.migration_report.
 on:
   workflow_dispatch:
-  push:
-    branches: [vercel]
+    inputs:
+      confirm:
+        description: 'Напишите «ПЕРЕЗАПИСАТЬ SUPABASE» — все данные в Supabase будут заменены данными из D1'
+        required: true
 
 jobs:
   migrate:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[migrate]')
+    if: github.event.inputs.confirm == 'ПЕРЕЗАПИСАТЬ SUPABASE'
     runs-on: ubuntu-24.04
     # Секреты заведены в окружении GitHub «SUPABASE_DB_URL» (Settings → Environments).
     environment: SUPABASE_DB_URL
