@@ -80,7 +80,7 @@ check('черновик и снятый не в списке', !home.text.includ
 
 const city = await req('/city/haifa');
 check('город 200 + заголовок', city.status === 200 && city.text.includes('Бизнес на продажу в Хайфе — 1 предложение'));
-check('город: h1', city.text.includes('Бизнесы на продажу в Хайфе'));
+check('город: h1', city.text.includes('Готовый бизнес на продажу в Хайфе'));
 check('город без лотов: noindex', (await req('/city/eilat')).text.includes('noindex'));
 check('неизвестный город 404', (await req('/city/atlantis')).status === 404);
 

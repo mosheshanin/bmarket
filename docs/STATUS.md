@@ -24,7 +24,17 @@ Manrope + Cormorant Garamond, заставка ≈3 с. Холст с конце
 | Группа менеджеров | `-5528365586` (`MANAGERS_CHAT_ID`; бот может заменить командой `/setgroup`) |
 | Секреты | Vercel: `DATABASE_URL`, `SUPABASE_SECRET_KEY`, `TELEGRAM_BOT_TOKEN` (только Production). GitHub, окружение `SUPABASE_DB_URL`: `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEY`, `CLOUDFLARE_API_TOKEN` |
 | Миграции Supabase | `init`, `rls_lockdown`, `photos_bucket_and_cron_extensions`, `pg_net_to_extensions_schema`, `cron_jobs_market_haifa_business` |
-| Резерв (до ≈26.11.2026) | Cloudflare Worker `bmarket.moshemadwords.workers.dev`, D1 `catalog-prod`, KV `bmarket-photos` — без cron и автосборки, данные на 12.11.2026 |
+| Резерв (до ≈26.11.2026) | Cloudflare Worker `bmarket.moshemadwords.workers.dev`, D1 `catalog-prod`, KV `bmarket-photos` — без cron и автосборки, данные на 12.11.2026. Сайт на workers.dev индексировался как вторая копия каталога: перенаправление 301 — запуск `.github/workflows/workers-redirect.yml` (данные D1/KV остаются, откат — Rollback в Cloudflare) |
+
+## SEO и разметка — 13.11.2026
+
+- [x] Главная: `WebSite` + `Organization` (логотип, связь с HaifaBusinessClub). Лот: `Product` без стоковых фото, `itemCondition`,
+      `additionalProperty` (оборот, прибыль, окупаемость, аренда, площадь, год, сотрудники), `seller`; хлебные крошки «Каталог».
+- [x] `robots.txt` без `Disallow: /*/request` (страница заявки сама `noindex`, без canonical на карточку); `noindex, follow` вместо `nofollow`.
+- [x] `sitemap.xml`: `lastmod` у городов, без `priority`/`changefreq`. `og:image:alt`. h1 города — «Готовый бизнес на продажу в …».
+- [x] Production-страницы с `*.vercel.app` → 301 на `market.haifa.business`.
+- [ ] Запустить `workers-redirect.yml` (workers.dev → 301). Нужно право `Workers Scripts: Edit` у `CLOUDFLARE_API_TOKEN`.
+- [ ] Search Console: домен `haifa.business` (ресурс «доменный» охватывает и market.) — TXT-запись в DNS Vercel; Яндекс.Вебмастер.
 
 ## Переезд на Vercel + Supabase — выполнен 12.11.2026
 
@@ -131,7 +141,7 @@ Manrope + Cormorant Garamond, заставка ≈3 с. Холст с конце
 
 **Инфраструктура**
 - [x] CI в GitHub Actions зелёный: Node.js 24, Postgres 17 (service), сборка Vercel, e2e на локальной сборке.
-- [x] Тесты: 37 юнит, 182 сквозных проверок (`npm test`, `npm run test:e2e`), `astro check` без ошибок.
+- [x] Тесты: 39 юнит, 182 сквозных проверки (`npm test`, `npm run test:e2e`), `astro check` без ошибок.
 
 ## Что осталось (по приоритету)
 

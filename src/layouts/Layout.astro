@@ -17,6 +17,8 @@ interface Props {
   /** Путь канонического адреса, например «/city/haifa». */
   canonicalPath?: string;
   ogImage?: string | null;
+  /** Подпись картинки превью (og:image:alt). */
+  ogImageAlt?: string;
   ogType?: string;
   jsonLd?: unknown[];
   noindex?: boolean;
@@ -25,7 +27,7 @@ interface Props {
   bare?: boolean;
 }
 
-const { title, description, canonicalPath, ogImage, ogType = 'website', jsonLd = [], noindex = false, data = {}, bare = false } = Astro.props;
+const { title, description, canonicalPath, ogImage, ogImageAlt, ogType = 'website', jsonLd = [], noindex = false, data = {}, bare = false } = Astro.props;
 const s = site();
 const canonical = canonicalPath ? s.url + canonicalPath : undefined;
 const dataAttrs = Object.fromEntries(
@@ -44,7 +46,7 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     {canonical && <link rel="canonical" href={canonical} />}
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {noindex && <meta name="robots" content="noindex, follow" />}
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#efe9de" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#13110e" media="(prefers-color-scheme: dark)" />
@@ -55,6 +57,7 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {description && <meta property="og:description" content={description} />}
     {canonical && <meta property="og:url" content={canonical} />}
     {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImage && <meta property="og:image:alt" content={ogImageAlt || title} />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href={manropeCyrillic} as="font" type="font/woff2" crossorigin />

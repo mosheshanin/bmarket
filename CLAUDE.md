@@ -19,7 +19,8 @@ Tailwind 4, своя палитра «Закрытый клуб» (светла�
 Движение — `src/scripts/motion.ts` (без библиотек), заставка ≈3 с — `src/components/Splash.astro`.
 Supabase: Postgres 17 + Drizzle ORM (`postgres.js` через пулер 6543), фото — Supabase Storage (бакет `photos`, `src/server/storage.ts`).
 Задачи по расписанию — Supabase pg_cron → `/api/cron/minute` и `/api/cron/daily` (`src/server/jobs.ts`).
-grammY для бота. Zod для входных данных. Переезд с Cloudflare Workers/D1/KV — ноябрь 2026, `docs/DEPLOY.md`.
+grammY для бота. Zod для входных данных. Аналитика — Cloudflare Web Analytics (скрипт в `Layout.astro`, токен `CF_ANALYTICS_TOKEN`).
+До 12.11.2026 сайт жил на Cloudflare Workers/D1/KV (`docs/DEPLOY.md`, `migrations-d1/`, `scripts/migrate-from-d1.py` — только для истории).
 
 ## Структура
 ```
@@ -34,8 +35,9 @@ src/onboarding/          опрос при первом запуске и «По
 src/components/          Astro/React-компоненты публичной части (Splash.astro — заставка при открытии)
 src/lib/                 чистые функции: форматы, slug, markdown, initData, crypto; extras (платные услуги), promo
 src/db/schema.ts         схема БД (pg-core); миграции Postgres — migrations/ (drizzle-kit), старые D1 — migrations-d1/
-seed/                    dictionaries.sql, test-lots.sql + photos — локальные тесты; haifa-*/israel-* — импорт реальных объявлений (SQLite, исторические)
-                         в production (фото — Unsplash, ключи `unsplash:<id>:<ширина>`, на сайте «Фото для иллюстрации»)
+seed/                    dictionaries.sql, test-lots.sql + photos — локальные тесты
+                         haifa-*/israel-* — SQL импорта реальных объявлений (SQLite, исторические; уже в production)
+                         фото этих лотов — Unsplash, ключи `unsplash:<id>:<ширина>`, на сайте «Фото для иллюстрации»
 scripts/                 local-pg.sh, db-migrate.mjs, serve-local.mjs (локальный запуск как на Vercel), migrate-from-d1.py (перенос с D1),
                          генераторы импорта (import-*-2026-10.mjs), демо-SQL, setup-bot
 public/brands/           значки Facebook/Google/Яндекса для промо-блока продавца (источники — docs/BRAND-ASSETS.md)
@@ -47,8 +49,8 @@ tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозн�
 cp .env.example .env
 npm run db:local && npm run db:seed      # локальный Postgres (.data/pg, порт 54329) + тестовые лоты и фото
 npm run preview             # сборка и запуск как на Vercel: http://127.0.0.1:8787
-npm test                    # юнит-тесты (37)
-npm run test:e2e            # 182 сквозных проверки на локальной сборке (с поддельным PayPal на :8799)
+npm test                    # юнит-тесты (vitest) — все должны пройти
+npm run test:e2e            # сквозные проверки на локальной сборке (с поддельным PayPal на :8799) — все должны пройти
 npx astro check             # типы
 npm run db:generate         # после изменения src/db/schema.ts
 NODE_PATH=$(npm root -g) node tests/e2e/screens.mjs   # скриншоты (Playwright из глобальной установки)
@@ -56,10 +58,12 @@ NODE_PATH=$(npm root -g) node tests/e2e/screens.mjs   # скриншоты (Play
 
 ## Деплой
 `git push origin main` → Vercel собирает и выкладывает production (https://market.haifa.business, ≈1 мин);
-другие ветки → preview (`*.vercel.app`, без `SITE_URL` и токена бота). С 12.11.2026 Cloudflare Worker — только резерв.
+другие ветки → preview (`*.vercel.app`, без `SITE_URL` и токена бота). Production-страницы, открытые с `*.vercel.app`, отвечают 301
+на основной домен (`canonicalHostRedirect` в `src/middleware.ts`). Старый Worker на workers.dev — перенаправление на основной
+домен (`workers-redirect/`, ручной запуск `.github/workflows/workers-redirect.yml`).
 Перед push: `npm test`, `npx astro check`, сборка, e2e. Миграции в production (Supabase) — вручную, коннектором Supabase.
 Из облачной среды ассистента нет доступа к api.telegram.org, api.cloudflare.com, *.supabase.co (кроме коннектора) —
-деплой только через `git push`. Коннектор Vercel не видит проект bmarket — панель Vercel через встроенный браузер.
+деплой только через `git push`, задачи в Cloudflare — через GitHub Actions. Коннектор Vercel не видит проект bmarket — панель Vercel через встроенный браузер.
 
 ## Правила
 - Секреты — только `.env` (в .gitignore), панель Vercel и секреты GitHub. Никогда в коде, коммитах и чате. Вводит владелец.
@@ -70,3 +74,14 @@ NODE_PATH=$(npm root -g) node tests/e2e/screens.mjs   # скриншоты (Play
 - Тексты интерфейса — по-русски; цены «₪ 450 000», даты «24.10.2026», время Asia/Jerusalem (`src/lib/format.ts`).
 - Публичные страницы кешируются в CDN Vercel 10 минут (тег `path:<путь>`); после изменений в админке вызывается `purgePaths`.
 - После работы — обновить `docs/STATUS.md`; отступления от ТЗ — в `docs/DECISIONS.md`.
+
+## SEO и микроразметка
+- Публичная страница: `title` (до ≈60 знаков), `description` (120–160), `canonicalPath`; служебные — проп `noindex`
+  (мета `noindex, follow`). Одна и та же страница не бывает одновременно `noindex` и с canonical на другой адрес.
+- Индексируемая страница → `src/pages/sitemap.xml.ts` (с `lastmod`). Закрыть от поиска — `noindex` на странице, а не `Disallow`
+  в `robots.txt.ts` (за `Disallow` поисковик не увидит `noindex`). `Disallow` — только `/admin`, `/api`, `/pay/`.
+- JSON-LD — только через проп `jsonLd` у `Layout.astro` и только из полей `PUBLIC_BUSINESS_COLUMNS`.
+  Главная — `WebSite` + `Organization` (с `parentOrganization` HaifaBusinessClub), лот — `Product` + `Offer` + `BreadcrumbList`,
+  город — `BreadcrumbList`. Стоковые фото (`isIllustrativePhoto`) в `image` разметки не ставить. `SearchAction`, `FAQPage` не нужны.
+- Канонический хост — только `SITE_URL`; другие хосты отвечают 301 (см. «Деплой»).
+- После изменений разметки — проверить Rich Results Test / validator.schema.org на рабочем сайте.

@@ -1,0 +1,6 @@
+# Тот же Worker «bmarket», что был резервом: новая версия только перенаправляет на market.haifa.business.
+# D1 catalog-prod и KV bmarket-photos не трогаются (просто не подключены к этой версии).
+name = "bmarket"
+main = "index.js"
+compatibility_date = "2026-11-01"
+workers_dev = true
