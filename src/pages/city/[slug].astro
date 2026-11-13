@@ -29,7 +29,7 @@ const breadcrumbs = city && {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Главная', item: s.url + '/' },
+    { '@type': 'ListItem', position: 1, name: 'Каталог', item: s.url + '/' },
     { '@type': 'ListItem', position: 2, name: city.name, item: `${s.url}/city/${city.slug}` },
   ],
 };
@@ -39,7 +39,7 @@ const breadcrumbs = city && {
   {
     city ? (
       <>
-        <h1 class="mb-4 text-2xl font-extrabold tracking-tight sm:text-3xl">Бизнесы на продажу в {city.namePrepositional}</h1>
+        <h1 class="mb-4 text-2xl font-extrabold tracking-tight sm:text-3xl">Готовый бизнес на продажу в {city.namePrepositional}</h1>
         <CityRibbon cities={cityList} activeSlug={city.slug} total={total} />
         {n > 0 ? (
           <ListingGrid items={items} rate={rate} />

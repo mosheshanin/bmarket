@@ -226,7 +226,7 @@ export async function catalogSummary(db: DB): Promise<{ count: number; minPrice:
 
 export async function sitemapEntries(db: DB) {
   const lots = await db
-    .select({ lotNumber: businesses.lotNumber, slug: businesses.slug, updatedAt: businesses.updatedAt })
+    .select({ lotNumber: businesses.lotNumber, slug: businesses.slug, updatedAt: businesses.updatedAt, cityId: businesses.cityId })
     .from(businesses)
     .where(eq(businesses.status, 'published'))
     .orderBy(desc(businesses.publishedAt));

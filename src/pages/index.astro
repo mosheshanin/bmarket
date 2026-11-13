@@ -16,11 +16,26 @@ Astro.response.headers.set('x-bm-cacheable', '1');
 
 const title = `Готовый бизнес на продажу в Израиле | ${s.name}`;
 const description = `Каталог готовых бизнесов на продажу в Израиле: кафе, магазины, салоны, производство и услуги. ${items.length ? `${items.length} предложений с ценами, оборотом и прибылью.` : ''} Оставьте заявку — менеджер расскажет подробности.`.trim();
+// Разметка сайта (13.11.2026): WebSite — по нему Google показывает название сайта в выдаче; Organization — с логотипом
+// и связью с HaifaBusinessClub (haifa.business). Поиск по сайту (SearchAction) Google больше не показывает — не ставим.
+const website = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': `${s.url}/#website`,
+  name: s.name,
+  alternateName: ['Бизнес Маркет', 'BMarket HaifaBusinessClub'],
+  url: s.url + '/',
+  inLanguage: 'ru',
+  publisher: { '@id': `${s.url}/#organization` },
+};
 const org = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': `${s.url}/#organization`,
   name: s.name,
   url: s.url + '/',
+  logo: `${s.url}/favicon.svg`,
+  parentOrganization: { '@type': 'Organization', name: 'HaifaBusinessClub', url: 'https://haifa.business' },
   ...(s.botLink ? { sameAs: [s.botLink] } : {}),
 };
 const firstCover = items.find((i) => i.cover)?.cover;
@@ -28,7 +43,7 @@ const prices = items.map((i) => i.priceIls).filter((p): p is number => !!p);
 const from = fromPrice(prices.length ? Math.min(...prices) : null);
 ---
 
-<Layout title={title} description={description} canonicalPath="/" jsonLd={[org]} ogImage={firstCover ? new URL(imageUrl(env, firstCover.r2Key), s.url).href : null} data={{ page: 'home' }}>
+<Layout title={title} description={description} canonicalPath="/" jsonLd={[website, org]} ogImage={firstCover ? new URL(imageUrl(env, firstCover.r2Key), s.url).href : null} data={{ page: 'home' }}>
   <!-- Шапка каталога в стиле «Закрытый клуб» (DECISIONS №46). -->
   <header class="mb-5 pt-1">
     <p class="caps text-brass">HaifaBusinessClub · каталог</p>

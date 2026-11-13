@@ -26,7 +26,7 @@ const cardPath = businessPath(b.lotNumber, b.slug);
   res.kind === 'gone' ? (
     <GonePage b={res.b} others={res.others} rate={rate} />
   ) : (
-    <Layout title={`Заявка: ${b.publicTitle} | ${s.name}`} noindex canonicalPath={cardPath} data={{ page: 'request', 'business-id': b.id, lot: b.lotNumber }}>
+    <Layout title={`Заявка: ${b.publicTitle} | ${s.name}`} noindex data={{ page: 'request', 'business-id': b.id, lot: b.lotNumber }}>
       <div class="mx-auto max-w-xl">
         <LeadForm
           client:load

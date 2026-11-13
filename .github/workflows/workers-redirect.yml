@@ -1,0 +1,36 @@
+name: Старый workers.dev → 301 на market.haifa.business
+
+# Ручной запуск (Actions → «Старый workers.dev → 301…» → Run workflow), 13.11.2026.
+# Выкладывает в Worker «bmarket» версию из workers-redirect/: все адреса bmarket.moshemadwords.workers.dev
+# отвечают 301 на тот же путь market.haifa.business. Зачем: резерв на workers.dev был полной копией каталога
+# со своим canonical — для поисковиков второй сайт. Откат — Cloudflare → Workers → bmarket → Deployments → Rollback.
+# Токен — тот же CLOUDFLARE_API_TOKEN из окружения «SUPABASE_DB_URL»; ему нужно право Workers Scripts: Edit.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Напишите «ПЕРЕНАПРАВИТЬ» — резервный сайт на workers.dev станет перенаправлением'
+        required: true
+
+jobs:
+  deploy:
+    if: github.event.inputs.confirm == 'ПЕРЕНАПРАВИТЬ'
+    runs-on: ubuntu-24.04
+    environment: SUPABASE_DB_URL
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 25497a10c7db07870fa29504e0f464a4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install --no-save wrangler@4
+      - name: Выложить перенаправление
+        working-directory: workers-redirect
+        run: npx wrangler deploy
+      - name: Проверить
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' https://bmarket.moshemadwords.workers.dev/city/haifa)
+          echo "$code"
+          echo "$code" | grep -q '^301 https://market.haifa.business/city/haifa'

@@ -40,6 +40,17 @@ const photos = b.photos.map((p) => ({
   illustrative: isIllustrativePhoto(p.r2Key),
 }));
 const ogImage = photos[0] ? new URL(photos[0].src, s.url).href : null;
+const ownPhotos = photos.filter((p) => !p.illustrative);
+// Цифры для additionalProperty разметки Product (значения — как в базе, единицы — unitText).
+const facts = [
+  b.monthlyRevenueIls && { '@type': 'PropertyValue', name: 'Оборот в месяц', value: b.monthlyRevenueIls, unitText: 'ILS' },
+  b.monthlyProfitIls && { '@type': 'PropertyValue', name: 'Чистая прибыль в месяц', value: b.monthlyProfitIls, unitText: 'ILS' },
+  b.paybackMonths && { '@type': 'PropertyValue', name: 'Окупаемость', value: b.paybackMonths, unitText: 'мес.' },
+  b.rentMonthlyIls && { '@type': 'PropertyValue', name: 'Аренда в месяц', value: b.rentMonthlyIls, unitText: 'ILS' },
+  b.areaSqm && { '@type': 'PropertyValue', name: 'Площадь', value: b.areaSqm, unitCode: 'MTK' },
+  b.yearFounded && { '@type': 'PropertyValue', name: 'Год открытия', value: b.yearFounded },
+  b.employeesCount != null && b.employeesCount > 0 && { '@type': 'PropertyValue', name: 'Сотрудники', value: b.employeesCount },
+].filter(Boolean);
 const priceStr = b.priceIls ? formatIls(b.priceIls) : null;
 const title = `${b.publicTitle}${priceStr ? ` — ${priceStr}` : ''} | ${s.name}`;
 
@@ -77,8 +88,12 @@ const jsonLd = res.kind === 'ok' && !preview ? [
     description: b.shortDescription,
     sku: `LOT-${b.lotNumber}`,
     category: b.categoryName ?? undefined,
-    image: photos.slice(0, 5).map((p) => new URL(p.src, s.url).href),
+    // Только фото самого бизнеса: стоковые («Фото для иллюстрации») Google считает чужими картинками (13.11.2026).
+    ...(ownPhotos.length ? { image: ownPhotos.slice(0, 5).map((p) => new URL(p.src, s.url).href) } : {}),
     url: s.url + path,
+    itemCondition: 'https://schema.org/UsedCondition',
+    // Открытые цифры досье (они и так на странице); скрытые поля сюда не попадают — только из PUBLIC_BUSINESS_COLUMNS.
+    ...(facts.length ? { additionalProperty: facts } : {}),
     ...(b.priceIls ? {
       offers: {
         '@type': 'Offer',
@@ -87,6 +102,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
         availability: 'https://schema.org/InStock',
         url: s.url + path,
         areaServed: { '@type': 'Country', name: 'Israel' },
+        seller: { '@type': 'Organization', name: s.name, url: s.url + '/' },
       },
     } : {}),
   },
@@ -94,7 +110,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Главная', item: s.url + '/' },
+      { '@type': 'ListItem', position: 1, name: 'Каталог', item: s.url + '/' },
       ...(b.citySlug ? [{ '@type': 'ListItem', position: 2, name: b.cityName, item: `${s.url}/city/${b.citySlug}` }] : []),
       { '@type': 'ListItem', position: b.citySlug ? 3 : 2, name: b.publicTitle, item: s.url + path },
     ],
@@ -112,6 +128,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
       canonicalPath={path}
       ogImage={ogImage}
       ogType="product"
+      ogImageAlt={photos[0]?.alt}
       jsonLd={jsonLd}
       noindex={preview}
       data={{ page: 'card', 'business-id': b.id, lot: b.lotNumber, 'request-path': requestPath, title: b.publicTitle }}
