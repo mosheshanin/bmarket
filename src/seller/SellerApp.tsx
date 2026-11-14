@@ -176,7 +176,8 @@ function PromoBlock() {
     <section className="promo-block" aria-labelledby="promo-title">
       <div className="promo-aurora" aria-hidden="true"><i /><i /><i /></div>
       <div className="promo-body">
-        <h2 id="promo-title" className="promo-title">Ваше объявление заметят</h2>
+        <img src="/icons3d/megaphone.webp" alt="" width={72} height={72} className="icon3d icon3d-float" style={{ position: 'absolute', right: -4, top: -8 }} />
+        <h2 id="promo-title" className="promo-title" style={{ paddingRight: 72 }}>Ваше объявление заметят</h2>
         <p className="promo-text">
           Мы запустили рекламу каталога в {names.slice(0, -1).join(', ')} и&nbsp;{names[names.length - 1]}. Покупатели приходят к&nbsp;нам сами.
         </p>

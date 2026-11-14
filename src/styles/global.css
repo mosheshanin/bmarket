@@ -1,11 +1,9 @@
 @import 'tailwindcss';
 /*
- * Шрифты концепции «Закрытый клуб» (DECISIONS №46): Manrope — текст и интерфейс (вариативный, кириллица),
- * Cormorant Garamond — заголовки и цифры (антиква, кириллица, начертания 600 и 700). Раздаются вместе с приложением.
+ * Шрифт стиля «Заставка» (DECISIONS №47): Nunito — округлый, вариативный (200–1000), с кириллицей; им же набран логотип.
+ * Заголовки и цифры — тот же Nunito 800–900. Раздаётся вместе с приложением.
  */
-@import '@fontsource-variable/manrope/wght.css';
-@import '@fontsource/cormorant-garamond/600.css';
-@import '@fontsource/cormorant-garamond/700.css';
+@import '@fontsource-variable/nunito/wght.css';
 
 /* Переход между страницами (лента → карточка): фото «перелетает». Браузеры без поддержки просто открывают страницу. */
 @view-transition {
@@ -22,72 +20,84 @@
 }
 
 /*
- * Своя палитра «бумага, чернила, латунь» в двух вариантах. В браузере — по системной теме,
+ * Палитра в стиле заставки мини-приложения (DECISIONS №47): фиолетовый → тёмно-синий → голубой, как на логотипе.
+ * Два варианта: светлый (лавандовый фон, белые карточки) и тёмный (ночной индиго). В браузере — по системной теме,
  * в Telegram — по colorScheme клиента: класс theme-dark / theme-light ставится в <head> до отрисовки
  * (см. Layout.astro) и обновляется при смене темы (src/scripts/app.ts). Шапка, фон и нижняя панель Telegram
  * красятся в эти же цвета (setHeaderColor / setBackgroundColor / setBottomBarColor).
+ * Имя переменной --brass сохранено с прошлого дизайна: это «фирменный цвет текста» (подписи, акценты).
  */
 :root {
-  --bg: #efe9de;
-  --card: #fbf8f2;
-  --card-2: #f4eee3;
-  --text: #1e1a14;
-  --hint: #655c4e;
-  --link: #86601d;
-  --accent: #86601d;
+  --bg: #f3f2fc;
+  --card: #ffffff;
+  --card-2: #ecebfb;
+  --text: #17153b;
+  --hint: #5f5c85;
+  --link: #6338e0;
+  --accent: #7046ec;
   --accent-text: #ffffff;
-  --brass: #86601d;
-  --redact: #1e1a14;
-  --danger: #b3261e;
-  --border: rgb(50 35 10 / 0.13);
-  --success: #2f7a3e;
-  --warn-bg: #f6e7c1;
-  --ink-block: #1e1a16;
+  --brass: #6338e0;
+  --redact: #221d57;
+  --danger: #c62828;
+  --border: rgb(45 35 140 / 0.11);
+  --success: #15803d;
+  --warn-bg: #fdf0cf;
+  --ink-block: #1b1846;
+  --shadow-tint: 70 50 200;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not(.theme-light) {
-    --bg: #13110e;
-    --card: #1e1a16;
-    --card-2: #26211b;
-    --text: #f3ecdf;
-    --hint: #aba192;
-    --link: #d6b370;
-    --accent: #d6b370;
-    --accent-text: #1a1307;
-    --brass: #d6b370;
-    --redact: #060504;
+    --bg: #0e0d24;
+    --card: #191838;
+    --card-2: #232149;
+    --text: #f3f2ff;
+    --hint: #a9a6d0;
+    --link: #b8a2ff;
+    --accent: #8463ff;
+    --accent-text: #ffffff;
+    --brass: #b8a2ff;
+    --redact: #05041a;
     --danger: #ff8a80;
-    --border: rgb(240 226 200 / 0.12);
-    --success: #7fc98a;
+    --border: rgb(200 190 255 / 0.12);
+    --success: #6fd68a;
     --warn-bg: #3a3016;
-    --ink-block: #26211b;
+    --ink-block: #232149;
+    --shadow-tint: 0 0 0;
     color-scheme: dark;
   }
 }
 :root.theme-dark {
-  --bg: #13110e;
-  --card: #1e1a16;
-  --card-2: #26211b;
-  --text: #f3ecdf;
-  --hint: #aba192;
-  --link: #d6b370;
-  --accent: #d6b370;
-  --accent-text: #1a1307;
-  --brass: #d6b370;
-  --redact: #060504;
+  --bg: #0e0d24;
+  --card: #191838;
+  --card-2: #232149;
+  --text: #f3f2ff;
+  --hint: #a9a6d0;
+  --link: #b8a2ff;
+  --accent: #8463ff;
+  --accent-text: #ffffff;
+  --brass: #b8a2ff;
+  --redact: #05041a;
   --danger: #ff8a80;
-  --border: rgb(240 226 200 / 0.12);
-  --success: #7fc98a;
+  --border: rgb(200 190 255 / 0.12);
+  --success: #6fd68a;
   --warn-bg: #3a3016;
-  --ink-block: #26211b;
+  --ink-block: #232149;
+  --shadow-tint: 0 0 0;
   color-scheme: dark;
 }
 
 :root {
-  --radius: 14px;
-  --shadow: 0 1px 0 var(--border), 0 6px 18px rgb(30 20 5 / 0.06);
-  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --radius: 20px;
+  --shadow: 0 1px 2px rgb(var(--shadow-tint) / 0.06), 0 8px 24px rgb(var(--shadow-tint) / 0.08);
+  /* Фирменный градиент (логотип, кнопки) и «глубокий» — с тёмным пятном посередине, как на заставке. */
+  --grad: linear-gradient(105deg, #9d50f5 0%, #7046ec 40%, #3d63de 72%, #0ea5e9 100%);
+  --grad-deep:
+    radial-gradient(60% 90% at 62% 0%, #1c2a6c 0%, transparent 70%),
+    radial-gradient(55% 80% at 8% 100%, #b45cfa 0%, transparent 70%),
+    linear-gradient(100deg, #5a47e5 0%, #7c4dee 40%, #1b8fd6 80%, #0ea5e9 100%);
+  /* Заголовки и цифры — Nunito Black (раньше — антиква; имя переменной оставлено, чтобы не трогать разметку). */
+  --serif: 'Nunito Variable', 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
 }
 
 @theme inline {
@@ -105,7 +115,7 @@
   --color-warn: var(--warn-bg);
   --radius-card: var(--radius);
   --shadow-card: var(--shadow);
-  --font-sans: 'Manrope Variable', 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-sans: 'Nunito Variable', 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --font-serif: var(--serif);
 }
 
@@ -120,8 +130,8 @@ body {
   min-height: 100dvh;
   background: var(--bg);
   font-family: var(--font-sans);
-  /* Цифры антиквы — «прямые» (лайнинг), как в ценах. */
   font-variant-numeric: lining-nums;
+  font-weight: 500;
   line-height: 1.5;
 }
 a {
@@ -155,10 +165,10 @@ a {
   gap: 0.5rem;
   min-height: 44px;
   padding: 0 1.1rem;
-  border-radius: var(--radius);
-  font-weight: 600;
+  border-radius: 16px;
+  font-weight: 800;
   text-decoration: none;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s, transform 0.15s, box-shadow 0.2s;
   cursor: pointer;
   user-select: none;
 }
@@ -170,8 +180,9 @@ a {
   cursor: default;
 }
 .btn-primary {
-  background: var(--accent);
-  color: var(--accent-text);
+  background: var(--grad);
+  color: #fff;
+  box-shadow: 0 6px 18px rgb(112 70 236 / 0.32);
 }
 .btn-secondary {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -195,7 +206,7 @@ a {
   font-size: 0.95rem;
 }
 .chip[aria-current='page'] {
-  background: var(--accent);
+  background: var(--grad);
   color: var(--accent-text);
 }
 
@@ -245,7 +256,7 @@ a {
   width: 100%;
   min-height: 44px;
   padding: 0.6rem 0.8rem;
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--border);
@@ -371,12 +382,12 @@ a {
 @layer components {
   .listing-card {
     background: var(--card);
-    border-radius: 16px;
-    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 6px 20px rgb(0 0 0 / 0.06);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
     transition: transform 0.2s, box-shadow 0.2s;
   }
   .listing-card:hover {
-    box-shadow: 0 2px 4px rgb(0 0 0 / 0.06), 0 12px 28px rgb(0 0 0 / 0.1);
+    box-shadow: 0 2px 4px rgb(var(--shadow-tint) / 0.08), 0 16px 36px rgb(var(--shadow-tint) / 0.16);
   }
   .trust-badge {
     display: inline-flex;
@@ -511,9 +522,9 @@ a {
 
   /* Промо-блок «Ваше объявление заметят» (страница «Мои объявления») — «чернила и латунь» (DECISIONS №46). */
   .promo-block {
-    position: relative; overflow: hidden; isolation: isolate; padding: 18px; border-radius: 18px; color: #f3ecdf;
-    background: #1e1a16;
-    box-shadow: 0 12px 30px rgba(20, 12, 0, 0.22);
+    position: relative; overflow: hidden; isolation: isolate; padding: 20px; border-radius: 24px; color: #fff;
+    background: var(--grad-deep);
+    box-shadow: 0 14px 34px rgb(80 50 200 / 0.3);
   }
   .promo-aurora { display: none; }
   .promo-aurora i { position: absolute; display: block; border-radius: 50%; }
@@ -521,18 +532,18 @@ a {
   .promo-aurora i:nth-child(2) { width: 45%; height: 60%; right: 6%; top: 20%; background: #0ea5e9; opacity: 0.8; }
   .promo-aurora i:nth-child(3) { width: 45%; height: 55%; left: 35%; bottom: 4%; background: #a855f7; opacity: 0.7; }
   .promo-body { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
-  .promo-title { margin: 0; font-family: var(--serif); font-size: 28px; font-weight: 700; line-height: 1.08; text-wrap: balance; }
+  .promo-title { margin: 0; font-family: var(--serif); font-size: 27px; font-weight: 900; line-height: 1.08; text-wrap: balance; }
   .promo-text { margin: -4px 0 0; font-size: 14px; font-weight: 600; line-height: 1.45; color: rgba(255, 255, 255, 0.85); text-wrap: pretty; max-width: 34rem; }
   .promo-stat { display: flex; flex-direction: column; gap: 2px; }
   .promo-num {
     font-size: 36px; font-weight: 900; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: lining-nums tabular-nums;
-    font-family: var(--serif); font-size: 44px; color: #d6b370;
+    font-family: var(--serif); font-size: 44px; color: #fff;
   }
   .promo-cap { font-size: 13px; font-weight: 700; color: rgba(255, 255, 255, 0.8); }
   .promo-channels { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
   .promo-channels li {
     display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 8px; border-radius: 999px;
-    background: #f3ecdf; color: #1e1a16; font-size: 13px; font-weight: 800; line-height: 1;
+    background: #fff; color: #1b1846; font-size: 13px; font-weight: 800; line-height: 1;
     box-shadow: 0 4px 12px rgba(12, 16, 36, 0.18);
   }
   .promo-channels img { display: block; width: 18px; height: 18px; flex-shrink: 0; }
@@ -541,21 +552,32 @@ a {
     border-top: 1px solid rgba(255, 255, 255, 0.2);
   }
   .promo-club p { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35; color: rgba(255, 255, 255, 0.88); text-wrap: pretty; }
-  .promo-club b { color: #d6b370; font-weight: 800; }
+  .promo-club b { color: #fff; font-weight: 900; }
   .promo-club-tile {
     display: flex; flex-shrink: 0; width: 38px; height: 38px; align-items: center; justify-content: center; border-radius: 12px;
-    background: transparent; border: 1px solid rgba(214, 179, 112, 0.6); color: #d6b370;
+    background: rgba(255, 255, 255, 0.16); border: 1px solid rgba(255, 255, 255, 0.35); color: #fff;
     font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
   }
 }
 
-/* ---------- Концепция «Закрытый клуб»: досье, плашки цензуры, ведомость, печати (DECISIONS №46) ---------- */
+/* ---------- Карточки-досье, плашки цензуры, ведомость, печати (с DECISIONS №46; стиль «Заставка» — №47) ---------- */
 @layer components {
   .serif {
     font-family: var(--serif);
-    font-weight: 700;
+    font-weight: 900;
     font-variant-numeric: lining-nums tabular-nums;
-    letter-spacing: -0.005em;
+    letter-spacing: -0.015em;
+  }
+  /* Текст, залитый фирменным градиентом. */
+  .grad-text {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  :root.theme-dark .grad-text { background-image: linear-gradient(105deg, #c18cff, #8fa2ff 55%, #5cc8ff); }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.theme-light) .grad-text { background-image: linear-gradient(105deg, #c18cff, #8fa2ff 55%, #5cc8ff); }
   }
   .caps {
     font-size: 10.5px;
@@ -576,7 +598,7 @@ a {
     display: inline-block;
     height: 1em;
     vertical-align: -0.15em;
-    border-radius: 2px;
+    border-radius: 6px;
     overflow: hidden;
     background: var(--redact);
   }
@@ -611,7 +633,7 @@ a {
     align-items: center;
     gap: 8px;
     padding: 0 14px;
-    border-radius: 10px 10px 0 0;
+    border-radius: 14px 14px 0 0;
     background: var(--card);
     color: var(--brass);
   }
@@ -621,31 +643,29 @@ a {
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    border-radius: 0 16px 16px 16px;
+    border-radius: 0 22px 22px 22px;
     background: var(--card);
     box-shadow: var(--shadow);
     transition: box-shadow 0.2s;
   }
-  .dossier:hover .dossier-body { box-shadow: 0 1px 0 var(--border), 0 14px 30px rgb(30 20 5 / 0.12); }
+  .dossier:hover .dossier-body { box-shadow: 0 2px 4px rgb(var(--shadow-tint) / 0.08), 0 16px 36px rgb(var(--shadow-tint) / 0.16); }
   .dossier-thumb {
     position: relative;
     width: 104px;
     height: 128px;
     flex-shrink: 0;
     overflow: hidden;
-    border-radius: 6px;
+    border-radius: 18px;
     background: var(--card-2);
-    box-shadow: 0 6px 16px rgb(20 12 0 / 0.22);
-    transform: rotate(-2deg);
+    box-shadow: 0 6px 16px rgb(var(--shadow-tint) / 0.18);
   }
-  li:nth-child(even) .dossier-thumb { transform: rotate(1.5deg); }
   .dossier-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .dossier-thumb .photo-illustr {
     position: absolute;
     inset: auto 4px 4px;
     justify-content: center;
     padding: 2px 4px;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 9px;
     line-height: 1.2;
     text-align: center;
@@ -663,7 +683,7 @@ a {
   .ledger-row { display: flex; align-items: baseline; gap: 8px; }
   .ledger-row dt { color: var(--hint); font-size: 0.92rem; }
   .ledger-row i { flex: 1; min-width: 12px; border-bottom: 1px dotted currentColor; opacity: 0.35; transform: translateY(-4px); }
-  .ledger-row dd { margin: 0; font-family: var(--serif); font-weight: 700; font-size: 1.35rem; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; text-align: right; }
+  .ledger-row dd { margin: 0; font-family: var(--serif); font-weight: 900; font-size: 1.35rem; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; text-align: right; }
 
   /* Печать проверки: «Оценка подтверждена» / «Пройден аудит». */
   .stamp {
@@ -675,8 +695,9 @@ a {
     justify-content: center;
     border-radius: 50%;
     border: 2px solid var(--brass);
-    outline: 1px solid var(--brass);
+    outline: 1px dashed var(--brass);
     outline-offset: -7px;
+    background: color-mix(in srgb, var(--accent) 7%, var(--card));
     color: var(--brass);
     text-align: center;
     font-size: 9px;
@@ -691,28 +712,46 @@ a {
   @keyframes bm-stamp { from { transform: rotate(-8deg) scale(1.6); opacity: 0; } }
 
   /* Лист досье: раздел страницы лота. */
-  .sheet { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
-  .sheet-title { margin: 0 0 10px; font-family: var(--serif); font-weight: 700; font-size: 1.45rem; line-height: 1.15; }
+  .sheet { background: var(--card); border-radius: 24px; box-shadow: var(--shadow); padding: 18px; }
+  .sheet-title { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-family: var(--serif); font-weight: 900; font-size: 1.3rem; line-height: 1.15; letter-spacing: -0.01em; }
 
-  /* Ленты городов — вкладки с подчёркиванием. */
+  /* Лента городов — округлые «пилюли»; выбранный город — в фирменном градиенте. */
   .city-tab {
     display: inline-flex;
-    min-height: 44px;
+    min-height: 42px;
     align-items: center;
-    padding: 0 2px;
-    border-bottom: 2px solid transparent;
-    color: var(--hint);
+    gap: 6px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    color: var(--text);
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 800;
     text-decoration: none;
     white-space: nowrap;
   }
-  .city-tab[aria-current='page'] { color: var(--text); border-bottom-color: var(--brass); }
+  .city-tab-n { color: var(--hint); font-weight: 700; }
+  .city-tab[aria-current='page'] { background: var(--grad); color: #fff; }
+  .city-tab[aria-current='page'] .city-tab-n { color: rgb(255 255 255 / 0.8); }
 
-  /* Тёмный блок «Продаёте бизнес?» — чернила и латунь. */
-  .ink-block { position: relative; overflow: hidden; padding: 20px; border-radius: 18px; background: #1e1a16; color: #f3ecdf; box-shadow: 0 12px 30px rgb(20 12 0 / 0.22); }
-  .ink-block .caps { color: #d6b370; }
+  /* Яркий блок («Продаёте бизнес?») — фон как у заставки. */
+  .ink-block { position: relative; overflow: hidden; isolation: isolate; padding: 20px; border-radius: 24px; background: var(--grad-deep); color: #fff; box-shadow: 0 14px 34px rgb(80 50 200 / 0.3); }
+  .ink-block .caps { color: rgb(255 255 255 / 0.8); }
+
+  /* 3D-иконка (Fluent Emoji 3D, src/components/Icon3D.astro). */
+  .icon3d { display: inline-block; flex-shrink: 0; object-fit: contain; filter: drop-shadow(0 4px 6px rgb(var(--shadow-tint) / 0.18)); }
+  .icon3d-tile {
+    display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center;
+    border-radius: 16px; background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  }
+  .motion-ok .icon3d-float { animation: bm-float 4.5s ease-in-out infinite; }
+  @keyframes bm-float { 50% { transform: translateY(-5px) rotate(-3deg); } }
+
+  /* Логотип: надпись BMarket контурами Nunito Black (src/components/Logo.astro). */
+  .logo-badge { display: inline-flex; align-items: center; border-radius: 12px; background: var(--grad-deep); color: #fff; box-shadow: 0 4px 14px rgb(80 50 200 / 0.28); }
 }
 @media (prefers-reduced-motion: reduce) {
   .redact::after { animation: none; }
+  .icon3d-float { animation: none; }
 }

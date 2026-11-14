@@ -1,4 +1,5 @@
 ---
+import Icon3D from '../../components/Icon3D.astro';
 import Layout from '../../layouts/Layout.astro';
 import Gallery from '../../components/Gallery.tsx';
 import GonePage from '../../components/GonePage.astro';
@@ -160,7 +161,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
           <div class="sheet lg:sticky lg:top-20">
             <p class="caps text-hint">Цена продажи</p>
             {priceStr ? (
-              <p class="serif mt-1 text-[2.6rem] leading-none" data-count={b.priceIls}>{priceStr}</p>
+              <p class="serif grad-text mt-1 text-[2.5rem] leading-none" data-count={b.priceIls}>{priceStr}</p>
             ) : (
               <p class="serif mt-1 text-2xl">Цена по запросу</p>
             )}
@@ -195,7 +196,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
 
         <div class="flex flex-col gap-4 lg:col-start-1">
           <button type="button" class="sheet press flex w-full flex-col gap-2.5 text-left" data-scramble-group aria-describedby="secret-note">
-            <span class="caps text-brass">Под грифом</span>
+            <span class="flex items-center gap-2"><Icon3D name="locked-with-key" size={30} /><span class="caps text-brass">Под грифом</span></span>
             <span class="flex items-center gap-3 text-sm"><span class="w-20 shrink-0 text-hint">Название</span><span class="redact" style="width: 9.5rem" aria-hidden="true"></span></span>
             <span class="flex items-center gap-3 text-sm"><span class="w-20 shrink-0 text-hint">Адрес</span><span>ул. <span class="redact" style="width: 5rem" aria-hidden="true"></span>{b.cityName && <>, {b.cityName}</>}</span></span>
             <span class="flex items-center gap-3 text-sm"><span class="w-20 shrink-0 text-hint">Продавец</span><span class="redact" style="width: 7.5rem" aria-hidden="true"></span></span>
@@ -205,7 +206,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
 
           {kpis.length > 0 && (
             <section aria-label="Ключевые показатели" class="sheet">
-              <h2 class="sheet-title">Цифры</h2>
+              <h2 class="sheet-title"><Icon3D name="chart-increasing" size={30} />Цифры</h2>
               <dl class="ledger">
                 {kpis.map((k) => (
                   <div class="ledger-row">
@@ -219,16 +220,16 @@ const jsonLd = res.kind === 'ok' && !preview ? [
           )}
 
           <section class="sheet">
-            <h2 class="sheet-title">Описание</h2>
+            <h2 class="sheet-title"><Icon3D name="memo" size={30} />Описание</h2>
             <div class="prose-md" set:html={descriptionHtml} />
           </section>
 
           {included.length > 0 && (
             <section class="sheet">
-              <h2 class="sheet-title">Что входит в продажу</h2>
+              <h2 class="sheet-title"><Icon3D name="package" size={30} />Что входит в продажу</h2>
               <ul class="grid gap-2 sm:grid-cols-2">
                 {included.map((i) => (
-                  <li class="flex items-start gap-2.5"><span class="font-bold text-brass" aria-hidden="true">✓</span>{i}</li>
+                  <li class="flex items-start gap-2.5"><span class="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white" style="background:var(--grad)" aria-hidden="true">✓</span>{i}</li>
                 ))}
               </ul>
             </section>
@@ -236,7 +237,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
 
           {specs.length > 0 && (
             <section class="sheet">
-              <h2 class="sheet-title">Характеристики</h2>
+              <h2 class="sheet-title"><Icon3D name="clipboard" size={30} />Характеристики</h2>
               <dl class="divide-y divide-line">
                 {specs.map(([k, v]) => (
                   <div class="flex justify-between gap-4 py-2.5">
@@ -250,7 +251,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
 
           {b.reasonForSale && (
             <section class="sheet">
-              <h2 class="sheet-title">Причина продажи</h2>
+              <h2 class="sheet-title"><Icon3D name="speech-balloon" size={30} />Причина продажи</h2>
               <p class="whitespace-pre-line">{b.reasonForSale}</p>
             </section>
           )}

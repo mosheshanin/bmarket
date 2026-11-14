@@ -4,6 +4,7 @@ import CityRibbon from '../components/CityRibbon.astro';
 import ListingGrid from '../components/ListingGrid.astro';
 import SubscribeBlock from '../components/SubscribeBlock.astro';
 import SellBlock from '../components/SellBlock.astro';
+import Icon3D from '../components/Icon3D.astro';
 import { citiesWithListings, getDisplayRate, listPublished, imageUrl } from '../server/public';
 import { db, env, site } from '../server/site';
 import { fromPrice } from '../lib/promo';
@@ -34,7 +35,7 @@ const org = {
   '@id': `${s.url}/#organization`,
   name: s.name,
   url: s.url + '/',
-  logo: `${s.url}/favicon.svg`,
+  logo: `${s.url}/icon-512.png`,
   parentOrganization: { '@type': 'Organization', name: 'HaifaBusinessClub', url: 'https://haifa.business' },
   ...(s.botLink ? { sameAs: [s.botLink] } : {}),
 };
@@ -44,17 +45,17 @@ const from = fromPrice(prices.length ? Math.min(...prices) : null);
 ---
 
 <Layout title={title} description={description} canonicalPath="/" jsonLd={[website, org]} ogImage={firstCover ? new URL(imageUrl(env, firstCover.r2Key), s.url).href : null} data={{ page: 'home' }}>
-  <!-- Шапка каталога в стиле «Закрытый клуб» (DECISIONS №46). -->
+  <!-- Шапка каталога в стиле заставки мини-приложения (DECISIONS №47): градиентный заголовок, плитки с 3D-иконками. -->
   <header class="mb-5 pt-1">
     <p class="caps text-brass">HaifaBusinessClub · каталог</p>
-    <h1 class="serif mt-2 text-[2.35rem] leading-[1.02] sm:text-5xl">Готовый бизнес на продажу в&nbsp;Израиле</h1>
-    <p class="mt-2.5 max-w-xl text-[0.95rem] leading-relaxed text-hint">Цифры — сразу. Название и адрес — только после заявки, через менеджера клуба.</p>
+    <h1 class="serif mt-2 text-[2.2rem] leading-[1.05] sm:text-5xl">Готовый бизнес на&nbsp;продажу <span class="grad-text">в&nbsp;Израиле</span></h1>
+    <p class="mt-2.5 max-w-xl text-[0.95rem] font-semibold leading-relaxed text-hint">Цифры — сразу. Название и адрес — только после заявки, через менеджера клуба.</p>
     {
       items.length > 0 && (
-        <div class="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-1 border-y border-line py-3">
-          <div class="flex items-baseline gap-1.5"><span class="serif text-3xl" data-count={items.length}>{items.length}</span><span class="text-sm text-hint">досье</span></div>
-          <div class="flex items-baseline gap-1.5"><span class="serif text-3xl" data-count={cityList.length}>{cityList.length}</span><span class="text-sm text-hint">{plural(cityList.length, ['город', 'города', 'городов'])}</span></div>
-          <div class="flex items-baseline gap-1.5"><span class="text-sm text-hint">от</span><span class="serif text-3xl">₪&nbsp;{groupDigits(from)}</span></div>
+        <div class="mt-4 grid grid-cols-3 gap-2 sm:max-w-xl sm:gap-3">
+          <div class="card flex flex-col items-start gap-1 p-3"><Icon3D name="briefcase" size={30} /><span class="serif text-2xl leading-none" data-count={items.length}>{items.length}</span><span class="text-xs font-bold text-hint">{plural(items.length, ['бизнес', 'бизнеса', 'бизнесов'])}</span></div>
+          <div class="card flex flex-col items-start gap-1 p-3"><Icon3D name="cityscape" size={30} /><span class="serif text-2xl leading-none" data-count={cityList.length}>{cityList.length}</span><span class="text-xs font-bold text-hint">{plural(cityList.length, ['город', 'города', 'городов'])}</span></div>
+          <div class="card flex flex-col items-start gap-1 p-3"><Icon3D name="label" size={30} /><span class="serif whitespace-nowrap text-[1.05rem] leading-[1.6rem] min-[360px]:text-[1.15rem] sm:text-2xl">₪&nbsp;{groupDigits(from)}</span><span class="text-xs font-bold text-hint">цена от</span></div>
         </div>
       )
     }
@@ -74,6 +75,7 @@ const from = fromPrice(prices.length ? Math.min(...prices) : null);
       </>
     ) : (
       <div class="card flex flex-col items-center gap-3 p-8 text-center">
+        <Icon3D name="convenience-store" size={72} float />
         <p class="text-lg font-semibold">Скоро здесь появятся новые предложения</p>
         <p class="text-hint">Подпишитесь, чтобы узнать о них первыми.</p>
         <div class="flex w-full max-w-md flex-col gap-3 text-left">

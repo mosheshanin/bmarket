@@ -2,14 +2,12 @@
 import '../styles/global.css';
 import { site } from '../server/site';
 import Splash from '../components/Splash.astro';
-// Шрифты концепции «Закрытый клуб»: Manrope (текст) и Cormorant Garamond 700 (заголовки, цифры).
-// Кириллица подгружается заранее, латиница — когда встретится на странице.
-import manropeCyrillic from '@fontsource-variable/manrope/files/manrope-cyrillic-wght-normal.woff2?url';
-import manropeLatin from '@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2?url';
-import serifCyrillic from '@fontsource/cormorant-garamond/files/cormorant-garamond-cyrillic-700-normal.woff2?url';
-import serifLatin from '@fontsource/cormorant-garamond/files/cormorant-garamond-latin-700-normal.woff2?url';
-// Для заставки (латинские BMarket, HaifaBusinessClub) латиница тоже нужна сразу.
-const splashFonts = [serifLatin, manropeLatin];
+import Logo from '../components/Logo.astro';
+// Шрифт стиля «Заставка» (DECISIONS №47) — Nunito, вариативный. Кириллица подгружается заранее,
+// латиница — когда встретится на странице (для заставки — сразу: «HaifaBusinessClub»).
+import nunitoCyrillic from '@fontsource-variable/nunito/files/nunito-cyrillic-wght-normal.woff2?url';
+import nunitoLatin from '@fontsource-variable/nunito/files/nunito-latin-wght-normal.woff2?url';
+const splashFonts = [nunitoLatin];
 
 interface Props {
   title: string;
@@ -48,8 +46,8 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {canonical && <link rel="canonical" href={canonical} />}
     {noindex && <meta name="robots" content="noindex, follow" />}
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#efe9de" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#13110e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f3f2fc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e0d24" media="(prefers-color-scheme: dark)" />
     <meta property="og:site_name" content={s.name} />
     <meta property="og:locale" content="ru_RU" />
     <meta property="og:type" content={ogType} />
@@ -60,8 +58,8 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
     {ogImage && <meta property="og:image:alt" content={ogImageAlt || title} />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href={manropeCyrillic} as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href={serifCyrillic} as="font" type="font/woff2" crossorigin />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="preload" href={nunitoCyrillic} as="font" type="font/woff2" crossorigin />
     {ldJson.map((j) => <script type="application/ld+json" set:html={j} />)}
     <!-- Внутри Telegram: пометить документ и подключить SDK мини-приложения (в браузере не грузится). -->
     <script is:inline define:vars={{ splashFonts }}>
@@ -71,6 +69,29 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
           // Анимации — только если не включено «уменьшение движения».
           if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) root.classList.add('motion-ok');
           var tg = /tgWebApp/.test(location.hash + location.search) || sessionStorage.getItem('bm_tg') === '1';
+          var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+          var url = location.search + location.hash;
+          // Заставка — один раз за сессию (вкладка браузера или открытие мини-приложения): с 14.11.2026 и на сайте
+          // (DECISIONS №47). Не в админке, не при «уменьшении движения», не для поисковых роботов и автотестов
+          // (посмотреть в браузере — ?splash=1). Если сейчас будет переход по прямой ссылке (?startapp=lot-…),
+          // заставку покажет страница, на которую ведёт ссылка.
+          var forced = /[?&]splash=1(&|$)/.test(location.search);
+          var robot = navigator.webdriver || /bot|crawl|spider|slurp|lighthouse|headless|preview/i.test(navigator.userAgent);
+          var willRedirect = tg && /tgWebAppStartParam=((lot|lead|biz|sell)-\d+|sell)(&|$)/.test(url) && !sessionStorage.getItem('bm_sp');
+          var wantSplash = forced || (!willRedirect && !calm && !robot && !sessionStorage.getItem('bm_splash') && location.pathname.indexOf('/admin') !== 0);
+          if (wantSplash) {
+            sessionStorage.setItem('bm_splash', '1');
+            root.classList.add('splash-on');
+            splashFonts.forEach(function (href) {
+              var l = document.createElement('link');
+              l.rel = 'preload';
+              l.as = 'font';
+              l.type = 'font/woff2';
+              l.crossOrigin = 'anonymous';
+              l.href = href;
+              document.head.appendChild(l);
+            });
+          }
           if (!tg) return;
           sessionStorage.setItem('bm_tg', '1');
           root.classList.add('tg');
@@ -91,25 +112,6 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
             root.classList.add('theme-' + scheme);
             sessionStorage.setItem('bm_scheme', scheme);
           }
-          // Заставка — один раз на открытие мини-приложения (сессия Telegram WebView),
-          // не в админке, не при «уменьшении движения». Если сейчас будет переход по прямой
-          // ссылке (?startapp=lot-…), заставку покажет страница, на которую ведёт ссылка.
-          var url = location.search + location.hash;
-          var willRedirect = /tgWebAppStartParam=((lot|lead|biz|sell)-\d+|sell)(&|$)/.test(url) && !sessionStorage.getItem('bm_sp');
-          var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-          if (!willRedirect && !calm && !sessionStorage.getItem('bm_splash') && location.pathname.indexOf('/admin') !== 0) {
-            sessionStorage.setItem('bm_splash', '1');
-            document.documentElement.classList.add('splash-on');
-            splashFonts.forEach(function (href) {
-              var l = document.createElement('link');
-              l.rel = 'preload';
-              l.as = 'font';
-              l.type = 'font/woff2';
-              l.crossOrigin = 'anonymous';
-              l.href = href;
-              document.head.appendChild(l);
-            });
-          }
           var s = document.createElement('script');
           s.src = 'https://telegram.org/js/telegram-web-app.js?59';
           s.async = false;
@@ -129,12 +131,12 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
       !bare && (
         <header class="web-only sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur">
           <div class="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-3 px-4">
-            <a href="/" class="flex items-baseline gap-2.5 text-text no-underline">
-              <span class="serif text-[1.6rem] leading-none">{s.name}</span>
-              <span class="caps hidden text-brass sm:inline">HaifaBusinessClub</span>
+            <a href="/" class="flex items-center gap-3 text-text no-underline" aria-label={`${s.name} — на главную`}>
+              <Logo badge height={18} />
+              <span class="caps hidden text-hint sm:inline">by HaifaBusinessClub</span>
             </a>
             {s.miniAppLink && (
-              <a href={s.miniAppLink} class="btn btn-secondary !min-h-[40px] text-sm" rel="noopener">
+              <a href={s.miniAppLink} class="btn btn-secondary !min-h-[40px] whitespace-nowrap !px-3.5 text-sm" rel="noopener">
                 Открыть в Telegram
               </a>
             )}
@@ -142,7 +144,7 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
         </header>
       )
     }
-    <a id="admin-link" href="/admin" class="fixed bottom-[calc(env(safe-area-inset-bottom)+12px)] right-3 z-40 items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-accent-text shadow-card no-underline" style="display:none">
+    <a id="admin-link" href="/admin" class="fixed bottom-[calc(env(safe-area-inset-bottom)+12px)] right-3 z-40 items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-extrabold text-white shadow-card no-underline" style="display:none;background:var(--grad)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
       Админ-панель
     </a>

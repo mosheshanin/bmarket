@@ -83,8 +83,8 @@ async function initTelegram() {
   if (!wa) return;
   wa.ready();
   wa.expand();
-  // Палитра «Закрытый клуб» — светлая или тёмная, как в Telegram; шапка, фон и нижняя панель Telegram —
-  // в цвет страницы, чтобы не было «шва» (DECISIONS №46).
+  // Палитра стиля «Заставка» — светлая или тёмная, как в Telegram; шапка, фон и нижняя панель Telegram —
+  // в цвет страницы, чтобы не было «шва» (DECISIONS №46, №47).
   const root = document.documentElement;
   const applyScheme = () => {
     const dark = wa.colorScheme === 'dark';
@@ -96,7 +96,7 @@ async function initTelegram() {
   const themeColors = () => {
     try {
       const css = getComputedStyle(root);
-      const bg = css.getPropertyValue('--bg').trim() || (wa.colorScheme === 'dark' ? '#13110e' : '#efe9de');
+      const bg = css.getPropertyValue('--bg').trim() || (wa.colorScheme === 'dark' ? '#0e0d24' : '#f3f2fc');
       const card = css.getPropertyValue('--card').trim() || bg;
       wa.setHeaderColor(bg);
       wa.setBackgroundColor(bg);
@@ -105,7 +105,7 @@ async function initTelegram() {
       /* старые клиенты */
     }
   };
-  // Нижняя кнопка Telegram — латунная, как кнопки сайта (на всех страницах, где она показывается).
+  // Нижняя кнопка Telegram — фирменного фиолетового цвета, как кнопки сайта (на всех страницах, где она показывается).
   const buttonColors = () => {
     try {
       const css = getComputedStyle(root);
@@ -124,13 +124,13 @@ async function initTelegram() {
   });
   if (document.documentElement.classList.contains('splash-on')) {
     // Заставка — во весь экран: на телефонах полноэкранный режим Telegram (Bot API 8.0+),
-    // иначе шапка и нижняя панель Telegram окрашиваются в чернильный цвет заставки.
+    // иначе шапка и нижняя панель Telegram окрашиваются в цвета краёв градиента заставки.
     const mobile = wa.platform === 'ios' || wa.platform === 'android';
     let fullscreen = false;
     try {
-      wa.setHeaderColor('#13110E');
-      wa.setBackgroundColor('#13110E');
-      if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('#13110E');
+      wa.setHeaderColor('#5A47E5');
+      wa.setBackgroundColor('#5A47E5');
+      if (wa.isVersionAtLeast('7.10')) wa.setBottomBarColor?.('#0EA5E9');
       if (mobile && wa.isVersionAtLeast('8.0') && wa.requestFullscreen && !wa.isFullscreen) {
         wa.requestFullscreen();
         fullscreen = true;

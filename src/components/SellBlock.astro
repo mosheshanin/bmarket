@@ -1,13 +1,15 @@
 ---
 // Вход для продавцов: в Telegram — форма «Мои объявления», в браузере /sell предложит открыть Telegram.
-// Оформление — «чернила и латунь» концепции «Закрытый клуб» (DECISIONS №46), заметно в ленте в обеих темах.
+// Оформление — градиент заставки и 3D-рукопожатие (DECISIONS №47), заметно в ленте в обеих темах.
+import Icon3D from './Icon3D.astro';
 ---
 
 <section class="ink-block">
   <div class="relative flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+    <Icon3D name="handshake" size={84} float class="sell-icon" />
     <div class="min-w-0 sm:flex-1">
-      <p class="caps">Для владельцев</p>
-      <p class="sell-title">Продаёте бизнес?</p>
+      <p class="caps pr-20 sm:pr-0">Для владельцев</p>
+      <p class="sell-title pr-20 sm:pr-0">Продаёте бизнес?</p>
       <p class="sell-text">Разместите объявление сами: черновик сохраняется автоматически, название и адрес покупатели не увидят.</p>
     </div>
     <a href="/sell" class="sell-btn press" data-haptic>
@@ -18,8 +20,10 @@
 </section>
 
 <style>
-  .sell-title { margin: 6px 0 0; font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1.05; }
-  .sell-text { margin: 8px 0 0; font-size: 14px; font-weight: 500; line-height: 1.45; color: rgba(243, 236, 223, 0.78); }
+  .sell-title { margin: 6px 0 0; font-family: var(--serif); font-size: 28px; font-weight: 900; line-height: 1.05; letter-spacing: -0.01em; }
+  .sell-text { margin: 8px 0 0; font-size: 14px; font-weight: 600; line-height: 1.45; color: rgba(255, 255, 255, 0.86); }
+  :global(.sell-icon) { position: absolute; right: -6px; top: -10px; opacity: 0.95; }
+  @media (min-width: 640px) { :global(.sell-icon) { position: static; } }
   .sell-btn {
     display: inline-flex;
     flex-shrink: 0;
@@ -28,10 +32,11 @@
     gap: 8px;
     min-height: 48px;
     padding: 0 20px;
-    border-radius: 12px;
-    background: #d6b370;
-    color: #1a1307;
-    font-weight: 800;
+    border-radius: 16px;
+    background: #fff;
+    color: #4b2fc9;
+    font-weight: 900;
+    box-shadow: 0 8px 20px rgba(20, 10, 80, 0.25);
     font-size: 15px;
     text-decoration: none;
   }

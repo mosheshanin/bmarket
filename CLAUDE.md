@@ -15,8 +15,9 @@
 
 ## Стек
 Astro 7 (SSR) + `@astrojs/vercel` → Vercel Functions (Node.js, регион fra1, Hobby). React-острова (админка, форма заявки, галерея).
-Tailwind 4, своя палитра «Закрытый клуб» (светлая/тёмная, в Telegram — по colorScheme), шрифты Manrope + Cormorant Garamond (`@fontsource`), DECISIONS №46.
-Движение — `src/scripts/motion.ts` (без библиотек), заставка ≈3 с — `src/components/Splash.astro`.
+Tailwind 4, палитра в стиле заставки мини-приложения: фиолетовый → тёмно-синий → голубой (светлая/тёмная, в Telegram — по colorScheme), шрифт Nunito (`@fontsource-variable/nunito`), DECISIONS №47 (до 14.11.2026 — «Закрытый клуб», №46).
+Логотип — `src/components/Logo.astro` / `public/logo.svg`; 3D-иконки Fluent Emoji (MIT) — `src/components/Icon3D.astro` / `public/icons3d/` (docs/BRAND-ASSETS.md).
+Движение — `src/scripts/motion.ts` (без библиотек), заставка ≈3 с (сайт и мини-приложение, раз за сессию) — `src/components/Splash.astro`.
 Supabase: Postgres 17 + Drizzle ORM (`postgres.js` через пулер 6543), фото — Supabase Storage (бакет `photos`, `src/server/storage.ts`).
 Задачи по расписанию — Supabase pg_cron → `/api/cron/minute` и `/api/cron/daily` (`src/server/jobs.ts`).
 grammY для бота. Zod для входных данных. Аналитика — Cloudflare Web Analytics (скрипт в `Layout.astro`, токен `CF_ANALYTICS_TOKEN`).
@@ -41,6 +42,7 @@ seed/                    dictionaries.sql, test-lots.sql + photos — локал
 scripts/                 local-pg.sh, db-migrate.mjs, serve-local.mjs (локальный запуск как на Vercel), migrate-from-d1.py (перенос с D1),
                          генераторы импорта (import-*-2026-10.mjs), демо-SQL, setup-bot
 public/brands/           значки Facebook/Google/Яндекса для промо-блока продавца (источники — docs/BRAND-ASSETS.md)
+public/icons3d/          3D-иконки Fluent Emoji (MIT); public/logo.svg, favicon.svg, icon-512.png — логотип
 tests/                   vitest (юнит) и tests/e2e/smoke.mjs (сквозной на локальной сборке + Postgres), screens.mjs (скриншоты)
 ```
 

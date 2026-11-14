@@ -71,7 +71,9 @@ check('заголовок главной по шаблону', /<title>Гото�
 check('html lang=ru', home.text.includes('<html lang="ru"'));
 check('канонический адрес', /<link rel="canonical" href="[^"]+\/"/.test(home.text));
 check('schema.org Organization', home.text.includes('"@type":"Organization"'));
-check('лента городов: только с лотами', home.text.includes('Хайфа · 1') && !home.text.includes('Ашдод ·') && !home.text.includes('Нетания ·'));
+// Лента городов: «Хайфа <span class="city-tab-n">1</span>» (с 14.11.2026, DECISIONS №47; раньше «Хайфа · 1»).
+const cityTab = (name) => new RegExp(`${name} <span class="city-tab-n"[^>]*>\\d+<`);
+check('лента городов: только с лотами', /Хайфа <span class="city-tab-n"[^>]*>1</.test(home.text) && !cityTab('Ашдод').test(home.text) && !cityTab('Нетания').test(home.text));
 check('закреплённый лот первым', home.text.indexOf('Кофейня с террасой') < home.text.indexOf('Барбершоп'));
 check('метка «Новое» у свежего лота', home.text.includes('>Новое<'));
 check('цена в USD в списке', /≈ \$\d/.test(home.text));

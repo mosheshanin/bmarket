@@ -1,0 +1,33 @@
+---
+/**
+ * 3D-иконка из набора Microsoft Fluent Emoji 3D (MIT; файлы — public/icons3d/, источник — docs/BRAND-ASSETS.md).
+ * Декоративная: alt пустой, смысл несёт текст рядом. tile — на мягкой плашке; float — лёгкое покачивание.
+ */
+export type Icon3DName =
+  | 'bell' | 'briefcase' | 'chart-increasing' | 'check-mark-button' | 'cityscape' | 'clipboard' | 'convenience-store'
+  | 'file-folder' | 'gem-stone' | 'handshake' | 'hourglass-not-done' | 'key' | 'label' | 'locked-with-key'
+  | 'magnifying-glass-tilted-left' | 'megaphone' | 'memo' | 'money-bag' | 'office-building' | 'package' | 'rocket'
+  | 'shield' | 'sparkles' | 'speech-balloon';
+interface Props {
+  name: Icon3DName;
+  size?: number;
+  tile?: boolean;
+  float?: boolean;
+  class?: string;
+}
+const { name, size = 28, tile = false, float = false, class: cls } = Astro.props;
+const src = `/icons3d/${name}.webp`;
+const imgClass = ['icon3d', float && 'icon3d-float', !tile && cls];
+const imgStyle = `width:${size}px;height:${size}px`;
+const pad = Math.round(size * 0.32);
+---
+
+{
+  tile ? (
+    <span class:list={['icon3d-tile', cls]} style={`width:${size + pad * 2}px;height:${size + pad * 2}px`} aria-hidden="true">
+      <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" class:list={imgClass} style={imgStyle} />
+    </span>
+  ) : (
+    <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" class:list={imgClass} style={imgStyle} />
+  )
+}

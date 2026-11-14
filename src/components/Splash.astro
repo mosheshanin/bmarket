@@ -1,18 +1,18 @@
 ---
 /**
- * Заставка при открытии мини-приложения — ≈3 с (с 12.11.2026, DECISIONS №46; раньше — «аврора», ≈21,5 с).
- * Стиль «Закрытый клуб»: чернильный фон, латунная подпись, антиква. Одна сцена:
- * «HaifaBusinessClub представляет» → BMarket → число досье и цена «от» → латунная линия.
+ * Заставка при открытии — ≈3 с, стиль «Заставка мини-приложения» (DECISIONS №47; до 14.11.2026 — «Закрытый клуб», №46).
+ * Живой градиент фиолетовый → тёмно-синий → голубой (как логотип), размытые пятна, 3D-иконки.
+ * «HaifaBusinessClub представляет» → логотип BMarket → число бизнесов и цена «от» → подпись.
  * Уход — круглый вырез из центра (0,7 с), «Пропустить» — сразу (0,45 с).
- * Показывается только внутри Telegram и только на первой странице открытия (решение — в <head>, класс .splash-on),
- * не показывается в админ-панели и при «уменьшении движения».
+ * С 14.11.2026 показывается и на сайте, и в Telegram — один раз за сессию (решение — в <head> Layout.astro, класс .splash-on);
+ * не в админ-панели, не при «уменьшении движения», не для роботов и автотестов (принудительно — ?splash=1).
  */
 import { catalogSummary } from '../server/public';
-import { db, site } from '../server/site';
-import { groupDigits } from '../lib/format';
+import { db } from '../server/site';
+import { groupDigits, plural } from '../lib/format';
 import { fromPrice } from '../lib/promo';
+import { WORDMARK_D, WORDMARK_VIEWBOX } from '../lib/logo-path';
 
-const s = site();
 let count = 0;
 let minPrice: number | null = null;
 try {
@@ -23,18 +23,29 @@ try {
   /* заставка не должна ломать страницу */
 }
 const from = fromPrice(minPrice);
+const icons = [
+  { n: 'briefcase', x: '12%', y: '16%', s: 64, r: -12, d: 0.35 },
+  { n: 'money-bag', x: '78%', y: '20%', s: 72, r: 10, d: 0.5 },
+  { n: 'key', x: '16%', y: '74%', s: 60, r: 18, d: 0.65 },
+  { n: 'chart-increasing', x: '76%', y: '72%', s: 64, r: -8, d: 0.8 },
+];
 ---
 
 <div id="bm-splash" class="bm-splash">
+  <div class="sp-bg" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
   <div class="sp-ring" aria-hidden="true"></div>
+  <div class="sp-icons" aria-hidden="true">
+    {icons.map((i) => (
+      <img src={`/icons3d/${i.n}.webp`} alt="" width={i.s} height={i.s} decoding="async" style={`left:${i.x};top:${i.y};--r:${i.r}deg;--d:${i.d}s;width:${i.s}px;height:${i.s}px`} />
+    ))}
+  </div>
   <section class="sp-sc" aria-hidden="true">
     <p class="sp-club sp-in" style="--d:0.05s">HaifaBusinessClub представляет</p>
-    <p class="sp-brand sp-in" style="--d:0.25s">{s.name}</p>
-    <i class="sp-rule" style="--d:0.7s"></i>
-    <p class="sp-lead sp-in" style="--d:0.85s">
-      {count ? <><b>{count}</b> досье · </> : null}от ₪&nbsp;{groupDigits(from)}
+    <svg class="sp-logo" viewBox={WORDMARK_VIEWBOX} role="img" aria-label="BMarket"><path fill="#fff" d={WORDMARK_D} /></svg>
+    <p class="sp-lead sp-in" style="--d:0.9s">
+      {count ? <><b>{count}</b> {plural(count, ['бизнес', 'бизнеса', 'бизнесов'])} · </> : null}от ₪&nbsp;{groupDigits(from)}
     </p>
-    <p class="sp-note sp-in" style="--d:1.15s">Цифры — сразу. Название и адрес — после заявки.</p>
+    <p class="sp-note sp-in" style="--d:1.15s">Покупка и продажа бизнеса в Израиле</p>
   </section>
   <button type="button" class="sp-skip" id="bm-splash-skip">Пропустить</button>
 </div>
@@ -70,8 +81,9 @@ const from = fromPrice(minPrice);
     }
     window.__bmSplashDone = false;
     document.getElementById('bm-splash-skip').addEventListener('click', function () { reveal(450); });
-    // Раскрытие начинается в 2,3 с и длится 0,7 с — всего ≈3 с.
-    setTimeout(function () { reveal(700); }, 2300);
+    // Раскрытие начинается в 2,4 с и длится 0,7 с — всего ≈3 с. На сайте — ещё и по нажатию в любом месте.
+    el.addEventListener('click', function (e) { if (e.target === el || !root.classList.contains('tg')) reveal(450); });
+    setTimeout(function () { reveal(700); }, 2400);
   })();
 </script>
 
@@ -85,10 +97,31 @@ const from = fromPrice(minPrice);
     inset: 0;
     z-index: 100;
     overflow: hidden;
-    background: radial-gradient(120% 80% at 50% 35%, #221d17 0%, #13110e 70%);
-    color: #f3ecdf;
+    background: linear-gradient(160deg, #5a47e5 0%, #7c4dee 35%, #2a3a95 62%, #0ea5e9 100%);
+    color: #fff;
     font-family: var(--font-sans);
   }
+  /* Живой градиент: размытые пятна медленно плывут (как на заставке мини-приложения). */
+  .sp-bg { position: absolute; inset: -20%; filter: blur(60px); }
+  .sp-bg i { position: absolute; display: block; border-radius: 50%; animation: sp-drift 6s ease-in-out infinite alternate; }
+  .sp-bg i:nth-child(1) { width: 60vmax; height: 60vmax; left: -10%; bottom: 0; background: #b45cfa; }
+  .sp-bg i:nth-child(2) { width: 45vmax; height: 45vmax; left: 40%; top: 18%; background: #1c2a6c; opacity: 0.85; animation-duration: 7s; }
+  .sp-bg i:nth-child(3) { width: 55vmax; height: 55vmax; right: -15%; bottom: -5%; background: #0ea5e9; animation-duration: 5s; }
+  .sp-bg i:nth-child(4) { width: 40vmax; height: 40vmax; left: 0; top: 0; background: #5145e2; opacity: 0.9; animation-duration: 8s; }
+  @keyframes sp-drift { to { transform: translate(6%, -5%) scale(1.12); } }
+
+  .sp-icons img {
+    position: absolute;
+    translate: -50% -50%;
+    opacity: 0;
+    filter: drop-shadow(0 12px 18px rgba(20, 10, 80, 0.35));
+    animation: sp-pop 0.9s cubic-bezier(0.3, 1.5, 0.5, 1) var(--d) both, sp-bob 3s ease-in-out calc(var(--d) + 0.9s) infinite alternate;
+  }
+  @keyframes sp-pop { from { opacity: 0; transform: scale(0.3) rotate(0deg); } to { opacity: 1; transform: scale(1) rotate(var(--r)); } }
+  @keyframes sp-bob { from { opacity: 1; transform: rotate(var(--r)); } to { opacity: 1; transform: translateY(-10px) rotate(calc(var(--r) * -0.4)); } }
+  @media (max-width: 480px) { .sp-icons img { scale: 0.8; } }
+  @media (min-width: 900px) { .sp-icons img { scale: 1.5; } }
+
   .sp-sc {
     position: absolute;
     inset: 0;
@@ -96,24 +129,36 @@ const from = fromPrice(minPrice);
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0 28px;
+    padding: 0 24px;
     text-align: center;
   }
   .sp-in { opacity: 0; animation: sp-rise 0.9s var(--sp-ease) var(--d, 0s) both; }
-  .sp-club { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #d6b370; }
-  .sp-brand { margin: 14px 0 0; font-family: var(--serif); font-size: clamp(64px, 21vw, 104px); font-weight: 700; line-height: 0.9; letter-spacing: -0.01em; }
-  .sp-rule {
+  .sp-club { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255, 255, 255, 0.82); }
+  .sp-logo {
     display: block;
-    width: 120px;
-    height: 1px;
-    margin: 22px 0 0;
-    background: #d6b370;
-    transform-origin: center;
-    animation: sp-draw 0.7s var(--sp-ease) var(--d, 0s) both;
+    width: min(78vw, 460px);
+    height: auto;
+    margin: 18px 0 0;
+    overflow: visible;
+    filter: drop-shadow(0 10px 30px rgba(20, 10, 90, 0.35));
+    animation: sp-logo 1.1s cubic-bezier(0.2, 1.3, 0.4, 1) 0.2s both;
   }
-  .sp-lead { margin: 18px 0 0; font-family: var(--serif); font-size: 26px; font-weight: 700; line-height: 1.2; }
-  .sp-lead b { color: #d6b370; }
-  .sp-note { margin: 10px 0 0; font-size: 14px; font-weight: 500; color: rgba(243, 236, 223, 0.7); }
+  @keyframes sp-logo { from { opacity: 0; transform: scale(0.82); filter: blur(12px); } }
+  .sp-lead {
+    margin: 26px 0 0;
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.2;
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .sp-lead b { font-weight: 1000; }
+  .sp-note { margin: 12px 0 0; font-size: 15px; font-weight: 700; color: rgba(255, 255, 255, 0.85); }
 
   .sp-skip {
     position: absolute;
@@ -123,11 +168,11 @@ const from = fromPrice(minPrice);
     transform: translateX(-50%);
     min-height: 46px;
     padding: 0 24px;
-    border: 1px solid rgba(214, 179, 112, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 999px;
-    background: transparent;
-    color: #f3ecdf;
-    font: 700 15px var(--font-sans);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font: 800 15px var(--font-sans);
     cursor: pointer;
   }
 
@@ -139,7 +184,7 @@ const from = fromPrice(minPrice);
     animation: sp-hole var(--sp-reveal-t, 0.7s) cubic-bezier(0.7, 0, 0.25, 1) forwards;
     pointer-events: none;
   }
-  /* Латунная кромка выреза. */
+  /* Светящаяся кромка выреза. */
   .sp-ring { display: none; }
   .sp-reveal .sp-ring {
     display: block;
@@ -151,7 +196,7 @@ const from = fromPrice(minPrice);
     height: calc(var(--sp-hole) * 2);
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    box-shadow: 0 0 0 1.5px rgba(214, 179, 112, 0.8);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85), 0 0 24px 6px rgba(140, 200, 255, 0.55);
     pointer-events: none;
   }
   .sp-reveal .sp-skip { opacity: 0; transition: opacity 0.2s; }
@@ -159,6 +204,5 @@ const from = fromPrice(minPrice);
   .sp-fade .sp-ring { display: none; }
   @keyframes sp-hole { from { --sp-hole: 0px; } to { --sp-hole: 72vmax; } }
   @keyframes sp-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-  @keyframes sp-draw { from { transform: scaleX(0); } }
   @keyframes sp-exit { to { opacity: 0; transform: scale(1.04); visibility: hidden; } }
 </style>

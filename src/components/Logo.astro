@@ -1,0 +1,39 @@
+---
+/**
+ * Логотип BMarket: надпись контурами Nunito Black (как на заставке мини-приложения), DECISIONS №47.
+ * badge — белая надпись на фирменном градиенте; без badge — надпись цветом currentColor (или градиентом при gradient).
+ */
+import { WORDMARK_D, WORDMARK_VIEWBOX } from '../lib/logo-path';
+interface Props {
+  height?: number;
+  badge?: boolean;
+  gradient?: boolean;
+  class?: string;
+}
+const { height = 22, badge = false, gradient = false, class: cls } = Astro.props;
+const width = Math.round((height * 4136) / 776);
+const gid = `bm-logo-g-${height}`;
+---
+
+{
+  badge ? (
+    <span class:list={['logo-badge', cls]} style={`padding:${Math.round(height * 0.36)}px ${Math.round(height * 0.6)}px`}>
+      <svg width={width} height={height} viewBox={WORDMARK_VIEWBOX} role="img" aria-label="BMarket">
+        <path fill="currentColor" d={WORDMARK_D} />
+      </svg>
+    </span>
+  ) : (
+    <svg class={cls} width={width} height={height} viewBox={WORDMARK_VIEWBOX} role="img" aria-label="BMarket">
+      {gradient && (
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#9d50f5" />
+            <stop offset="0.45" stop-color="#7046ec" />
+            <stop offset="1" stop-color="#0ea5e9" />
+          </linearGradient>
+        </defs>
+      )}
+      <path fill={gradient ? `url(#${gid})` : 'currentColor'} d={WORDMARK_D} />
+    </svg>
+  )
+}
