@@ -150,7 +150,7 @@ const jsonLd = res.kind === 'ok' && !preview ? [
         </div>
 
         <header class="lg:col-start-1">
-          <p class="caps text-brass">Досье №&nbsp;{b.lotNumber}{b.cityName && <> · {[b.cityName, b.areaNote].filter(Boolean).join(', ')}</>}</p>
+          <p class="caps text-brass">Лот №&nbsp;{b.lotNumber}{b.cityName && <> · {[b.cityName, b.areaNote].filter(Boolean).join(', ')}</>}</p>
           <h1 class="serif mt-2 text-[2.1rem] leading-[1.04] sm:text-[2.6rem]">{b.publicTitle}</h1>
           <p class="mt-2 text-hint">
             {[b.cityName, b.areaNote, b.categoryName].filter(Boolean).join(' · ')}

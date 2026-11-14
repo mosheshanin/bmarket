@@ -77,7 +77,7 @@ check('лента городов: только с лотами', /Хайфа <sp
 check('закреплённый лот первым', home.text.indexOf('Кофейня с террасой') < home.text.indexOf('Барбершоп'));
 check('метка «Новое» у свежего лота', home.text.includes('>Новое<'));
 check('цена в USD в списке', /≈ \$\d/.test(home.text));
-check('сетка: по 5 карточек, «Показать ещё»', home.text.includes('data-page-size="5"'));
+check('сетка: по 6 карточек, «Показать ещё»', home.text.includes('data-page-size="6"'));
 check('черновик и снятый не в списке', !home.text.includes('Салон красоты в Нетании') && !home.text.includes('Минимаркет'));
 
 const city = await req('/city/haifa');

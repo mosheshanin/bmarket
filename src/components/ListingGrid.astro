@@ -8,12 +8,12 @@ interface Props {
 }
 const { items, rate } = Astro.props;
 /**
- * Сразу видно 5 карточек, кнопка «Показать ещё» открывает следующие 5 без перезагрузки.
+ * Сразу видно 6 карточек (с 14.11.2026; было 5), кнопка «Показать ещё» открывает следующие 6 без перезагрузки.
  * Все карточки есть в HTML (для поисковиков), лишние скрыты атрибутом hidden.
  * Фильтр «Для вас» (онбординг) прячет карточки классом .hidden и шлёт событие bm:grid-filter —
  * тогда счёт начинается заново по оставшимся карточкам.
  */
-const PAGE = 5;
+const PAGE = 6;
 ---
 
 <div data-grid-wrap>
@@ -49,7 +49,7 @@ const PAGE = 5;
     const grid = wrap.querySelector<HTMLElement>('[data-listing-grid]')!;
     const btn = wrap.querySelector<HTMLButtonElement>('[data-show-more]');
     if (!btn) continue;
-    const size = Number(grid.dataset.pageSize) || 5;
+    const size = Number(grid.dataset.pageSize) || 6;
     const items = [...grid.querySelectorAll<HTMLLIElement>(':scope > li')];
     let shown = size;
     const apply = () => {
