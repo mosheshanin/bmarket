@@ -69,16 +69,21 @@ const ldJson = jsonLd.map((x) => JSON.stringify(x).replace(/</g, '\\u003c'));
           // Анимации — только если не включено «уменьшение движения».
           if (!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) root.classList.add('motion-ok');
           var tg = /tgWebApp/.test(location.hash + location.search) || sessionStorage.getItem('bm_tg') === '1';
-          var calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
           var url = location.search + location.hash;
-          // Заставка — один раз за сессию (вкладка браузера или открытие мини-приложения): с 14.11.2026 и на сайте
-          // (DECISIONS №47). Не в админке, не при «уменьшении движения», не для поисковых роботов и автотестов
-          // (посмотреть в браузере — ?splash=1). Если сейчас будет переход по прямой ссылке (?startapp=lot-…),
-          // заставку покажет страница, на которую ведёт ссылка.
+          // Заставка (DECISIONS №47, №49). В Telegram — один раз при открытии мини-приложения. На сайте — при каждом
+          // входе: новая вкладка, переход с другого сайта или поисковика, ввод адреса, обновление страницы; при переходах
+          // внутри сайта — нет. Не в админке, не для поисковых роботов и автотестов (посмотреть принудительно — ?splash=1).
+          // При «уменьшении движения» — тоже показывается, но без движения (стили в Splash.astro).
+          // Если сейчас будет переход по прямой ссылке (?startapp=lot-…), заставку покажет страница, на которую она ведёт.
           var forced = /[?&]splash=1(&|$)/.test(location.search);
           var robot = navigator.webdriver || /bot|crawl|spider|slurp|lighthouse|headless|preview/i.test(navigator.userAgent);
           var willRedirect = tg && /tgWebAppStartParam=((lot|lead|biz|sell)-\d+|sell)(&|$)/.test(url) && !sessionStorage.getItem('bm_sp');
-          var wantSplash = forced || (!willRedirect && !calm && !robot && !sessionStorage.getItem('bm_splash') && location.pathname.indexOf('/admin') !== 0);
+          var navType = '';
+          try { navType = (performance.getEntriesByType('navigation')[0] || {}).type || ''; } catch (e) {}
+          var fromInside = false;
+          try { fromInside = !!document.referrer && new URL(document.referrer).host === location.host; } catch (e) {}
+          var entry = tg ? !sessionStorage.getItem('bm_splash') : navType === 'reload' || !fromInside;
+          var wantSplash = forced || (!willRedirect && !robot && entry && location.pathname.indexOf('/admin') !== 0);
           if (wantSplash) {
             sessionStorage.setItem('bm_splash', '1');
             root.classList.add('splash-on');

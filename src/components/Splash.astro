@@ -4,8 +4,9 @@
  * Живой градиент фиолетовый → тёмно-синий → голубой (как логотип), размытые пятна, 3D-иконки.
  * «HaifaBusinessClub представляет» → логотип BMarket → число бизнесов и цена «от» → подпись.
  * Уход — круглый вырез из центра (0,7 с), «Пропустить» — сразу (0,45 с).
- * С 14.11.2026 показывается и на сайте, и в Telegram — один раз за сессию (решение — в <head> Layout.astro, класс .splash-on);
- * не в админ-панели, не при «уменьшении движения», не для роботов и автотестов (принудительно — ?splash=1).
+ * Показывается в Telegram (раз за открытие) и на сайте — при каждом входе извне и при обновлении страницы, но не при переходах
+ * внутри сайта (решение — в <head> Layout.astro, класс .splash-on; DECISIONS №49). Не в админ-панели, не для роботов и
+ * автотестов (принудительно — ?splash=1). При «уменьшении движения» — без анимаций, только плавное исчезновение.
  */
 import { catalogSummary } from '../server/public';
 import { db } from '../server/site';
@@ -205,4 +206,12 @@ const icons = [
   @keyframes sp-hole { from { --sp-hole: 0px; } to { --sp-hole: 72vmax; } }
   @keyframes sp-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
   @keyframes sp-exit { to { opacity: 0; transform: scale(1.04); visibility: hidden; } }
+
+  /* «Уменьшение движения»: всё сразу на месте, без дрейфа и покачивания; уход — плавное исчезновение. */
+  @media (prefers-reduced-motion: reduce) {
+    .sp-bg i, .sp-icons img, .sp-in, .sp-logo { animation: none !important; opacity: 1; }
+    .splash-on .bm-splash.sp-reveal { -webkit-mask-image: none; mask-image: none; animation: sp-calm-exit var(--sp-reveal-t, 0.7s) ease forwards; }
+    .sp-reveal .sp-ring { display: none; }
+    @keyframes sp-calm-exit { to { opacity: 0; visibility: hidden; } }
+  }
 </style>
