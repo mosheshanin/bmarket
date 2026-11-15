@@ -1,6 +1,6 @@
 ---
 /**
- * Заставка при открытии — 5 слайдов, ≈11 с (DECISIONS №50; стиль — №47; до 15.11.2026 — один экран ≈3 с).
+ * Заставка при открытии — 5 слайдов, ≈24 с (DECISIONS №50; стиль — №47; до 15.11.2026 — один экран ≈3 с).
  * Живой градиент фиолетовый → тёмно-синий → голубой, размытые пятна (оттенок меняется от слайда к слайду), 3D-иконки.
  *  1. «HaifaBusinessClub представляет» → логотип BMarket            — уход: «пролёт сквозь» (увеличение с размытием)
  *  2. N бизнесов в M городах, города «пилюлями»                       — уход: свайп влево с наклоном
@@ -46,7 +46,7 @@ const icons = [
   { n: 'chart-increasing', x: '76%', y: '72%', s: 64, r: -8, d: 0.8 },
 ];
 // Длительность слайдов, мс (последний — до начала раскрытия).
-const durations = [2600, 2300, 2600, 2300, 1900];
+const durations = [5200, 4600, 5200, 4600, 3800];
 ---
 
 <div id="bm-splash" class="bm-splash" data-s="0" data-durations={durations.join(',')}>
@@ -216,7 +216,7 @@ const durations = [2600, 2300, 2600, 2300, 1900];
         var s = '';
         for (var i = 0; i < len; i++) s += abc[Math.floor(Math.random() * abc.length)];
         node.textContent = s;
-        if (++n > 26 || finished) clearInterval(id);
+        if (++n > 50 || finished) clearInterval(id);
       }, 70);
     }
     function show(i) {
@@ -241,14 +241,14 @@ const durations = [2600, 2300, 2600, 2300, 1900];
       cur++;
       slides[cur].classList.add('in-' + out);
       show(cur);
-      timer = setTimeout(next, durations[cur] || 2200);
+      timer = setTimeout(next, durations[cur] || 4400);
     }
     window.__bmSplashDone = false;
     document.getElementById('bm-splash-skip').addEventListener('click', function (e) { e.stopPropagation(); reveal(450); });
     // Нажатие на экран — следующий слайд.
     el.addEventListener('click', next);
     show(0);
-    timer = setTimeout(next, durations[0] || 2600);
+    timer = setTimeout(next, durations[0] || 5200);
   })();
 </script>
 
@@ -374,7 +374,7 @@ const durations = [2600, 2300, 2600, 2300, 1900];
   .sp-bar-2 { min-width: 140px; }
   .sp-bar em { font-style: normal; font-family: ui-monospace, monospace; font-size: 14px; letter-spacing: 0.08em; color: rgba(255, 255, 255, 0.28); }
   .sp-bar::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(160, 200, 255, 0.45) 50%, transparent 70%); transform: translateX(-100%); }
-  .is-on .sp-bar::after { animation: sp-scan 1.4s ease-in-out 0.5s 2; }
+  .is-on .sp-bar::after { animation: sp-scan 1.4s ease-in-out 0.5s 4; }
   @keyframes sp-scan { to { transform: translateX(100%); } }
 
   .sp-lead {
